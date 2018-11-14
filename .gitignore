@@ -2,4 +2,4 @@
 healthData/vocabularies_repository/*
 
 ## Separate binary files by each medical target
-healthData/1_Mining-Stage//binary_representation/labels_Y1*-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt
+healthData/1_Mining-Stage/binary_representation/labels_Y1*-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt
