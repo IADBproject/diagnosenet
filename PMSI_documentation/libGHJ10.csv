@@ -1,0 +1,279 @@
+GHJ;CMC;Libellé des groupes homogènes de journée
+C001;1;Troubles mentaux organiques, avec isolement, EGF <= 20 
+C002;1;Troubles mentaux organiques, avec isolement, EGF > 20 
+C003;1;Troubles mentaux organiques, avec pathologie somatique lourde
+C004;1;Troubles mentaux organiques, ancienneté du séjour > à 90 jours, EGF <= 20 ou dépendance > 10 
+C005;1;Troubles mentaux organiques, ancienneté du séjour > à 90 jours, EGF > 20 et dépendance <= 10 
+C006;1;"Troubles mentaux organiques avec DP démence de la maladie d’Alzheimer à début précoce, ancienneté du séjour <= 90 jours ; EGF <= 20 et dépendance <= 10"
+C007;1;Troubles mentaux organiques avec DP démence de la maladie d’Alzheimer à début précoce, ancienneté du séjour <= 90 jours, EGF<= 20 et dépendance > 10 .
+C008;1;Troubles mentaux organiques avec DP démence de la maladie d’Alzheimer à début précoce, ancienneté du séjour <= 90 jours, EGF >20 et dépendance <= 10 
+C009;1;"Troubles mentaux organiques avec DP démence de la maladie d’Alzheimer à début précoce, ancienneté du séjour <= 90 jours ; EGF >20 et dépendance > 10 "
+C010;1;Troubles mentaux organiques avec DP démence de la maladie d’Alzheimer autre qu’à début précoce, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10 
+C011;1;Troubles mentaux organiques avec DP démence de la maladie d’Alzheimer autre qu’à début précoce, ancienneté du séjour <= 90 jours, EGF <=20 et dépendance > 10 
+C012;1;Troubles mentaux organiques avec DP démence de la maladie d’Alzheimer autre qu’à début précoce, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <=10 
+C013;1;Troubles mentaux organiques avec DP démence de la maladie d’Alzheimer autre qu’à début précoce, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10 
+C014;1;Troubles mentaux organiques avec DP autres démences organiques que la maladie d’Alzheimer, ancienneté du séjour <=90 jours, EGF <= 20 et dépendance <= 10 
+C015;1;Troubles mentaux organiques avec DP autres démences organiques que la maladie d’Alzheimer, ancienneté du séjour <=90 jours, EGF <= 20 et dépendance > 10 
+C016;1;Troubles mentaux organiques avec DP autres démences organiques que la maladie d’Alzheimer, ancienneté du séjour <=90 jours, EGF > 20, dépendance <= 10 
+C017;1;Troubles mentaux organiques avec DP autres démences organiques que la maladie d’Alzheimer, ancienneté du séjour <=90 jours, EGF > 20 et dépendance > 10 
+C018;1;Troubles mentaux organiques avec DP autres troubles mentaux organiques, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10 
+C019;1;"Troubles mentaux organiques avec DP autres troubles mentaux organiques ; ancienneté du séjour <= 90 jours, EGF <= 20, dépendance > 10 "
+C020;1;"Troubles mentaux organiques avec DP autres troubles mentaux organiques ; ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10 "
+C021;1;"Troubles mentaux organiques avec DP autres troubles mentaux organiques ; ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10 "
+P001;1;Troubles mentaux organiques pris en charge en journée complète, EGF<= 36, adulte <=69 ans 
+P002;1;Troubles mentaux organiques pris en charge en journée complète, EGF > 36, adulte <= 69 ans 
+P003;1;Troubles mentaux organiques pris en charge en journée complète, adulte > 69 ans 
+P004;1;"Troubles mentaux organiques pris en charge en demi-journée ; adulte "
+C030;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec isolement, EGF <= 20 
+C031;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec isolement, EGF > 20 
+C032;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec pathologie somatique lourde 
+C033;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, ancienneté du séjour > 90 jours, EGF <= 20 ou dépendance > 10 
+C034;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, ancienneté du séjour >90 jours, EGF > 20 et dépendance <= 10 
+C035;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec DP intoxication aigüe liée à l’alcool ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <=10 
+C036;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec DP intoxication aigüe liée à l’alcool, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance >10 
+C037;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec DP intoxication aigüe liée à l’alcool ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <=10 
+C038;2;"Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec DP intoxication aigüe liée à l’alcool ancienneté du séjour <=90 jours, EGF > 20 et dépendance >10 ; "
+C039;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec DP intoxication aigüe liée à d’autres substance que l’alcool, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <=10 
+C040;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec DP intoxication aigüe liée à d’autres substance que l’alcool, ancienneté du séjour <=90 jours, EGF <= 20 et dépendance > 10 
+C041;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec DP intoxication aigüe liée à d’autres substance que l’alcool, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <=10 
+C042;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec DP intoxication aigüe liée à d’autres substance que l’alcool, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10 
+C043;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec DP autre que intoxication aiguë, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <=10 
+C044;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec DP autre que intoxication aiguë, ancienneté du séjour <=90 jours, EGF <= 20 et dépendance > 10 
+C045;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec DP autre que intoxication aiguë, ancienneté du séjour <=90 jours, EGF > 20 et dépendance <= 10 
+C046;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, avec DP autre que intoxication aiguë, ancienneté du séjour <=90 jours, EGF>20 et dépendance > 10 
+P030;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, pris en charge en journée complète EGF <= 36, adulte <= 69 ans02
+P031;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, pris en charge en journée complète, EGF > 36, adulte <= 69 ans02
+P032;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, pris en charge en journée complète, adulte > 69 ans02
+P033;2;Troubles mentaux et du comportement liés à l’utilisation de substances psycho-actives, pris en charge en demi-journée, adulte 
+C060;3;Schizophrénies, troubles schizotypiques et troubles délirants, avec isolement, EGF<= 20 
+C061;3;Schizophrénies, troubles schizotypiques et troubles délirants, avec isolement, EGF> 20 
+C062;3;Schizophrénies, troubles schizotypiques et troubles délirants, avec pathologie somatique lourde 
+C063;3;"Schizophrénies, troubles schizotypiques et troubles délirants, ancienneté du séjour > 90 jours ; EGF <= 20 ou dépendance >10"
+C064;3;"Schizophrénies, troubles schizotypiques et troubles délirants, ancienneté du séjour > 90 jours ; EGF > 20 et dépendance <= 10, adulte"
+C065;3;"Schizophrénies, troubles schizotypiques et troubles délirants, ancienneté du séjour <= 90 jours ; EGF <= 20 et dépendance <= 10"
+C066;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP sz, ancienneté du séjour <= 90 jours ; EGF <= 20 et dépendance > 10"
+C067;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP sz, ancienneté du séjour <= 90 jours ; EGF > 20 et dépendance <= 10"
+C068;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP sz, ancienneté du séjour <= 90 jours ; EGF > 20 et dépendance > 10"
+C069;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP troubles psychotiques aigus et transitoires, ancienneté du séjour <= 90 jours ; EGF <= 20 et dépendance <= 10"
+C070;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP troubles psychotiques aigus et transitoires, ancienneté du séjour <= 90 jours ; EGF <= 20 et dépendance > 10"
+C071;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP troubles psychotiques aigus et transitoires, ancienneté du séjour <= 90 jours ; EGF > 20 et dépendance <= 10"
+C072;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP troubles psychotiques aigus et transitoires, ancienneté du séjour <= 90 jours ; EGF > 20 et dépendance > 10"
+C073;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP troubles schizo affectifs, ancienneté du séjour <= 90 jours ; EGF <= 20 et dépendance <= 10"
+C074;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP troubles schizo affectifs, ancienneté du séjour <= 90 jours ; EGF <= 20 et dépendance > 10"
+C075;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP troubles schizo affectifs, ancienneté du séjour <= 90 jours ; EGF > 20 et dépendance <= 10"
+C076;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP troubles schizo affectifs, ancienneté du séjour <= 90 jours ; EGF > 20 et dépendance > 10"
+C077;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP autres schizophrénies, ancienneté du séjour <= 90 jours ; EGF <= 20 et dépendance <= 10"
+C078;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP autres schizophrénies, ancienneté du séjour <= 90 jours ; EGF <= 20 et dépendance > 10"
+C079;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP autres schizophrénies, ancienneté du séjour <= 90 jours ; EGF > 20 et dépendance <= 10"
+C080;3;"Schizophrénies, troubles schizotypiques et troubles délirants avec DP autres schizophrénies, ancienneté du séjour <= 90 jours ; EGF > 20 et dépendance physique > 10"
+P060;3;Schizophrénies, troubles schizotypiques et troubles délirants, , pris en charge en journée complète, EGF<= 36, adulte <=69 ans03
+P061;3;Schizophrénies, troubles schizotypiques et troubles délirants, , pris en charge en journée complète, EGF > 36, adulte <=69 ans03
+P062;3;Schizophrénies, troubles schizotypiques et troubles délirants, , pris en charge en journée complète, adulte > 69 ans03
+P063;3;Schizophrénies, troubles schizotypiques et troubles délirants, , pris en charge en demi-journée, adulte 
+C090;4;Troubles de l’humeur, avec isolement, EGF<= 20 
+C091;4;Troubles de l’humeur, avec isolement, EGF> 20 
+C092;4;Troubles de l’humeur, avec pathologie somatique lourde
+C093;4;Troubles de l’humeur, ancienneté du séjour > 90, EGF <= 2004ou dépendance > 10 
+C094;4;Troubles de l’humeur, ancienneté du séjour > 90, EGF > 2004et dépendance <= 10 
+C095;4;Troubles de l’humeur avec DP trouble affectif bipolaire, épisode maniaque ou hypomaniaque, ancienneté du séjour <= 90 jours, EGF <= 2004et dépendance <= 10 
+C096;4;Troubles de l’humeur avec DP trouble affectif bipolaire, épisode maniaque ou hypomaniaque, ancienneté du séjour <= 90 jours, EGF <= 2004et dépendance > 10 
+C097;4;Troubles de l’humeur avec DP trouble affectif bipolaire, épisode maniaque ou hypomaniaque, ancienneté du séjour <= 90 jours, EGF > 2004et dépendance <= 10 
+C098;4;Troubles de l’humeur avec DP trouble affectif bipolaire, épisode maniaque ou hypomaniaque, ancienneté du séjour <= 90 jours, EGF > 2004et dépendance > 10 
+C099;4;Troubles de l’humeur avec DP trouble affectif bipolaire autre, ancienneté du séjour <= 90 jours, EGF <= 20 , dépendance <= 10 
+C100;4;Troubles de l’humeur avec DP trouble affectif bipolaire autre, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10 
+C101;4;Troubles de l’humeur avec DP trouble affectif bipolaire autre, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10 
+C102;4;Troubles de l’humeur avec DP trouble affectif bipolaire autre, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance >10 
+C103;4;Troubles de l’humeur avec DP épisode maniaque, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10 
+C104;4;Troubles de l’humeur avec DP épisode maniaque, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10 
+C105;4;Troubles de l’humeur avec DP épisode maniaque, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10 
+C106;4;"Troubles de l’humeur avec DP épisode maniaque, ancienneté <= 90 jours, EGF > 20 , dépendance > 10 ; adulte"
+C107;4;Troubles de l’humeur avec DP épisode dépressif, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10 
+C108;4;Troubles de l’humeur avec DP épisode dépressif, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10 
+C109;4;Troubles de l’humeur avec DP épisode dépressif, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10 
+C110;4;Troubles de l’humeur avec DP épisode dépressif, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10 
+C111;4;Troubles de l’humeur avec DP troubles de l’humeur autres, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10 
+C112;4;Troubles de l’humeur avec DP troubles de l’humeur autres, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10 
+C113;4;Troubles de l’humeur avec DP troubles de l’humeur autres, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10 
+C114;4;Troubles de l’humeur avec DP troubles de l’humeur autres, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10 
+P090;4;Troubles de l’humeur, pris en charge en journée complète, EGF<= 36, adulte <=69 ans04
+P091;4;Troubles de l’humeur, pris en charge en journée complète, EGF> 36, adulte <=69 ans04
+P092;4;Troubles de l’humeur, pris en charge en journée complète, adulte > 69 ans04
+P093;4;Troubles de l’humeur, pris en charge en demi-journée, adulte 
+C120;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes, avec isolement, EGF<= 20 
+C121;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes, avec isolement, EGF> 20 
+C122;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes, avec pathologie somatique lourde 
+C123;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes, ancienneté du séjour > 90 jours, EGF <= 20 ou dépendance >10 
+C124;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes, ancienneté du séjour > 90 jours, EGF > 20 et dépendance <=10 
+C125;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP tout type de trouble de l’humeur, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10 
+C126;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP tout type de trouble de l’humeur, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10 
+C127;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP tout type de trouble de l’humeur, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10 
+C128;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP tout type de trouble de l’humeur, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10 
+C129;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP troubles anxieux phobiques, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10 
+C130;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP troubles anxieux phobiques, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10 
+C131;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP troubles anxieux phobiques, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10 
+C132;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP troubles anxieux phobiques, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10 
+C133;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP troubles anxieux phobiques, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10 
+C134;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP autres troubles anxieux, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10 
+C135;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP autres troubles anxieux, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10 
+C136;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP autres troubles anxieux, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10 
+C137;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP autres troubles anxieux, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10 
+C138;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP troubles obsessionnels compulsifs, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10 
+C139;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP troubles obsessionnels compulsifs, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10 
+C140;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP troubles obsessionnels compulsifs, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10 
+C141;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP réaction à un facteur de stress important et troubles de l’adaptation, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10 
+C142;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP réaction à un facteur de stress important et troubles de l’adaptation, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10 
+C143;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP réaction à un facteur de stress important et troubles de l’adaptation, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10 
+C144;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP réaction à un facteur de stress important et troubles de l’adaptation, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10 
+C145;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP troubles dissociatifs, somatoformes et autres troubles névrotiques, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10 
+C146;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP troubles dissociatifs, somatoformes et autres troubles névrotiques, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10 
+C147;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP troubles dissociatifs, somatoformes et autres troubles névrotiques, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10 
+C148;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes avec DP troubles dissociatifs, somatoformes et autres troubles névrotiques, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10 
+P120;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes, pris en charge en journée complète, EGF<= 36, adulte <=69 ans05
+P121;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes, pris en charge en journée complète, EGF > 36, adulte <=69 ans05
+P122;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes, pris en charge en journée complète, EGF > 36, adulte > 69 ans05
+P123;5;Troubles névrotiques, troubles liés à des facteurs de stress et troubles somatoformes, pris en charge en demi-journée, adulte 
+C160;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques, avec isolement, EGF<= 20 
+C161;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques, avec isolement, EGF> 20 
+C162;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques, avec pathologie somatique lourde
+C163;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques, ancienneté du séjour > 90 jours, EGF <= 20 ou dépendance > 10
+C164;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques, ancienneté du séjour > 90 jours, EGF > 20 et dépendance <= 10
+C165;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques avec DP troubles de l’alimentation, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C166;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques avec DP troubles de l’alimentation, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C167;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques avec DP troubles de l’alimentation, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C168;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques avec DP troubles de l’alimentation, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+C169;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques avec DP autres syndromes comportementaux associés à des perturbations psychologiques et à des facteurs physiques, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C170;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques avec DP autres syndromes comportementaux associés à des perturbations psychologiques et à des facteurs physiques, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C171;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques avec DP autres syndromes comportementaux associés à des perturbations psychologiques et à des facteurs physiques, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C172;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques avec DP autres syndromes comportementaux associés à des perturbations psychologiques et à des facteurs physiques, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+P160;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques, pris en charge en journée complète, EGF<= 36, adulte <=69 ans06
+P161;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques, pris en charge en journée complète, EGF> 36, adulte <=69 ans06
+P162;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques, pris en charge en journée complète, adulte > 69 ans06
+P163;6;Syndromes comportementaux associés à des perturbations physiologiques et à des facteurs physiques, pris en charge en demi-journée, adulte 
+C180;7;Troubles de la personnalité et du comportement chez l’adulte, avec isolement, EGF<= 20 
+C181;7;Troubles de la personnalité et du comportement chez l’adulte, avec isolement, EGF> 20 
+C182;7;Troubles de la personnalité et du comportement chez l’adulte, avec pathologie somatique lourde
+C183;7;Troubles de la personnalité et du comportement chez l’adulte, ancienneté du séjour > 90, EGF <= 20 ou dépendance > 10
+C184;7;Troubles de la personnalité et du comportement chez l’adulte, ancienneté du séjour > 90, EGF > 20 et dépendance <= 10
+C185;7;Troubles de la personnalité et du comportement chez l’adulte avec DP troubles spécifiques de la personnalité, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C186;7;Troubles de la personnalité et du comportement chez l’adulte avec DP troubles spécifiques de la personnalité, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C187;7;Troubles de la personnalité et du comportement chez l’adulte avec DP troubles spécifiques de la personnalité, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C188;7;Troubles de la personnalité et du comportement chez l’adulte avec DP troubles spécifiques de la personnalité, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+C189;7;Troubles de la personnalité et du comportement chez l’adulte avec DP troubles des habitudes et des impulsions, troubles de l’identité, de la préférence ou du développement sexuel, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C190;7;Troubles de la personnalité et du comportement chez l’adulte avec DP troubles des habitudes et des impulsions, troubles de l’identité, de la préférence ou du développement sexuel, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C191;7;Troubles de la personnalité et du comportement chez l’adulte avec DP troubles des habitudes et des impulsions, troubles de l’identité, de la préférence ou du développement sexuel, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C192;7;Troubles de la personnalité et du comportement chez l’adulte avec DP troubles des habitudes et des impulsions, troubles de l’identité, de la préférence ou du développement sexuel, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+C193;7;Troubles de la personnalité et du comportement chez l’adulte avec DP autres troubles de la personnalité et du comportement, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C194;7;Troubles de la personnalité et du comportement chez l’adulte avec DP autres troubles de la personnalité et du comportement, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C195;7;Troubles de la personnalité et du comportement chez l’adulte avec DP autres troubles de la personnalité et du comportement, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C196;7;Troubles de la personnalité et du comportement chez l’adulte avec DP autres troubles de la personnalité et du comportement, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+P180;7;Troubles de la personnalité et du comportement chez l’adulte, pris en charge en journée complète, EGF<= 36, adulte <=69 ans07
+P181;7;Troubles de la personnalité et du comportement chez l’adulte, pris en charge en journée complète, EGF> 36, adulte <=69 ans07
+P182;7;Troubles de la personnalité et du comportement chez l’adulte, adulte > 69 ans07
+P183;7;Troubles de la personnalité et du comportement chez l’adulte, pris en charge en demi-journée, adulte 
+C210;8;Retard mental, avec isolement, EGF<= 20 
+C211;8;Retard mental, avec isolement, EGF> 20 
+C212;8;Retard mental, avec pathologie somatique lourde
+C213;8;Retard mental, ancienneté du séjour > 90 jours, EGF <= 20 ou dépendance > 10
+C214;8;Retard mental, ancienneté du séjour > 90 jours, EGF > 20 et dépendance <= 10
+C215;8;Retard mental avec DP retard mental léger, moyen avec absence de troubles, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C216;8;Retard mental avec DP retard mental léger, moyen avec absence de troubles, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C217;8;Retard mental avec DP retard mental léger, moyen avec absence de troubles, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C218;8;Retard mental avec DP retard mental léger, moyen avec absence de troubles, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+C219;8;Retard mental avec DP retard mental léger, moyen avec troubles du comportement significatifs, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C220;8;Retard mental avec DP retard mental léger, moyen avec absence de troubles, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C221;8;Retard mental avec DP retard mental léger, moyen avec absence de troubles, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C222;8;Retard mental avec DP retard mental léger, moyen avec absence de troubles, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+C223;8;Retard mental avec DP retard mental grave profond, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C224;8;Retard mental avec DP retard mental grave profond, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C225;8;Retard mental avec DP retard mental grave profond, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C226;8;Retard mental avec DP retard mental grave profond, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+C227;8;Retard mental avec DP autres formes de retard mental ou sans précision, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C228;8;Retard mental avec DP autres formes de retard mental ou sans précision, ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C229;8;Retard mental avec DP autres formes de retard mental ou sans précision, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C230;8;Retard mental avec DP autres formes de retard mental ou sans précision, ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+P210;8;Retard mental, pris en charge en journée complète, EGF<= 36, adulte 
+P211;8;Retard mental, pris en charge en journée complète, EGF> 36, adulte 
+P212;8;Retard mental, pris en charge en demi-journée, adulte
+C240;9;Troubles du développement psychologique autre que troubles envahissants du développement
+C241;9;Troubles du développement psychologique, avec DP troubles envahissants du développement, avec isolement, EGF <= 20
+C242;9;Troubles du développement psychologique, avec DP troubles envahissants du développement, avec isolement, EGF > 20
+C243;9;Troubles du développement psychologique, avec DP troubles envahissants du développement, avec pathologie somatique lourde
+C244;9;Troubles du développement psychologique, avec DP troubles envahissants du développement, dépendance <= 10 et EGF <= 20
+C245;9;Troubles du développement psychologique, avec DP troubles envahissants du développement, dépendance <= 10 et EGF > 20
+C246;9;Troubles du développement psychologique, avec DP troubles envahissants du développement, dépendance >10 et EGF <= 20
+C247;9;Troubles du développement psychologique, avec DP troubles envahissants du développement, dépendance >10 et EGF > 20
+P240;9;Troubles du développement psychologique, pris en charge en journée complète, EGF <= 36, 
+P241;9;Troubles du développement psychologique, pris en charge en journée complète, EGF > 36, 
+P242;9;Troubles du développement psychologique avec DP troubles envahissants du comportement, pris en charge en demi-journée 
+P243;9;Troubles du développement psychologique, pris en charge en demi-journée 
+C260;10;Troubles du comportement et troubles émotionnels apparaissant habituellement durant l’enfance et l’adolescence, ancienneté du séjour > 180 jours
+C261;10;Troubles du comportement et troubles émotionnels apparaissant habituellement durant l’enfance et l’adolescence, ancienneté du séjour <= 180 jours
+P260;10;Troubles du comportement et troubles émotionnels apparaissant habituellement durant l’enfance et l’adolescence, pris en charge en journée complète, EGF <= 36, 
+P261;10;Troubles du comportement et troubles émotionnels apparaissant habituellement durant l’enfance et l’adolescence, pris en charge en journée complète, EGF > 36, 
+P262;10;Troubles du comportement et troubles émotionnels apparaissant habituellement durant l’enfance et l’adolescence, pris en charge en demi-journée 
+C270;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement, avec isolement, EGF<= 20 
+C271;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement, avec isolement, EGF> 20 
+C272;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement, avec pathologie somatique lourde
+C273;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement, ancienneté du séjour > 90 jours, EGF <= 20 ou dépendance > 10
+C274;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement, ancienneté du séjour > 90 jours, EGF > 20 et dépendance <= 10
+C275;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (intoxications aiguës et tout type de trouble de l’humeur), ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C276;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (intoxications aiguës et tout type de trouble de l’humeur), ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C277;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (intoxications aiguës et tout type de trouble de l’humeur), ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C278;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (intoxications aiguës et tout type de trouble de l’humeur), ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+C279;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (intoxications aiguës et tout type de trouble de la personnalité et du comportement), ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C280;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (intoxications aiguës et tout type de trouble de la personnalité et du comportement), ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C281;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (intoxications aiguës et tout type de trouble de la personnalité et du comportement), ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C282;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (intoxications aiguës et tout type de trouble de la personnalité et du comportement), ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+C283;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (autres troubles mentaux organiques11et tout type de trouble de l’humeur), ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C284;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (autres troubles mentaux organiques11et tout type de trouble de l’humeur), ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C285;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (autres troubles mentaux organiques11et tout type de trouble de l’humeur), ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C286;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (autres troubles mentaux organiques » et tout type de trouble de l’humeur), ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+C287;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (autres troubles mentaux organiques11et tout type de trouble de la personnalité et du comportement), ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance <= 10
+C288;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (autres troubles mentaux organiques11et tout type de trouble de la personnalité et du comportement), ancienneté du séjour <= 90 jours, EGF <= 20 et dépendance > 10
+C289;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (autres troubles mentaux organiques » et tout type de trouble de la personnalité et du comportement), ancienneté du séjour <= 90 jours, EGF > 20 et dépendance <= 10
+C290;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement (autres troubles mentaux organiques11et tout type de trouble de la personnalité et du comportement), ancienneté du séjour <= 90 jours, EGF > 20 et dépendance > 10
+P270;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement, pris en charge en journée complète, EGF<= 36, adulte <= 69
+P271;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement, pris en charge en journée complète, EGF> 36, adulte <= 69
+P272;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement, pris en charge en journée, adulte >69
+P273;11;Troubles mentaux liés à l’utilisation d’une substance associés à des troubles de l’humeur, de la personnalité ou du comportement, pris en charge en demi-journée, adulte 
+C300;12;Examen général et investigation sans diagnostic, adulte
+P300;12;Examen général et investigation sans diagnostic, adulte
+C310;13;Symptômes, signes et résultats anormaux d’examen clinique ou de laboratoire, nca, adulte
+P310;13;Symptômes, signes et résultats anormaux d’examen clinique ou de laboratoire, nca, adulte
+C320;14;Trouble mental sans autre indication, adulte
+P320;14;Trouble mental sans autre indication, adulte
+C330;15;Hospitalisation des enfants de 3 ans et moins
+P330;15;Prise en charge sur une journée d’un enfant <= 3 ans
+C340;16;Hospitalisation des enfants >3, <= 11, avec pathologie somatique lourde 
+C341;16;Hospitalisation des enfants >3, <= 11, ancienneté > 90, EGF <= 20 ou dépendance > 10 
+C342;16;Hospitalisation des enfants >3, <= 11, ancienneté > 90, EGF > 20 et dépendance <= 10 
+C343;16;Hospitalisation des enfants >3, <= 11, ancienneté <= 90, EGF <= 20 et dépendance <= 10 
+C344;16;Hospitalisation des enfants >3, <= 11, ancienneté <= 90, EGF <= 20 et dépendance > 10 
+C345;16;Hospitalisation des enfants >3, <= 11, ancienneté <= 90, EGF > 20 et dépendance <= 10 
+C346;16;Hospitalisation des enfants >3, <= 11, ancienneté <= 90, EGF > 20 et dépendance > 10 
+P340;16;Prise en charge sur une journée des enfants >3, <= 11, non scolarisé ou scolarisé en établissement de soins
+P341;16;Prise en charge sur une journée des enfants >3, <= 11, scolarisé en établissement spécialisé, dépendance <= 4
+P342;16;Prise en charge sur une journée des enfants >3, <= 11, scolarisé en établissement spécialisé, dépendance > 4
+P343;16;Prise en charge sur une demi-journée des enfants >3, <= 11, dépendance <= 4
+P344;16;Prise en charge sur une demi-journée des enfants >3, <= 11, dépendance > 4, EGF <= 36
+P345;16;Prise en charge sur une demi-journée des enfants >3, <= 11, dépendance > 4, EGF > 36
+C375;17;Hospitalisation des enfants >11, <= 19, avec pathologie somatique lourde 
+C376;17;Hospitalisation des enfants >11, <= 19, ancienneté > 90, EGF <= 20 ou dépendance >10
+C377;17;Hospitalisation des enfants >11, <= 19, ancienneté > 90, EGF > 20 et dépendance <= 10
+C378;17;Hospitalisation des enfants >11, <= 19, ancienneté <= 90, EGF <= 20 et dépendance <= 10
+C379;17;Hospitalisation des enfants >11, <= 19, ancienneté <= 90, EGF <= 20 et dépendance > 10
+C380;17;Hospitalisation des enfants >11, <= 19, ancienneté <= 90, EGF > 20 et dépendance <= 10
+C381;17;Hospitalisation des enfants >11, <= 19, ancienneté <= 90, EGF > 20 et dépendance > 10
+P375;17;Prise en charge sur une journée des enfants >11, <= 19, non scolarisé ou scolarisé en établissement de soins
+P376;17;Prise en charge sur une journée des enfants >11, <= 19, scolarisé en établissement spécialisé ou en scolarité ordinaire
+P377;17;Prise en charge sur une journée des enfants >11, <= 19, non concernés par les items des situations scolaires
+P378;17;Prise en charge sur une demi-journée des enfants >11, <= 19, dépendance <= 4
+P379;17;Prise en charge sur une demi-journée des enfants >11, <= 19, dépendance > 4, EGF <= 36
+P380;17;Prise en charge sur une demi-journée des enfants >11, <= 19, dépendance > 4, EGF > 36
+C410;18;Patient pris en charge en centre de crise ou en centre d’accueil permanent
+C411;18;Patient pris en charge en appartement thérapeutique
+C412;18;Patient pris en charge en centre de post-cure
+C413;18;Patient pris en charge en accueil familial thérapeutique
+C414;18;Patient pris en charge en séjour thérapeutique
+C415;18;Patient pris en charge en hospitalisation à domicile
+P410;18;Patient pris en charge en hospitalisation de nuit
