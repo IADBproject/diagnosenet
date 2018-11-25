@@ -11,3 +11,13 @@ The Package provides three high-level features:
 2. A multi-platform training DNN model: This module integrates a data and resource manager for training the DNN model, over: CPU-GPU desktop machines, on multi-GPU nodes or in the embedded computation cluster of Jetson TX2.
 
 3. An energy-monitoring tool for workload characterization: This module deploys an energy monitor to collect the energy consumption metrics while the DNN model is executed on the target platform for analyzing the balance between accuracy and energy consumption.
+
+
+--------------------------------------------------------------------------------
+## DiagnoseNET Dependencies ##
+DiagnoseNET is building on Ubuntu 16.04, with CUDA 8.0 support, cuDNN v6 for Python 3.6.
+As main dependencies install:
+```bash
+pip3 install numpy
+pip3 install tensorflow-gpu==1.4.1
+```
