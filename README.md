@@ -13,7 +13,6 @@ The Package provides three high-level features:
 3. An energy-monitoring tool for workload characterization: This module deploys an energy monitor to collect the energy consumption metrics while the DNN model is executed on the target platform for analyzing the balance between accuracy and energy consumption.
 
 
---------------------------------------------------------------------------------
 ## DiagnoseNET Dependencies ##
 DiagnoseNET is building on Ubuntu 16.04, with CUDA 8.0 support, cuDNN v6 for Python 3.6.
 As main dependencies install:
