@@ -6,6 +6,8 @@ from typing import Sequence
 
 import tensorflow as tf 
 import numpy as np
+import logging
+logger = logging.getLogger('_DiagnoseNET_')
 
 class DesktopExecution:
     """
@@ -37,7 +39,7 @@ class DesktopExecution:
                                     feed_dict={self.model.X: batch_x, self.model.Y: batch_y})
                 
                 if epoch % 10 == 0:
-                    print("Epoch {} | Training loss: {}".format(epoch, loss))
+                    logger.info("Epoch {} | Training loss: {}".format(epoch, loss))
                 epoch = epoch + 1
                                                             
             return projection
