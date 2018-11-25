@@ -1,6 +1,6 @@
 """
 Example to use the DiagnoseNET Framework
-for training a MLP on a desktop machine
+for training a feedforward network on a desktop machine
 """
 
 import numpy as np
@@ -24,12 +24,12 @@ targets = np.array([[1, 0], [0, 1], [0, 1], [1, 0],
 
 #####################################################################
 ## A simple feedforward network is implemented to solve a XOR example
-## 1) Define the stacked layers
+## 1) Define the stacked layers as the number of layers and their neurons
 staked_layers = [Relu(2, 32),
                 Relu(32, 32),
                 Softmax(32, 2)]
 
-## 2) Select the neural network architecture
+## 2) Select the neural network architecture and pass the hyper-parameters
 model = MLP(input_size=2, output_size=2,
             layers=staked_layers,
             loss=CrossEntropy,
