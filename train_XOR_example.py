@@ -1,5 +1,5 @@
 """
-Example to use the DiagnoseNET Framework
+Example to use DiagnoseNET Framework
 for training a feedforward network on a desktop machine.
 
 A XOR example is defined by:    Entries      its  Output
