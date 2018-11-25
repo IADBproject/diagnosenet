@@ -1,6 +1,10 @@
 """
 Example to use the DiagnoseNET Framework
-for training a feedforward network on a desktop machine
+for training a feedforward network on a desktop machine.
+
+A XOR example is defined by:    Entries      its  Output
+                            [0, 0] or [1, 1]  ->   [1, 0]
+                            [0, 1] or [1, 0]  ->   [0, 1]
 """
 
 import numpy as np
@@ -13,17 +17,13 @@ from diagnosenet.executors import DesktopExecution
 
 
 #####################################################################
-## A XOR example is defined by:    Entries      its  Output
-##                            [0, 0] or [1, 1]  ->   [1, 0]
-##                            [0, 1] or [1, 0]  ->   [0, 1]
+## A simple feedforward network is implemented to solve a XOR example
+
 inputs = np.array([[0, 0], [1, 0], [0, 1], [1, 1],
                    [0, 0], [1, 0], [0, 1], [1, 1]])
 targets = np.array([[1, 0], [0, 1], [0, 1], [1, 0],
                     [1, 0], [0, 1], [0, 1], [1, 0]])
 
-
-#####################################################################
-## A simple feedforward network is implemented to solve a XOR example
 ## 1) Define the stacked layers as the number of layers and their neurons
 staked_layers = [Relu(2, 32),
                 Relu(32, 32),
