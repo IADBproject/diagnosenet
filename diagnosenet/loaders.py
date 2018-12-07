@@ -3,13 +3,13 @@ I/O functions
 Module that cotains a loader functions to be use over diagnosenet modules.
 """
 
-from typing import NamedTuple
+import collections
 
 import os, pickle
 import numpy as np
 import pandas as pd
 
-DataSplit = NamedTuple("DataSplit", [("X", list), ("y", list)])
+DataSplit = collections.namedtuple('DataSplit', 'name inputs targets')
 
 class Loaders:
     """
@@ -38,20 +38,20 @@ class Loaders:
 
     def _write_batches(self, path: str, data: DataSplit,
                         batch_size: int, dataset_name: str,) -> None:
-        X, y = data
         filename = 1
-        for i in range(len(data[0])):
+        for i in range(data.inputs.shape[0]):
             if i % batch_size == 0:
                 X_file = str(path+"X-"+dataset_name+"-"+str(filename)+'.txt')
                 y_file = str(path+"y-"+dataset_name+"-"+str(filename)+'.txt')
 
-                if os.path.isfile(X_file) == False:
-                    open(X_file, 'w+').writelines(X[i:i+batch_size])
+                if os.path.exists(X_file) == False:
+                    open(X_file, 'w+').writelines("%s\n" % l for l in data.inputs[i:i+batch_size])
                 else:
                     pass
                     # print("Can't overwrite the file: {} ".format(X_file))
-                if os.path.isfile(y_file) == False:
-                    open(y_file, 'w+').writelines(y[i:i+batch_size])
+                if os.path.exists(y_file) == False:
+                    open(y_file, 'w+').writelines("%s\n" % l for l in data.targets[i:i+batch_size])
                 else:
                     pass
+
                 filename += 1

@@ -3,7 +3,8 @@ Data manager its adjusted for training a medical diagnostic workflow inside the 
 It provides an isolation to fine-tuning different neural network hyper-parameters.
 """
 
-from typing import NamedTuple
+import collections
+from typing import Iterator, NamedTuple
 
 import glob, os.path
 import numpy as np
@@ -14,6 +15,9 @@ from diagnosenet.loaders import Loaders
 
 import logging
 logger = logging.getLogger('_DiagnoseNET_')
+
+DataSplit = collections.namedtuple('DataSplit', 'name inputs targets')
+Batch = NamedTuple("Batch", [("inputs", np.ndarray), ("targets", np.ndarray)])
 
 class Dataset:
     """
@@ -27,6 +31,10 @@ class Dataset:
         self.dataset_path: str
         self.inputs_name: str
         self.labels_name: str
+
+        self.train: DataSplit
+        self.valid: DataSplit
+        self.test: DataSplit
 
     def set_data_file(self, inputs: np.ndarray, targets: np.ndarray) -> None:
         """
@@ -87,11 +95,17 @@ class Dataset:
         X_train, X_temp, y_train, y_temp = train_test_split(self.inputs, self.targets, test_size=prop1)
         X_valid, X_test, y_valid, y_test = train_test_split(X_temp,y_temp, test_size=prop2)
 
+        ## DataSplit instances
+        self.train = DataSplit(name='train', inputs=X_train, targets=y_train)
+        self.valid = DataSplit(name='valid', inputs=X_valid, targets=y_valid)
+        self.test = DataSplit(name='test', inputs=X_test, targets=y_test)
+
         logger.info('---------------------------------------------------------')
-        logger.info('++ Dataset Split ++')
-        logger.info('-- Train records:  {} | {} --'.format(len(X_train), len(y_train)))
-        logger.info('-- Valid records:  {} | {} --'.format(len(X_valid), len(y_valid)))
-        logger.info('-- Test records:   {} | {} --'.format(len(X_test), len(y_test)))
+        logger.info('++ Dataset Split:      Inputs | Targets ++')
+        logger.info('-- Train records:  {} | {} --'.format(self.train.inputs.shape, self.train.targets.shape))
+        logger.info('-- Valid records:  {} | {} --'.format(self.valid.inputs.shape, self.valid.targets.shape))
+        logger.info('-- Test records:   {} | {} --'.format(self.test.inputs.shape, self.test.targets.shape))
+
 
 
 class Batching(Dataset):
@@ -99,32 +113,41 @@ class Batching(Dataset):
     Write micro-batches by a size split factor
     for each part of the data, Training, Valid, Test
     """
-    
+
     def __init__(self):
         super().__init__()
 
-    def memory_batching(self, batch_size: int = 1000, shuffle: bool = True) -> None:
+
+    def batching(self, data: DataSplit) -> Iterator[Batch]:
+        """
+        """
+        batch_index = np.arange(0, len(data.inputs), self.batch_size)
+        if self.shuffle:
+            np.random.shuffle(batch_index)
+        for start in batch_index:
+            end = start + self.batch_size
+            batch_inputs = data.inputs[start:end]
+            batch_targets = data.targets[start:end]
+            yield Batch(batch_inputs, batch_targets)
+
+
+    def memory_batching(self, batch_size: int = 1000, shuffle: bool = True,
+                    valid: float = None, test: float = None) -> Iterator[Batch]:
+        """
+        """
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.dataset_split(valid, test)
+        train_batches = self.batching(self.train)
+        valid_batches = self.batching(self.valid)
+        test_batches = self.batching(self.test)
+        return train_batches, valid_batches, test_batches
 
-        # ## Conver matrix list to np.array
-        self.X_train = pd.DataFrame(self.X_train)
-        self.X_train = self.X_train[0].str.split(',').tolist()
-        self.y_train = pd.DataFrame(self.y_train)
-        self.y_train = self.y_train[0].str.split(',').tolist()
 
-        train_starts = np.arange(0, len(self.X_train), self.batch_size)
-        if self.shuffle:
-            np.random.shuffle(train_starts)
-
-        for start in train_starts:
-            end = start + self.batch_size
-            batch_inputs = np.asarray(self.X_train)[start:end]
-            batch_targets = np.asarray(self.y_train)[start:end]
-            yield DataSplit(batch_inputs, batch_targets)
-
-    def disk_batching(self, batch_size: int) -> None:
+    def disk_batching(self, batch_size: int,
+                        valid: float = None, test: float = None) -> None:
         self.batch_size = batch_size
+        self.dataset_split(valid, test)
 
         ## Defining split directories
         self.split_path = str(self.sandbox+"/2_Split_Point-"+str(batch_size))
@@ -133,19 +156,14 @@ class Batching(Dataset):
         test_path = str(self.split_path+"/data_test/")
 
         ## Build split directories
-        self.loader._mkdir_(self.split_path)
-        self.loader._mkdir_(train_path)
-        self.loader._mkdir_(valid_path)
-        self.loader._mkdir_(test_path)
+        Loaders()._mkdir_(self.split_path)
+        Loaders()._mkdir_(train_path)
+        Loaders()._mkdir_(valid_path)
+        Loaders()._mkdir_(test_path)
 
         ## Writing records in batches
-        self.loader._write_batches(train_path, DataSplit(self.X_train, self.y_train),
-                                    self.batch_size, self.dataset_name)
-
-        self.loader._write_batches(valid_path, DataSplit(self.X_valid, self.y_valid),
-                                    self.batch_size, self.dataset_name)
-
-        self.loader._write_batches(test_path, DataSplit(self.X_test, self.y_test),
-                                    self.batch_size, self.dataset_name)
+        Loaders()._write_batches(train_path, self.train, self.batch_size, self.dataset_name)
+        Loaders()._write_batches(valid_path, self.valid, self.batch_size, self.dataset_name)
+        Loaders()._write_batches(test_path, self.test, self.batch_size, self.dataset_name)
 
         logger.info('-- Split path: {} --'.format(self.split_path))
