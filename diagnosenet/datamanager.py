@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from diagnosenet.loaders import Loaders
+from diagnosenet.io_functions import IO_Functions
 
 import logging
 logger = logging.getLogger('_DiagnoseNET_')
@@ -68,12 +68,12 @@ class Dataset:
         self.targets_path = glob.glob(self.sandbox+"/1_Mining-Stage/binary_representation/"+self.targets_name+"-*")
 
         if os.path.exists(self.inputs_path[0]):
-            self.inputs = Loaders()._read_file(self.inputs_path[0])
+            self.inputs = IO_Functions()._read_file(self.inputs_path[0])
         else:
             raise NameError("inputs_path not localized: {}".format(self.inputs_path))
 
         if os.path.isfile(self.targets_path[0]):
-            self.targets = Loaders()._read_file(self.targets_path[0])
+            self.targets = IO_Functions()._read_file(self.targets_path[0])
         else:
             raise NameError("targets_path not localized: {}".format(self.targets_path))
 
@@ -117,7 +117,6 @@ class Batching(Dataset):
     def __init__(self):
         super().__init__()
 
-
     def batching(self, data: DataSplit) -> Iterator[Batch]:
         """
         """
@@ -129,7 +128,6 @@ class Batching(Dataset):
             batch_inputs = data.inputs[start:end]
             batch_targets = data.targets[start:end]
             yield Batch(batch_inputs, batch_targets)
-
 
     def memory_batching(self, batch_size: int = 1000, shuffle: bool = True,
                     valid: float = None, test: float = None) -> Iterator[Batch]:
@@ -143,7 +141,6 @@ class Batching(Dataset):
         test_batches = self.batching(self.test)
         return train_batches, valid_batches, test_batches
 
-
     def disk_batching(self, batch_size: int,
                         valid: float = None, test: float = None) -> None:
         self.batch_size = batch_size
@@ -156,14 +153,14 @@ class Batching(Dataset):
         test_path = str(self.split_path+"/data_test/")
 
         ## Build split directories
-        Loaders()._mkdir_(self.split_path)
-        Loaders()._mkdir_(train_path)
-        Loaders()._mkdir_(valid_path)
-        Loaders()._mkdir_(test_path)
+        IO_Functions()._mkdir_(self.split_path)
+        IO_Functions()._mkdir_(train_path)
+        IO_Functions()._mkdir_(valid_path)
+        IO_Functions()._mkdir_(test_path)
 
         ## Writing records in batches
-        Loaders()._write_batches(train_path, self.train, self.batch_size, self.dataset_name)
-        Loaders()._write_batches(valid_path, self.valid, self.batch_size, self.dataset_name)
-        Loaders()._write_batches(test_path, self.test, self.batch_size, self.dataset_name)
+        IO_Functions()._write_batches(train_path, self.train, self.batch_size, self.dataset_name)
+        IO_Functions()._write_batches(valid_path, self.valid, self.batch_size, self.dataset_name)
+        IO_Functions()._write_batches(test_path, self.test, self.batch_size, self.dataset_name)
 
         logger.info('-- Split path: {} --'.format(self.split_path))
