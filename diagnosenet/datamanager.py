@@ -102,9 +102,9 @@ class Dataset:
 
         logger.info('---------------------------------------------------------')
         logger.info('++ Dataset Split:      Inputs | Targets ++')
-        logger.info('-- Train records:  {} | {} --'.format(self.train.inputs.shape, self.train.targets.shape))
-        logger.info('-- Valid records:  {} | {} --'.format(self.valid.inputs.shape, self.valid.targets.shape))
-        logger.info('-- Test records:   {} | {} --'.format(self.test.inputs.shape, self.test.targets.shape))
+        logger.info('-- Train records:  {} | {} --'.format(len(self.train.inputs), len(self.train.targets)))
+        logger.info('-- Valid records:  {} | {} --'.format(len(self.valid.inputs), len(self.valid.targets)))
+        logger.info('-- Test records:   {} | {} --'.format(len(self.test.inputs), len(self.test.targets)))
 
 
 
@@ -164,3 +164,48 @@ class Batching(Dataset):
         IO_Functions()._write_batches(test_path, self.test, self.batch_size, self.dataset_name)
 
         logger.info('-- Split path: {} --'.format(self.split_path))
+
+
+class MultiTask(Batching):
+    """
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def target_splitting(self, splitting: str, start: float, end: float, label_name: str) -> None:
+
+        ## Defining split directories
+        splitting_path = str(self.split_path+"/data_"+splitting)
+
+        y_files = sorted(glob.glob(splitting_path+"/y-*.txt"))
+        # print("y_files: {}".format(y_files))
+        for f in y_files:
+            # print("f: {}".format(f))
+            data = IO_Functions()._read_file(f)
+            # ## Convert list in a numpy matrix
+            data = pd.DataFrame(data)
+            data = data[0].str.split(',').tolist()
+            ## set the label selected
+            label = np.asarray(data)[:,start:end]
+
+            ## Set file_name
+            f_names = f.split('-')
+            path_to_file = str(splitting_path+"/y-"+self.dataset_name+"-"+label_name+"-"+f_names[-1])
+
+            ## Write new label file
+            # if path_to_file not in files:
+            with open(path_to_file, 'a') as file_:
+                np.savetxt(file_, label, fmt='%s',delimiter=',',newline='\n' )
+            file_.close()
+
+    def set_one_target(self, label_name: str = "Y11",
+                                start: int = 0, end: int = 14) -> None:
+        """
+        This function splits and write the label selected from a multi-labels file.
+        In which each label has been write-in one-hot encode.
+        """
+
+        self.target_splitting("training", start, end, label_name)
+        self.target_splitting("valid", start, end, label_name)
+        self.target_splitting("test", start, end, label_name)
