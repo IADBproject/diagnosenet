@@ -4,7 +4,7 @@ It provides an isolation to fine-tuning different neural network hyper-parameter
 """
 
 import collections
-from typing import Iterator, NamedTuple
+from typing import Iterator, NamedTuple, List
 
 import glob, os.path
 import numpy as np
@@ -98,7 +98,7 @@ class Splitting(Dataset):
             prop2=(self.test_size*1)/(self.valid_size+self.test_size)
         except TypeError:
             logger.warning('!!! Splitting proportions are missing !!!')
-            valid = 0.05; self.test_size = 0.10
+            self.valid_size = 0.05; self.test_size = 0.10
             logger.warning('!!! Set valid_size={} and test_size={} by the fault !!!'.format(self.valid_size, self.test_size))
             prop1=self.valid_size+self.test_size
             prop2=(self.test_size*1)/(self.valid_size+self.test_size)
@@ -139,19 +139,20 @@ class Batching(Splitting):
             batch_inputs = data.inputs[start:end]
             batch_targets = data.targets[start:end]
             yield Batch(batch_inputs, batch_targets)
+            # return Batch(batch_inputs, batch_targets)
 
     def memory_batching(self, shuffle: bool = True) -> Iterator[Batch]:
         """
         """
         self.shuffle = shuffle
+
         ## Splittting the Dataset
         self.dataset_split()
 
         train_batches = self.batching(self.train)
         valid_batches = self.batching(self.valid)
         test_batches = self.batching(self.test)
-        # return train_batches, valid_batches, test_batches
-        return self.batching(self.train), self.batching(self.valid), self.batching(self.test)
+        return train_batches, valid_batches, test_batches
 
     def disk_batching(self) -> None:
         ## Splittting the Dataset
@@ -190,22 +191,30 @@ class MultiTask(Batching):
         self.target_start = target_start
         self.target_end = target_end
 
-    def memory_target_splitting(self, batches: Iterator[Batch]) -> None:
+    def memory_target_splitting(self, batches: Iterator[Batch]) -> List[Batch]:
+        batches_inputs = []
+        batches_targets = []
         for batch in batches:
-            batch_one_target = batch.targets[:,self.target_start:self.target_end]
-            yield Batch(batch.inputs, batch_one_target)
+            batches_targets.append(batch.targets[:,self.target_start:self.target_end])
+            batches_inputs.append(batch.inputs)
+            # yield Batch(batch.inputs, batch_one_target)
+        return Batch(batches_inputs, batches_targets)
 
     def memory_one_target(self) -> None:
         """
         This function splits and write the label selected from a multi-labels file.
         In which each label has been write-in one-hot encode.
         """
+
         train_batches, valid_batches, test_batches = self.memory_batching()
 
-        train_batches = self.memory_target_splitting(train_batches)
-        valid_batches = self.memory_target_splitting(valid_batches)
-        test_batches = self.memory_target_splitting(test_batches)
-        return train_batches, valid_batches, test_batches
+        train_ = self.memory_target_splitting(train_batches)
+
+        print("train_: {}".format(len(train_.inputs)))
+
+        valid_ = self.memory_target_splitting(valid_batches)
+        test_ = self.memory_target_splitting(test_batches)
+        return train_, valid_, test_
 
     def disk_target_splitting(self, splitting: str) -> None:
 

@@ -42,13 +42,14 @@ class IO_Functions:
             if i % batch_size == 0:
                 X_fname = str(path+"X-"+dataset_name+"-"+str(fnumber)+'.txt')
                 y_fname = str(path+"y-"+dataset_name+"-"+str(fnumber)+'.txt')
+                fnumber += 1
+
                 if os.path.exists(X_fname) == False:
                     open(X_fname, 'w+').writelines(data.inputs[i:i+batch_size])
                 else:
                     pass
+
                 if os.path.exists(y_fname) == False:
                     open(y_fname, 'w+').writelines( data.targets[i:i+batch_size])
-
                 else:
                     pass
-                fnumber += 1
