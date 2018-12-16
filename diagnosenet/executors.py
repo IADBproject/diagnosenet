@@ -6,6 +6,7 @@ from typing import Sequence
 
 import tensorflow as tf
 import numpy as np
+import time
 
 from diagnosenet.datamanager import Dataset, Batching
 
@@ -60,7 +61,7 @@ class DesktopExecution:
             epoch: int = 0
             list_train_losses: list = []
             while epoch < self.max_epochs:
-
+                epoch_start = time.time()
                 for i in range(len(train.inputs)):
                     projection = sess.run(self.model.projection, feed_dict={self.model.X: train.inputs[i]})
                     train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
@@ -70,8 +71,9 @@ class DesktopExecution:
                     valid_loss = sess.run(self.model.mlp_loss,
                                     feed_dict={self.model.X: valid.inputs[i], self.model.Y: valid.targets[i]})
 
-                # if epoch % 10 == 0:
-                logger.info("Epoch {} | Train loss: {} |  Valid loss: {}".format(epoch, train_loss, valid_loss))
+                epoch_elapsed = (time.time() - epoch_start)
+                logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Epoch_Time: {}".format(epoch,
+                                                    train_loss, valid_loss, epoch_elapsed))
                 epoch = epoch + 1
 
             for i in range(len(test.inputs)):
