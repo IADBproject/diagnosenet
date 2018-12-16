@@ -128,21 +128,29 @@ class Batching(Splitting):
         super().__init__(valid_size, test_size)
         self.batch_size = batch_size
 
-    def batching(self, data: DataSplit) -> Iterator[Batch]:
+    def batching(self, data: DataSplit) -> List[Batch]:
         """
+        inputs data: has the next format:
+            DataSplit = collections.namedtuple
+        outputs batches: are write in the next format:
+            List[Batch] = List[NamedTuple[np.ndarray, np.ndarray]]
         """
         batch_index = np.arange(0, len(data.inputs), self.batch_size)
         if self.shuffle:
             np.random.shuffle(batch_index)
+
+        batches_inputs = []
+        batches_targets = []
         for start in batch_index:
             end = start + self.batch_size
-            batch_inputs = data.inputs[start:end]
-            batch_targets = data.targets[start:end]
-            yield Batch(batch_inputs, batch_targets)
-            # return Batch(batch_inputs, batch_targets)
+            batches_inputs.append(data.inputs[start:end])
+            batches_targets.append(data.targets[start:end])
+        return Batch(batches_inputs, batches_targets)
 
-    def memory_batching(self, shuffle: bool = True) -> Iterator[Batch]:
+    def memory_batching(self, shuffle: bool = True) -> List[Batch]:
         """
+        outputs batches: are write in the next format:
+            List[Batch] = List[NamedTuple[np.ndarray, np.ndarray]]
         """
         self.shuffle = shuffle
 
@@ -191,13 +199,16 @@ class MultiTask(Batching):
         self.target_start = target_start
         self.target_end = target_end
 
-    def memory_target_splitting(self, batches: Iterator[Batch]) -> List[Batch]:
+    def memory_target_splitting(self, batches: List[Batch]) -> List[Batch]:
+        """
+        Inputs and output batches: Are write in the next format:
+            List[Batch] = List[NamedTuple[np.ndarray, np.ndarray]]
+        """
         batches_inputs = []
         batches_targets = []
-        for batch in batches:
-            batches_targets.append(batch.targets[:,self.target_start:self.target_end])
-            batches_inputs.append(batch.inputs)
-            # yield Batch(batch.inputs, batch_one_target)
+        for i in range(len(batches.inputs)):
+            batches_targets.append(batches.targets[i][:,self.target_start:self.target_end])
+            batches_inputs.append(batches.inputs[i])
         return Batch(batches_inputs, batches_targets)
 
     def memory_one_target(self) -> None:
@@ -207,11 +218,7 @@ class MultiTask(Batching):
         """
 
         train_batches, valid_batches, test_batches = self.memory_batching()
-
         train_ = self.memory_target_splitting(train_batches)
-
-        print("train_: {}".format(len(train_.inputs)))
-
         valid_ = self.memory_target_splitting(valid_batches)
         test_ = self.memory_target_splitting(test_batches)
         return train_, valid_, test_
