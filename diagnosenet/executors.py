@@ -27,7 +27,7 @@ class DesktopExecution:
         self.max_epochs = max_epochs
         self.data = datamanager
 
-    def memoryexecutor(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
+    def training_memory(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
 
         ## Uses DiagnoseNET Data Manager for data processing in an efficient way
         try:
@@ -84,7 +84,6 @@ class DesktopExecution:
                 logger.info("Test Batch: {} | Test Loss: {}".format(i, test_loss))
 
             return projection
-
 
     def training_disk(self, dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> tf.Tensor:

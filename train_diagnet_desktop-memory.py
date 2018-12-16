@@ -23,11 +23,12 @@ y = IO_Functions()._read_file(path+"labels_Y1-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-20
 
 
 ## 1) Define the stacked layers as the number of layers and their neurons
-staked_layers = [Relu(14637, 500),
-                Relu(500, 500),
-                Relu(500, 100),
-                Relu(100, 100),
-                Softmax(100, 14)]
+staked_layers = [Relu(14637, 2048),
+                Relu(2048, 2048),
+                Relu(2048, 2048),
+                Relu(2048, 2048),
+                Relu(2048, 2048),
+                Softmax(2048, 14)]
 
 ## 2) Select the neural network architecture and pass the hyper-parameters
 mlp_model = MLP(input_size=14637, output_size=14,   #381,
@@ -44,7 +45,7 @@ dataset_conf = MultiTask(batch_size=100,
 ## 4) Select the processing machine mode
 projection = DesktopExecution(model=mlp_model,
                 max_epochs=10,
-                datamanager=dataset_conf).memoryexecutor(X, y)
+                datamanager=dataset_conf).training_memory(X, y)
 
 
 elapsed = (time.time() - start)
