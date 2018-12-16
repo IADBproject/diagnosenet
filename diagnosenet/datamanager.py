@@ -18,6 +18,7 @@ logger = logging.getLogger('_DiagnoseNET_')
 
 DataSplit = collections.namedtuple('DataSplit', 'name inputs targets')
 Batch = NamedTuple("Batch", [("inputs", np.ndarray), ("targets", np.ndarray)])
+BatchPath = NamedTuple("BatchPath", [("input_files", list), ("target_files", list)])
 
 class Dataset:
     """
@@ -162,7 +163,10 @@ class Batching(Splitting):
         test_batches = self.batching(self.test)
         return train_batches, valid_batches, test_batches
 
-    def disk_batching(self) -> None:
+    def disk_batching(self) -> BatchPath:
+        """
+        output batch path:
+        """
         ## Splittting the Dataset
         self.dataset_split()
 
@@ -184,6 +188,16 @@ class Batching(Splitting):
         IO_Functions()._write_batches(test_path, self.test, self.batch_size, self.dataset_name)
 
         logger.info('-- Split path: {} --'.format(self.split_path))
+
+        train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.txt")),
+                                            sorted(glob.glob(train_path+"/y-*.txt")))
+        valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-*.txt")),
+                                            sorted(glob.glob(valid_path+"/y-*.txt")))
+        test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-*.txt")),
+                                            sorted(glob.glob(test_path+"/y-*.txt")))
+
+        return train_batch_path, valid_batch_path, test_batch_path
+
 
 
 class MultiTask(Batching):
@@ -223,34 +237,42 @@ class MultiTask(Batching):
         test_ = self.memory_target_splitting(test_batches)
         return train_, valid_, test_
 
-    def disk_target_splitting(self, splitting: str) -> None:
-
+    def disk_target_splitting(self, splitting: str) -> BatchPath:
+        """
+        output batch path:
+        """
         ## Defining split directories
         splitting_path = str(self.split_path+"/data_"+splitting)
 
-        y_files = sorted(glob.glob(splitting_path+"/y-*.txt"))
-        # print("y_files: {}".format(y_files))
-        for f in y_files:
-            # print("f: {}".format(f))
-            data = IO_Functions()._read_file(f)
-            # ## Convert list in a numpy matrix
-            data = pd.DataFrame(data)
-            data = data[0].str.split(',').tolist()
+        target_path = sorted(glob.glob(splitting_path+"/y-"+self.dataset_name+"-"+self.target_name+"-*.txt"))
+        if not target_path:
+            y_files = sorted(glob.glob(splitting_path+"/y-*.txt"))
 
-            ## set the label selected
-            label = np.asarray(data)[:,self.target_start:self.target_end]
+            for f in y_files:
+                data = IO_Functions()._read_file(f)
+                # ## Convert list in a numpy matrix
+                data = pd.DataFrame(data)
+                data = data[0].str.split(',').tolist()
 
-            ## Set file_name
-            f_names = f.split('-')
-            path_to_file = str(splitting_path+"/y-"+self.dataset_name+"-"+self.target_name+"-"+f_names[-1])
+                ## set the label selected
+                label = np.asarray(data)[:,self.target_start:self.target_end]
 
-            ## Write new label file
-            # if path_to_file not in files:
-            with open(path_to_file, 'a') as file_:
-                np.savetxt(file_, label, fmt='%s',delimiter=',',newline='\n' )
-            file_.close()
+                ## Set file_name
+                f_names = f.split('-')
+                path_to_file = str(splitting_path+"/y-"+self.dataset_name+"-"+self.target_name+"-"+f_names[-1])
 
-    def disk_one_target(self) -> None:
+                ## Write new label file
+                # if path_to_file not in files:
+                with open(path_to_file, 'a') as file_:
+                    np.savetxt(file_, label, fmt='%s',delimiter=',',newline='\n' )
+                    file_.close()
+
+        target_files = sorted(glob.glob(splitting_path+"/y-"+self.dataset_name+"-"+self.target_name+"-*.txt"))
+        input_files = sorted(glob.glob(splitting_path+"/X-*.txt"))
+
+        return BatchPath(input_files, target_files)
+
+    def disk_one_target(self) -> BatchPath:
         """
         This function splits and write the label selected from a multi-labels file.
         In which each label has been write-in one-hot encode.
@@ -258,6 +280,8 @@ class MultiTask(Batching):
         ## Baching the dataset
         self.disk_batching()
 
-        self.disk_target_splitting("training")
-        self.disk_target_splitting("valid")
-        self.disk_target_splitting("test")
+        train_path = self.disk_target_splitting("training")
+        valid_path = self.disk_target_splitting("valid")
+        test_path = self.disk_target_splitting("test")
+
+        return train_path, valid_path, test_path
