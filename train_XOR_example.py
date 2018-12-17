@@ -36,6 +36,6 @@ model = MLP(input_size=2, output_size=2,
             optimizer=Adam(lr=0.01))
 
 ## 3) Select the execution machine mode
-projection = DesktopExecution(model, max_epochs=100).memoryexecutor(inputs, targets)
+projection = DesktopExecution(model, max_epochs=100).training_memory(inputs, targets)
 
 print("Projection: {}".format(projection))
