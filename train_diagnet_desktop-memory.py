@@ -33,16 +33,16 @@ mlp_model = MLP(input_size=14637, output_size=14,   #381,
                 loss=CrossEntropy,
                 optimizer=Adam(lr=0.01))
 
-## 3) Config datamanager class for splitting, batching the dataset and target selection
+## 3) Dataset configurations for splitting, batching and target selection
 data_config = MultiTask(batch_size=100,
                         valid_size=0.05, test_size=0.10,
                         target_name='Y11',
                         target_start=0, target_end=14)
 
-## 4) Select the computational platform and pass the DNN and data configurations
+## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model,
-                            max_epochs=10,
-                            datamanager=data_config)
+                            datamanager=data_config,
+                            max_epochs=10)
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.training_memory(X, y)

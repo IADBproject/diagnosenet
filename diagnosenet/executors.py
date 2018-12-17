@@ -25,7 +25,7 @@ class DesktopExecution:
     Returns:
     """
 
-    def __init__(self, model, max_epochs: int = 5, datamanager: Dataset = None) -> None:
+    def __init__(self, model, max_epochs: int = 10, datamanager: Dataset = None) -> None:
         self.model = model
         self.max_epochs = max_epochs
         self.data = datamanager
