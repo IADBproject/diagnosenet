@@ -93,10 +93,7 @@ class DesktopExecution:
 
                 epoch_elapsed = (time.time() - epoch_start)
                 logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
-                                                        np.round(train_loss, decimals=4), np.round(valid_loss, decimals=4),
-                                                        np.round(train_acc, decimals=4), np.round(valid_acc, decimals=4),
-                                                        np.round(epoch_elapsed, decimals=4)))
-                # logger.info("Train Acc: {} | Valid Acc: {}".format(type(train_acc), valid_acc))
+                                                        train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
             for i in range(len(test.inputs)):
@@ -159,6 +156,8 @@ class DesktopExecution:
                     projection = sess.run(self.model.projection, feed_dict={self.model.X: train_batch.inputs})
                     train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
                                     feed_dict={self.model.X: train_batch.inputs, self.model.Y: train_batch.targets})
+                    train_acc = sess.run(self.model.accuracy,
+                                    feed_dict={self.model.X: train_batch.inputs, self.model.Y: train_batch.targets})
 
                 for i in range(len(valid.input_files)):
                     valid_inputs = IO_Functions()._read_file(valid.input_files[i])
@@ -169,10 +168,12 @@ class DesktopExecution:
 
                     valid_loss = sess.run(self.model.mlp_loss,
                                     feed_dict={self.model.X: valid_batch.inputs, self.model.Y: valid_batch.targets})
+                    valid_acc = sess.run(self.model.accuracy,
+                                    feed_dict={self.model.X: valid_batch.inputs, self.model.Y: valid_batch.targets})
 
                 epoch_elapsed = (time.time() - epoch_start)
-                logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Epoch_Time: {}".format(epoch,
-                                                    train_loss, valid_loss, epoch_elapsed))
+                logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
+                                                        train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
             for i in range(len(test.input_files)):
