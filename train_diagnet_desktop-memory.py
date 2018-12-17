@@ -4,23 +4,20 @@ User example for training DiagnoseNET exploit the memory desktop machine
 """
 
 import time
-from diagnosenet.io_functions import IO_Functions
-from diagnosenet.datamanager import MultiTask, Batching, Splitting
+execution_start = time.time()
 
+from diagnosenet.io_functions import IO_Functions
+from diagnosenet.datamanager import MultiTask
 from diagnosenet.layers import Relu, Softmax
 from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
 from diagnosenet.graphs import MLP
 from diagnosenet.executors import DesktopExecution
 
-
-start = time.time()
-
-### Read the PMSI-Dataset using Pickle
+### Read the PMSI-Dataset using Pickle from diagnosenet.io_functions
 path = "healthData/sandbox-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1/1_Mining-Stage/binary_representation/"
 X = IO_Functions()._read_file(path+"BPPR-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
 y = IO_Functions()._read_file(path+"labels_Y1-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
-
 
 ## 1) Define the stacked layers as the number of layers and their neurons
 staked_layers = [Relu(14637, 2048),
@@ -36,17 +33,18 @@ mlp_model = MLP(input_size=14637, output_size=14,   #381,
                 loss=CrossEntropy,
                 optimizer=Adam(lr=0.01))
 
-## 3) Config the Data Manager for data processing in an efficient way
-dataset_conf = MultiTask(batch_size=100,
+## 3) Config datamanager class for splitting, batching the dataset and target selection
+data_config = MultiTask(batch_size=100,
                         valid_size=0.05, test_size=0.10,
                         target_name='Y11',
                         target_start=0, target_end=14)
 
-## 4) Select the processing machine mode
-projection = DesktopExecution(model=mlp_model,
-                max_epochs=10,
-                datamanager=dataset_conf).training_memory(X, y)
+## 4) Select the computational platform and pass the DNN and data configurations
+platform = DesktopExecution(model=mlp_model,
+                            max_epochs=10,
+                            datamanager=data_config)
 
+## 5) Uses the platform modes for training in an efficient way
+platform.training_memory(X, y)
 
-elapsed = (time.time() - start)
-print("Time.time: {}".format(elapsed))
+print("Execution Time: {}".format((time.time()-execution_start)))
