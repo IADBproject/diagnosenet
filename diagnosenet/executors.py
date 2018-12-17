@@ -81,13 +81,22 @@ class DesktopExecution:
                     train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
                                     feed_dict={self.model.X: train.inputs[i], self.model.Y: train.targets[i]})
 
+                    train_acc = sess.run(self.model.accuracy,
+                                    feed_dict={self.model.X: train.inputs[i], self.model.Y: train.targets[i]})
+
                 for i in range(len(valid.inputs)):
                     valid_loss = sess.run(self.model.mlp_loss,
                                     feed_dict={self.model.X: valid.inputs[i], self.model.Y: valid.targets[i]})
 
+                    valid_acc = sess.run(self.model.accuracy,
+                                    feed_dict={self.model.X: valid.inputs[i], self.model.Y: valid.targets[i]})
+
                 epoch_elapsed = (time.time() - epoch_start)
-                logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Epoch_Time: {}".format(epoch,
-                                                    train_loss, valid_loss, epoch_elapsed))
+                logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
+                                                        np.round(train_loss, decimals=4), np.round(valid_loss, decimals=4),
+                                                        np.round(train_acc, decimals=4), np.round(valid_acc, decimals=4),
+                                                        np.round(epoch_elapsed, decimals=4)))
+                # logger.info("Train Acc: {} | Valid Acc: {}".format(type(train_acc), valid_acc))
                 epoch = epoch + 1
 
             for i in range(len(test.inputs)):
