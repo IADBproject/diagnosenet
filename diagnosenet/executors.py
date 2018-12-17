@@ -2,7 +2,7 @@
 A session executor...
 """
 
-from typing import Sequence
+from typing import Sequence, NamedTuple
 
 import tensorflow as tf
 import numpy as np
@@ -13,6 +13,9 @@ from diagnosenet.io_functions import IO_Functions
 
 import logging
 logger = logging.getLogger('_DiagnoseNET_')
+
+Batch = NamedTuple("Batch", [("inputs", np.ndarray), ("targets", np.ndarray)])
+BatchPath = NamedTuple("BatchPath", [("input_files", list), ("target_files", list)])
 
 class DesktopExecution:
     """
@@ -27,9 +30,10 @@ class DesktopExecution:
         self.max_epochs = max_epochs
         self.data = datamanager
 
-    def training_memory(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
-
-        ## Uses DiagnoseNET Data Manager for data processing in an efficient way
+    def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
+        """
+        Uses datamanager classes for splitting, batching the dataset and target selection
+        """
         try:
             self.data.set_data_file(inputs, targets)
             if 'MultiTask' in str(type(self.data)):
@@ -51,9 +55,17 @@ class DesktopExecution:
             self.data.set_data_file(inputs, targets)
             train, valid, test = self.data.memory_batching()
 
+        return train, valid, test
 
+    def training_memory(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
+        """
+        Training the deep neural network exploit the memory on desktop machine
+        """
+        ## Set dataset on memory
+        train, valid, test = self.set_dataset_memory(inputs, targets)
         ## Generates a Desktop Graph
         self.model.desktop_graph()
+
         with tf.Session(graph=self.model.mlp_graph) as sess:
             init = tf.group(tf.global_variables_initializer(),
                                 tf.local_variables_initializer())
@@ -61,6 +73,7 @@ class DesktopExecution:
 
             epoch: int = 0
             list_train_losses: list = []
+
             while epoch < self.max_epochs:
                 epoch_start = time.time()
                 for i in range(len(train.inputs)):
@@ -85,10 +98,12 @@ class DesktopExecution:
 
             return projection
 
-    def training_disk(self, dataset_name: str, dataset_path: str,
-                        inputs_name: str, targets_name: str) -> tf.Tensor:
 
-        ## Uses DiagnoseNET Data Manager for data processing in an efficient way
+    def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
+                        inputs_name: str, targets_name: str) -> BatchPath:
+        """
+        Uses datamanager classes for splitting, batching the dataset and target selection
+        """
         try:
             self.data.set_data_path(dataset_name=dataset_name,
                                dataset_path=dataset_path,
@@ -99,13 +114,22 @@ class DesktopExecution:
             elif 'Batching' in str(type(self.data)):
                 train, valid, test = self.data.disk_batching()
             else:
-                raise AttributeError("training_disk() requires a datamanager type 'Batching' or 'MultiTask', gives: {}".format(str(type(self.data))))
+                raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
         except AttributeError:
-                raise AttributeError("training_disk() requires a datamanager type 'Batching' or 'MultiTask', gives: {}".format(str(type(self.data))))
+                raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
+        return train, valid, test
 
-
+    def training_disk(self, dataset_name: str, dataset_path: str,
+                        inputs_name: str, targets_name: str) -> tf.Tensor:
+        """
+        Training the deep neural network exploit the memory on desktop machine
+        """
+        ## Set dataset on memory
+        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
+                                                    inputs_name, targets_name)
         ## Generates a Desktop Graph
         self.model.desktop_graph()
+
         with tf.Session(graph=self.model.mlp_graph) as sess:
             init = tf.group(tf.global_variables_initializer(),
                                 tf.local_variables_initializer())
