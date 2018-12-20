@@ -12,7 +12,7 @@ import numpy as np
 from diagnosenet.layers import Relu, Softmax
 from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
-from diagnosenet.graphs import MLP
+from diagnosenet.graphs import FullyConnected
 from diagnosenet.executors import DesktopExecution
 
 
@@ -30,10 +30,10 @@ staked_layers = [Relu(2, 32),
                 Softmax(32, 2)]
 
 ## 2) Select the neural network architecture and pass the hyper-parameters
-model = MLP(input_size=2, output_size=2,
-            layers=staked_layers,
-            loss=CrossEntropy,
-            optimizer=Adam(lr=0.01))
+model = FullyConnected(input_size=2, output_size=2,
+                        layers=staked_layers,
+                        loss=CrossEntropy,
+                        optimizer=Adam(lr=0.01))
 
 ## 3) Select the execution machine mode
 projection = DesktopExecution(model, max_epochs=100).training_memory(inputs, targets)
