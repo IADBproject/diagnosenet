@@ -42,13 +42,11 @@ data_config = MultiTask(valid_size=0.1, test_size=0.10,
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model,
                             datamanager=data_config,
-                            max_epochs=1)
+                            max_epochs=10)
 
 ## 5) Uses the platform modes for training in an efficient way
-# platform.training_memory(X, y)
-
-## 6) Write metrcis
-platform.write_metrics(testbed_path='testbed')
+platform.training_memory(X, y)
+platform.write_metrics()
 
 
 
