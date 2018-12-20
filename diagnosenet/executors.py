@@ -78,13 +78,6 @@ class DesktopExecution:
             sess.run(init)
 
             epoch: int = 0
-            # train_losses: list = []
-            # valid_losses: list = []
-            # train_accs: list = []
-            # valid_accs: list = []
-            # epochs_number: list = []
-            # epochs_time: list = []
-
             while epoch < self.max_epochs:
                 epoch_start = time.time()
                 for i in range(len(train.inputs)):
@@ -115,7 +108,6 @@ class DesktopExecution:
                 logger.info("Test Batch: {} | Test Loss: {}".format(i, test_loss))
 
             return projection
-
 
     def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> BatchPath:
