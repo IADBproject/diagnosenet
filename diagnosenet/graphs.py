@@ -12,7 +12,7 @@ from diagnosenet.losses import Loss
 from diagnosenet.optimizers import Optimizer
 from diagnosenet.metrics import Metrics
 
-class MLP:
+class FullyConnected:
     """
     Implements the back-propagation algorithm...
     Args: A neural network architecture defined by the user.
@@ -28,8 +28,8 @@ class MLP:
         self.input_size = input_size
         self.output_size = output_size
         self.layers = layers
-        self.loss_fn = loss
-        self.optimizer_fn = optimizer
+        self.loss = loss
+        self.optimizer = optimizer
 
         ## Graph object trainable parameters:
         self.mlp_graph = tf.Graph()
@@ -55,8 +55,8 @@ class MLP:
             self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
             self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
             self.projection = self.stacked(self.X)
-            self.mlp_loss = self.loss_fn.desktop_loss(self, self.projection, self.Y)
-            self.mlp_grad_op = self.optimizer_fn.desktop_Grad(self.mlp_loss)
+            self.mlp_loss = self.loss.desktop_loss(self, self.projection, self.Y)
+            self.mlp_grad_op = self.optimizer.desktop_Grad(self.mlp_loss)
 
             self.accuracy = Metrics().accuracy(self.Y, self.projection)
             print("self.accuracy: {}".format(self.accuracy))

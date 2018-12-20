@@ -11,6 +11,9 @@ import time
 from diagnosenet.datamanager import Dataset, Batching
 from diagnosenet.io_functions import IO_Functions
 
+## Write metrics
+from diagnosenet.metrics import Testbed
+
 import logging
 logger = logging.getLogger('_DiagnoseNET_')
 
@@ -25,10 +28,10 @@ class DesktopExecution:
     Returns:
     """
 
-    def __init__(self, model, max_epochs: int = 10, datamanager: Dataset = None) -> None:
+    def __init__(self, model, datamanager: Dataset = None, max_epochs: int = 10) -> None:
         self.model = model
-        self.max_epochs = max_epochs
         self.data = datamanager
+        self.max_epochs = max_epochs
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
         """
@@ -190,3 +193,14 @@ class DesktopExecution:
                 logger.info("Test Batch: {} | Test Loss: {}".format(i, test_loss))
 
             return projection
+
+
+    def write_metrics(self, testbed_path: str = 'testbed') -> None:
+        """
+        Uses Testbed for build an experiment directory to isolate the training files
+        """
+
+        ### Generate a Testebed directory
+        tesbed = Testbed(self.model, self.data,
+                        self.__class__.__name__, self.max_epochs)
+        self.exp_id = tesbed.generate_testbed(testbed_path)

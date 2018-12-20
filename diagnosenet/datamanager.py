@@ -204,11 +204,13 @@ class MultiTask(Batching):
     """
     A multi task label set the
     """
-    def __init__(self, valid_size: float = None, test_size: float = None,
+    def __init__(self, dataset_name: str = 'PMSI_ICU_W1',
+                        valid_size: float = None, test_size: float = None,
                         batch_size: int = 1000,
                         target_name: str = 'Y11',
                         target_start: int = 0, target_end: int = 14) -> None:
         super().__init__(valid_size, test_size, batch_size)
+        self.dataset_name = dataset_name
         self.target_name = target_name
         self.target_start = target_start
         self.target_end = target_end
