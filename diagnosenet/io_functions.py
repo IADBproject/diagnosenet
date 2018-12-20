@@ -31,6 +31,11 @@ class IO_Functions:
         f.close()
         return items_corpus
 
+    def _write_file(self, data, file_path) -> None:
+        with open(file_path, 'w+') as f:
+            f.write(data)
+        f.close()
+
     def _mkdir_(self, directory) -> None:
         if not os.path.exists(directory):
             os.makedirs(directory)
