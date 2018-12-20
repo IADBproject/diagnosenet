@@ -33,6 +33,9 @@ class DesktopExecution:
         self.data = datamanager
         self.max_epochs = max_epochs
 
+        ## Metrics
+        self.training_track: list = []
+
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
         """
         Uses datamanager classes for splitting, batching the dataset and target selection
@@ -75,7 +78,12 @@ class DesktopExecution:
             sess.run(init)
 
             epoch: int = 0
-            list_train_losses: list = []
+            # train_losses: list = []
+            # valid_losses: list = []
+            # train_accs: list = []
+            # valid_accs: list = []
+            # epochs_number: list = []
+            # epochs_time: list = []
 
             while epoch < self.max_epochs:
                 epoch_start = time.time()
@@ -97,6 +105,7 @@ class DesktopExecution:
                 epoch_elapsed = (time.time() - epoch_start)
                 logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
                                                         train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
             for i in range(len(test.inputs)):
@@ -177,6 +186,7 @@ class DesktopExecution:
                 epoch_elapsed = (time.time() - epoch_start)
                 logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
                                                         train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
             for i in range(len(test.input_files)):
@@ -197,10 +207,16 @@ class DesktopExecution:
 
     def write_metrics(self, testbed_path: str = 'testbed') -> None:
         """
-        Uses Testbed for build an experiment directory to isolate the training files
+        Uses Testbed to isolate the training metrics by experiment directory
         """
 
-        ### Generate a Testebed directory
-        tesbed = Testbed(self.model, self.data,
-                        self.__class__.__name__, self.max_epochs)
+        ## Generate a Testebed directory
+        tesbed = Testbed(self.model, self.data, self.__class__.__name__, self.max_epochs)
         self.exp_id = tesbed.generate_testbed(testbed_path)
+        self.testbed_exp = str(testbed_path+"/"+self.exp_id+"/")
+
+        ## Writes the training and validation track
+        track_path=str(self.testbed_exp+"/"+self.exp_id+"-training_track.txt")
+        IO_Functions()._write_list(self.training_track, track_path)
+
+        logger.info("Tesbed directory: {}".format(self.testbed_exp))

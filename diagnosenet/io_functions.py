@@ -36,6 +36,11 @@ class IO_Functions:
             f.write(data)
         f.close()
 
+    def _write_list(self, data, file_path) -> None:
+        with open(file_path, 'w') as f:
+            f.write('\n'.join('%s, %s, %s, %s, %s, %s' % x for x in data))
+            # f.write('\n'.join('{}, {}, {}, {}, {} %s' % x for x in data))
+
     def _mkdir_(self, directory) -> None:
         if not os.path.exists(directory):
             os.makedirs(directory)

@@ -83,7 +83,6 @@ class Testbed(Metrics):
         exp_description = json.dumps(exp_serialized, separators=(',', ': '))
         return exp_description
 
-
     def generate_testbed(self, testbed: str = 'testbed') -> None:
         """
         Build an experiment directory to isolate the training metrics files
