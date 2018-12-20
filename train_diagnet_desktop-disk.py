@@ -10,7 +10,7 @@ from diagnosenet.datamanager import MultiTask
 from diagnosenet.layers import Relu, Softmax
 from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
-from diagnosenet.graphs import MLP
+from diagnosenet.graphs import FullyConnected
 from diagnosenet.executors import DesktopExecution
 
 ## 1) Define the stacked layers as the number of layers and their neurons
@@ -22,10 +22,10 @@ staked_layers = [Relu(14637, 2048),
                 Softmax(2048, 14)]
 
 ## 2) Select the neural network architecture and pass the hyper-parameters
-mlp_model = MLP(input_size=14637, output_size=14,   #381,
-                layers=staked_layers,
-                loss=CrossEntropy,
-                optimizer=Adam(lr=0.01))
+mlp_model = FullyConnected(input_size=14637, output_size=14,   #381,
+                            layers=staked_layers,
+                            loss=CrossEntropy,
+                            optimizer=Adam(lr=0.01))
 
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config = MultiTask(batch_size=100,
@@ -43,5 +43,8 @@ platform.training_disk(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
                         dataset_path="healthData/",
                         inputs_name="BPPR",
                         targets_name="labels_Y1")
+
+## 6) Write metrcis in a directory
+platform.write_metrics(testbed_path='testbed')
 
 print("Execution Time: {}".format((time.time()-execution_start)))
