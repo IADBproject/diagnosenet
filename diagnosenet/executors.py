@@ -81,7 +81,6 @@ class DesktopExecution:
             while epoch < self.max_epochs:
                 epoch_start = time.time()
                 for i in range(len(train.inputs)):
-                    projection = sess.run(self.model.projection, feed_dict={self.model.X: train.inputs[i]})
                     train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
                                     feed_dict={self.model.X: train.inputs[i], self.model.Y: train.targets[i]})
 
@@ -101,13 +100,14 @@ class DesktopExecution:
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
+            test_projection_1hot: list = []
             for i in range(len(test.inputs)):
-                test_loss = sess.run(self.model.mlp_loss,
-                                feed_dict={self.model.X: test.inputs[i], self.model.Y: test.targets[i]})
+                test_projection = sess.run(self.model.projection_1hot,
+                                                    feed_dict={self.model.X: test.inputs[i]})
+                test_projection_1hot.append(test_projection.tolist())
 
-                logger.info("Test Batch: {} | Test Loss: {}".format(i, test_loss))
-
-            return projection
+            ## Return projection in 1hot
+            return test_projection
 
     def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> BatchPath:

@@ -13,6 +13,7 @@ DataSplit = collections.namedtuple('DataSplit', 'name inputs targets')
 
 class IO_Functions:
     """
+    Module that cotains a loader functions to be use over diagnosenet modules.
     """
 
     def __init__(self) -> None:

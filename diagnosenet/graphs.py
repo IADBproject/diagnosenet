@@ -58,5 +58,11 @@ class FullyConnected:
             self.mlp_loss = self.loss.desktop_loss(self, self.projection, self.Y)
             self.mlp_grad_op = self.optimizer.desktop_Grad(self.mlp_loss)
 
+            ## Accuracy
             self.accuracy = Metrics().accuracy(self.Y, self.projection)
-            print("self.accuracy: {}".format(self.accuracy))
+            # print("self.accuracy: {}".format(self.accuracy))
+
+            ## # Convert prediction to one hot encoding
+            # soft_projection = tf.nn.softmax(self.projection)
+            max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
+            self.projection_1hot = tf.one_hot(max_projection, depth = int(self.output_size))
