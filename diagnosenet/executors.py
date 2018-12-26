@@ -12,7 +12,7 @@ from diagnosenet.datamanager import Dataset, Batching
 from diagnosenet.io_functions import IO_Functions
 
 ## Write metrics
-from diagnosenet.metrics import Testbed
+from diagnosenet.metrics import Testbed, Metrics
 
 import logging
 logger = logging.getLogger('_DiagnoseNET_')
@@ -100,14 +100,35 @@ class DesktopExecution:
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
-            test_projection_1hot: list = []
-            for i in range(len(test.inputs)):
-                test_projection = sess.run(self.model.projection_1hot,
-                                                    feed_dict={self.model.X: test.inputs[i]})
-                test_projection_1hot.append(test_projection.tolist())
+            test_pred_probas: list = []
+            test_pred_1hot: list = []
+            test_true_1hot: list = []
 
-            ## Return projection in 1hot
-            return test_projection
+            for i in range(len(test.inputs)):
+                projection_probas = sess.run(self.model.soft_projection,
+                                                    feed_dict={self.model.X: test.inputs[i]})
+                projection_1hot = sess.run(self.model.projection_1hot,
+                                                    feed_dict={self.model.X: test.inputs[i]})
+                                                    
+                test_pred_probas.append(projection_probas)
+                test_pred_1hot.append(projection_1hot)
+                test_true_1hot.append(test.targets[i].astype(np.float))
+
+            test_pred_probas = np.vstack(test_pred_probas)
+            test_pred_1hot = np.vstack(test_pred_1hot)
+            test_true_1hot = np.vstack(test_true_1hot)
+
+
+            roc_auc, tpr, fpr = Metrics().auc_roc(y_pred=test_pred_probas,
+                                                        y_true=test_true_1hot)
+
+            tpr, fpr, fnr = Metrics().compute_metrics(y_pred=test_pred_1hot,
+                                                        y_true=test_true_1hot)
+
+            print("auc: {}".format(roc_auc))
+            print("tpr: {} \n fpr: {} \n fpr: {}".format(tpr, fpr, fpr))
+
+            return test_pred_probas
 
     def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> BatchPath:

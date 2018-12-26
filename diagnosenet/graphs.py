@@ -63,6 +63,6 @@ class FullyConnected:
             # print("self.accuracy: {}".format(self.accuracy))
 
             ## # Convert prediction to one hot encoding
-            # soft_projection = tf.nn.softmax(self.projection)
-            max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
-            self.projection_1hot = tf.one_hot(max_projection, depth = int(self.output_size))
+            self.soft_projection = tf.nn.softmax(self.projection)
+            self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
+            self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))

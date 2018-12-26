@@ -6,7 +6,10 @@ from time import gmtime, strftime
 from hashids import Hashids
 import json
 
+import numpy as np
 import tensorflow as tf
+from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import confusion_matrix
 
 from diagnosenet.io_functions import IO_Functions
 
@@ -23,6 +26,78 @@ class Metrics:
 
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
         return accuracy
+
+
+    def auc_roc(self, y_pred, y_true):
+        """
+        Compute AUC | Note that the y_pred feeded to auc_roc is one hot encoded
+        """
+        # get the indexes of the maximum values in each row
+        # y_pred is the output of softmax function
+        fpr = dict()
+        tpr = dict()
+        roc_auc = dict()
+        n_classes = y_true.shape[1]
+
+        ## roc_curve need values as float
+        y_true = y_true.astype(np.float)
+
+        # print("y_pred: {} \n y_true: {}".format(y_pred, y_true))
+
+        for i in range(n_classes):
+            fpr[i], tpr[i] , thresholds = roc_curve(y_true[:,i], y_pred[:,i])
+            roc_auc[i] = auc(fpr[i], tpr[i])
+
+        #Compute micro-average ROC curve and ROC area
+        fpr["micro"], tpr["micro"], thresholds = roc_curve(y_true.ravel(), y_pred.ravel())
+        roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+
+        return roc_auc, tpr, fpr
+
+
+    def compute_metrics(self, y_true, y_pred):
+        """
+        Compute fpr, tpr, fnr and tnr:
+        """
+
+        y_true = y_true.astype(np.float)
+        y_true =  np.argmax(y_true, axis = 1)
+        y_pred = np.argmax(y_pred, axis = 1)
+
+        ## Get labels from y_true
+        labels, counts = np.unique(y_true, return_counts = True)
+        # print("labels: {}".format(labels))
+        # print("counts: {}".format(counts))
+
+        ## Compute confusion_matrix
+        conf_matrix = confusion_matrix(y_true, y_pred, labels)
+
+        FalsePositive = []
+        FalseNegative = []
+        TrueNegative = []
+
+        # Compute True positive
+        TruePositive = np.diag(conf_matrix)
+
+        # Compute False positive
+        for i in range(len(conf_matrix)):
+            FalsePositive.append(int(sum(conf_matrix[:,i]) - conf_matrix[i,i]))
+
+        # Compute False negative
+        for i in range(len(conf_matrix)):
+            FalseNegative.append(int(sum(conf_matrix[i,:]) - conf_matrix[i,i]))
+
+        # Compute True negative
+        for i in range(len(conf_matrix)):
+            temp = np.delete(conf_matrix, i, 0)
+            temp = np.delete(temp, i, 1)
+            TrueNegative.append(int(sum(sum(temp))))
+
+        return TruePositive, FalsePositive, FalseNegative
+
+
+
+
 
 class Testbed(Metrics):
     """
