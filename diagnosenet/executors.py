@@ -13,6 +13,7 @@ from diagnosenet.io_functions import IO_Functions
 
 ## Write metrics
 from diagnosenet.metrics import Testbed, Metrics
+from sklearn.metrics import f1_score
 
 import logging
 logger = logging.getLogger('_DiagnoseNET_')
@@ -81,18 +82,31 @@ class DesktopExecution:
             while epoch < self.max_epochs:
                 epoch_start = time.time()
                 for i in range(len(train.inputs)):
-                    train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
-                                    feed_dict={self.model.X: train.inputs[i], self.model.Y: train.targets[i]})
 
-                    train_acc = sess.run(self.model.accuracy,
-                                    feed_dict={self.model.X: train.inputs[i], self.model.Y: train.targets[i]})
+                    train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
+                                    feed_dict={self.model.X: train.inputs[i],
+                                                self.model.Y: train.targets[i]})
+
+                    train_pred = sess.run(self.model.projection_1hot,
+                                    feed_dict={self.model.X: train.inputs[i]})
+
+                    train_acc = f1_score(y_true=train.targets[i].astype(np.float),
+                                            y_pred=train_pred, average='micro')
+
 
                 for i in range(len(valid.inputs)):
                     valid_loss = sess.run(self.model.mlp_loss,
-                                    feed_dict={self.model.X: valid.inputs[i], self.model.Y: valid.targets[i]})
+                                    feed_dict={self.model.X: valid.inputs[i],
+                                                self.model.Y: valid.targets[i]})
 
-                    valid_acc = sess.run(self.model.accuracy,
-                                    feed_dict={self.model.X: valid.inputs[i], self.model.Y: valid.targets[i]})
+                    valid_pred = sess.run(self.model.projection_1hot,
+                                    feed_dict={self.model.X: valid.inputs[i]})
+
+                    valid_acc = f1_score(y_true=valid.targets[i].astype(np.float),
+                                            y_pred=valid_pred, average='micro')
+
+                    train_pred = sess.run(self.model.projection_1hot, feed_dict={self.model.X: train.inputs[i]})
+
 
                 epoch_elapsed = (time.time() - epoch_start)
                 logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
@@ -100,35 +114,39 @@ class DesktopExecution:
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
-            test_pred_probas: list = []
-            test_pred_1hot: list = []
-            test_true_1hot: list = []
+            ## Datatest
+            if len(test.inputs) != 0:
+                test_pred_probas: list = []
+                test_pred_1hot: list = []
+                test_true_1hot: list = []
 
-            for i in range(len(test.inputs)):
-                projection_probas = sess.run(self.model.soft_projection,
+                for i in range(len(test.inputs)):
+                    tt_pred_probas = sess.run(self.model.soft_projection,
                                                     feed_dict={self.model.X: test.inputs[i]})
-                projection_1hot = sess.run(self.model.projection_1hot,
+                    tt_pred_1hot = sess.run(self.model.projection_1hot,
                                                     feed_dict={self.model.X: test.inputs[i]})
-                                                    
-                test_pred_probas.append(projection_probas)
-                test_pred_1hot.append(projection_1hot)
-                test_true_1hot.append(test.targets[i].astype(np.float))
 
-            test_pred_probas = np.vstack(test_pred_probas)
-            test_pred_1hot = np.vstack(test_pred_1hot)
-            test_true_1hot = np.vstack(test_true_1hot)
+                    test_pred_probas.append(tt_pred_probas)
+                    test_pred_1hot.append(tt_pred_1hot)
+                    test_true_1hot.append(test.targets[i].astype(np.float))
 
 
-            roc_auc, tpr, fpr = Metrics().auc_roc(y_pred=test_pred_probas,
+                test_pred_probas = np.vstack(test_pred_probas)
+                test_pred_1hot = np.vstack(test_pred_1hot)
+                test_true_1hot = np.vstack(test_true_1hot)
+
+
+                roc_auc, _, _ = Metrics().auc_roc(y_pred=test_pred_probas,
                                                         y_true=test_true_1hot)
 
-            tpr, fpr, fnr = Metrics().compute_metrics(y_pred=test_pred_1hot,
+                tpr, fpr, fnr = Metrics().compute_metrics(y_pred=test_pred_1hot,
                                                         y_true=test_true_1hot)
 
-            print("auc: {}".format(roc_auc))
-            print("tpr: {} \n fpr: {} \n fpr: {}".format(tpr, fpr, fpr))
+                print("auc: {}".format(roc_auc))
 
-            return test_pred_probas
+                return test_pred_probas
+            return train_pred
+
 
     def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> BatchPath:

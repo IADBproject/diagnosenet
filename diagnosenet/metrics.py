@@ -10,6 +10,7 @@ import numpy as np
 import tensorflow as tf
 from sklearn.metrics import roc_curve, auc
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import f1_score, precision_recall_fscore_support
 
 from diagnosenet.io_functions import IO_Functions
 
@@ -57,12 +58,14 @@ class Metrics:
 
     def compute_metrics(self, y_true, y_pred):
         """
-        Compute fpr, tpr, fnr and tnr:
+        Compute fp, tp, and fn:
         """
 
-        y_true = y_true.astype(np.float)
+        # y_true = y_true.astype(np.float)
         y_true =  np.argmax(y_true, axis = 1)
         y_pred = np.argmax(y_pred, axis = 1)
+
+        # print("y_true: {} \n y_pred: {}".format(y_true, y_pred))
 
         ## Get labels from y_true
         labels, counts = np.unique(y_true, return_counts = True)
@@ -76,22 +79,31 @@ class Metrics:
         FalseNegative = []
         TrueNegative = []
 
-        # Compute True positive
+        ## Compute True positive
         TruePositive = np.diag(conf_matrix)
 
-        # Compute False positive
+        ## Compute False positive
         for i in range(len(conf_matrix)):
             FalsePositive.append(int(sum(conf_matrix[:,i]) - conf_matrix[i,i]))
 
-        # Compute False negative
+        ## Compute False negative
         for i in range(len(conf_matrix)):
             FalseNegative.append(int(sum(conf_matrix[i,:]) - conf_matrix[i,i]))
 
-        # Compute True negative
-        for i in range(len(conf_matrix)):
-            temp = np.delete(conf_matrix, i, 0)
-            temp = np.delete(temp, i, 1)
-            TrueNegative.append(int(sum(sum(temp))))
+        # ## Compute True negative
+        # for i in range(len(conf_matrix)):
+        #     temp = np.delete(conf_matrix, i, 0)
+        #     temp = np.delete(temp, i, 1)
+        #     TrueNegative.append(int(sum(sum(temp))))
+
+        print("tp: {} \n fp: {} \n fn: {}".format(TruePositive, FalsePositive, FalseNegative))
+
+        ## Compute metrics per class
+        precision, recall, F1_score, support = precision_recall_fscore_support(y_true,
+                                                        y_pred, average = None)
+
+        print("precision: {} \n recall: {} \n F1_score: {}".format(precision, recall, F1_score))
+
 
         return TruePositive, FalsePositive, FalseNegative
 
