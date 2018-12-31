@@ -74,14 +74,12 @@ class Metrics:
         ## Compute confusion_matrix
         conf_matrix = confusion_matrix(y_true, y_pred, labels)
 
-        true_positive = []
-        false_positive = []
-        false_negative = []
-
         ## Compute True Positive
         true_positive = np.diag(conf_matrix)
 
         ## Compute False Positive and False Negative
+        false_positive = []
+        false_negative = []
         for i in range(len(conf_matrix)):
             false_positive.append(int(sum(conf_matrix[:,i]) - conf_matrix[i,i]))
 
@@ -100,11 +98,11 @@ class Metrics:
 
         label_occurrences = np.where(support !=0)
         occs = label_occurrences[0]
-        metrics_values = np.vstack((labels, true_positive, false_positive,
-                                    false_negative, precision[occs],
+        metrics_values = np.vstack((labels, true_positive, false_negative,
+                                    false_positive, precision[occs],
                                     recall[occs], F1_score[occs], support[occs]))
         metrics_values = np.transpose(metrics_values)
-        metrics_values = pd.DataFrame(metrics_values, columns = ["Labels", "TP", "FP", "FN",
+        metrics_values = pd.DataFrame(metrics_values, columns = ["Labels", "TP", "FN", "FP",
                                     "Precision", "Recall", "F1 Score", "Num. Records"])
         print("{}".format(metrics_values))
 

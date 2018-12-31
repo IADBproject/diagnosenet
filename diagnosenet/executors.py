@@ -134,7 +134,7 @@ class DesktopExecution:
                 ## compute_metrics by each label
                 self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
                                                             y_true=self.test_true_1hot)
-        
+
                 return self.test_pred_probas
             return train_pred
 
@@ -276,5 +276,8 @@ class DesktopExecution:
         true_1hot_path=str(self.testbed_exp+"/"+self.exp_id+"-true_1hot.txt")
         np.savetxt(true_1hot_path, self.test_true_1hot, delimiter=',', fmt='%d')
 
+        ## Writes Summarize Metrics
+        metrics_values_path=str(self.testbed_exp+"/"+self.exp_id+"-metrics_values.txt")
+        np.savetxt(metrics_values_path, self.metrics_values, delimiter=',', fmt='%d')
 
         logger.info("Tesbed directory: {}".format(self.testbed_exp))
