@@ -8,7 +8,7 @@ execution_start = time.time()
 
 from diagnosenet.io_functions import IO_Functions
 from diagnosenet.datamanager import MultiTask
-from diagnosenet.layers import Relu, Softmax
+from diagnosenet.layers import Relu, Linear
 from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
 from diagnosenet.graphs import FullyConnected
@@ -24,8 +24,7 @@ layers = [Relu(14637, 2048),
             Relu(2048, 2048),
             Relu(2048, 2048),
             Relu(2048, 2048),
-            Relu(2048, 2048),
-            Softmax(2048, 14)]
+            Linear(2048, 14)]
 
 ## 2) Select the neural network architecture and pass the hyper-parameters
 mlp_model = FullyConnected(input_size=14637, output_size=14,   #381,
@@ -34,7 +33,7 @@ mlp_model = FullyConnected(input_size=14637, output_size=14,   #381,
                 optimizer=Adam(lr=0.01))
 
 ## 3) Dataset configurations for splitting, batching and target selection
-data_config = MultiTask(valid_size=0.1, test_size=0.10,
+data_config = MultiTask(valid_size=0.10, test_size=0.15,
                         batch_size=100,
                         target_name='Y11',
                         target_start=0, target_end=14)
