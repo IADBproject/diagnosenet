@@ -93,7 +93,6 @@ class DesktopExecution:
                     train_acc = f1_score(y_true=train.targets[i].astype(np.float),
                                             y_pred=train_pred, average='micro')
 
-
                 for i in range(len(valid.inputs)):
                     valid_loss = sess.run(self.model.mlp_loss,
                                     feed_dict={self.model.X: valid.inputs[i],
@@ -105,16 +104,14 @@ class DesktopExecution:
                     valid_acc = f1_score(y_true=valid.targets[i].astype(np.float),
                                             y_pred=valid_pred, average='micro')
 
-                    train_pred = sess.run(self.model.projection_1hot, feed_dict={self.model.X: train.inputs[i]})
-
-
                 epoch_elapsed = (time.time() - epoch_start)
                 logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
                                                         train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
-            ## Datatest
+
+            ## Testing
             if len(test.inputs) != 0:
                 test_pred_probas: list = []
                 test_pred_1hot: list = []
@@ -130,21 +127,15 @@ class DesktopExecution:
                     test_pred_1hot.append(tt_pred_1hot)
                     test_true_1hot.append(test.targets[i].astype(np.float))
 
+                self.test_pred_probas = np.vstack(test_pred_probas)
+                self.test_pred_1hot = np.vstack(test_pred_1hot)
+                self.test_true_1hot = np.vstack(test_true_1hot)
 
-                test_pred_probas = np.vstack(test_pred_probas)
-                test_pred_1hot = np.vstack(test_pred_1hot)
-                test_true_1hot = np.vstack(test_true_1hot)
-
-
-                roc_auc, _, _ = Metrics().auc_roc(y_pred=test_pred_probas,
-                                                        y_true=test_true_1hot)
-
-                tpr, fpr, fnr = Metrics().compute_metrics(y_pred=test_pred_1hot,
-                                                        y_true=test_true_1hot)
-
-                print("auc: {}".format(roc_auc))
-
-                return test_pred_probas
+                ## compute_metrics by each label
+                self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
+                                                            y_true=self.test_true_1hot)
+        
+                return self.test_pred_probas
             return train_pred
 
 
@@ -193,14 +184,17 @@ class DesktopExecution:
                     train_inputs = IO_Functions()._read_file(train.input_files[i])
                     train_targets = IO_Functions()._read_file(train.target_files[i])
                     ## Convert list in a numpy matrix
-                    train_batch= Dataset()
+                    train_batch = Dataset()
                     train_batch.set_data_file(train_inputs, train_targets)
 
-                    projection = sess.run(self.model.projection, feed_dict={self.model.X: train_batch.inputs})
                     train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
-                                    feed_dict={self.model.X: train_batch.inputs, self.model.Y: train_batch.targets})
-                    train_acc = sess.run(self.model.accuracy,
-                                    feed_dict={self.model.X: train_batch.inputs, self.model.Y: train_batch.targets})
+                                        feed_dict={self.model.X: train_batch.inputs,
+                                                    self.model.Y: train_batch.targets})
+
+                    train_pred = sess.run(self.model.projection_1hot,
+                                                feed_dict={self.model.X: train_batch.inputs})
+                    train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
+                                                y_pred=train_pred.astype(np.float), average='micro')
 
                 for i in range(len(valid.input_files)):
                     valid_inputs = IO_Functions()._read_file(valid.input_files[i])
@@ -210,9 +204,13 @@ class DesktopExecution:
                     valid_batch.set_data_file(valid_inputs, valid_targets)
 
                     valid_loss = sess.run(self.model.mlp_loss,
-                                    feed_dict={self.model.X: valid_batch.inputs, self.model.Y: valid_batch.targets})
-                    valid_acc = sess.run(self.model.accuracy,
-                                    feed_dict={self.model.X: valid_batch.inputs, self.model.Y: valid_batch.targets})
+                                        feed_dict={self.model.X: valid_batch.inputs,
+                                            self.model.Y: valid_batch.targets})
+                    valid_pred = sess.run(self.model.projection_1hot,
+                                            feed_dict={self.model.X: valid_batch.inputs})
+                    valid_acc = f1_score(y_true=valid_batch.targets.astype(np.float),
+                                            y_pred=valid_pred.astype(np.float), average='micro')
+
 
                 epoch_elapsed = (time.time() - epoch_start)
                 logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
@@ -220,20 +218,38 @@ class DesktopExecution:
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
-            for i in range(len(test.input_files)):
-                test_inputs = IO_Functions()._read_file(test.input_files[i])
-                test_targets = IO_Functions()._read_file(test.target_files[i])
-                ## Convert list in a numpy matrix
-                test_batch= Dataset()
-                test_batch.set_data_file(test_inputs, test_targets)
 
+            ## Testing
+            if len(test.input_files) != 0:
+                test_pred_probas: list = []
+                test_pred_1hot: list = []
+                test_true_1hot: list = []
 
-                test_loss = sess.run(self.model.mlp_loss,
-                                feed_dict={self.model.X: test_batch.inputs, self.model.Y: test_batch.targets})
+                for i in range(len(test.input_files)):
+                    test_inputs = IO_Functions()._read_file(test.input_files[i])
+                    test_targets = IO_Functions()._read_file(test.target_files[i])
+                    ## Convert list in a numpy matrix
+                    test_batch = Dataset()
+                    test_batch.set_data_file(test_inputs, test_targets)
 
-                logger.info("Test Batch: {} | Test Loss: {}".format(i, test_loss))
+                    tt_pred_probas = sess.run(self.model.soft_projection,
+                                    feed_dict={self.model.X: test_batch.inputs})
+                    tt_pred_1hot = sess.run(self.model.projection_1hot,
+                                    feed_dict={self.model.X: test_batch.inputs})
 
-            return projection
+                    test_pred_probas.append(tt_pred_probas)
+                    test_pred_1hot.append(tt_pred_1hot)
+                    test_true_1hot.append(test_batch.targets.astype(np.float))
+
+                self.test_pred_probas = np.vstack(test_pred_probas)
+                self.test_pred_1hot = np.vstack(test_pred_1hot)
+                self.test_true_1hot = np.vstack(test_true_1hot)
+
+                ## compute_metrics by each label
+                self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
+                                                            y_true=self.test_true_1hot)
+                return self.test_pred_probas
+            return train_pred
 
 
     def write_metrics(self, testbed_path: str = 'testbed') -> None:
@@ -249,5 +265,16 @@ class DesktopExecution:
         ## Writes the training and validation track
         track_path=str(self.testbed_exp+"/"+self.exp_id+"-training_track.txt")
         IO_Functions()._write_list(self.training_track, track_path)
+
+        ## Writes the Test labels
+        pred_1h_path=str(self.testbed_exp+"/"+self.exp_id+"-pred_1hot.txt")
+        np.savetxt(pred_1h_path, self.test_pred_1hot, delimiter=',', fmt='%d')
+
+        pred_probas_path=str(self.testbed_exp+"/"+self.exp_id+"-pred_probas.txt")
+        np.savetxt(pred_probas_path, self.test_pred_probas, delimiter=',', fmt='%d')
+
+        true_1hot_path=str(self.testbed_exp+"/"+self.exp_id+"-true_1hot.txt")
+        np.savetxt(true_1hot_path, self.test_true_1hot, delimiter=',', fmt='%d')
+
 
         logger.info("Tesbed directory: {}".format(self.testbed_exp))

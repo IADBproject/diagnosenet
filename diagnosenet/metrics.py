@@ -8,6 +8,8 @@ import json
 
 import numpy as np
 import tensorflow as tf
+import pandas as pd
+
 from sklearn.metrics import roc_curve, auc
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import f1_score, precision_recall_fscore_support
@@ -32,18 +34,17 @@ class Metrics:
     def auc_roc(self, y_pred, y_true):
         """
         Compute AUC | Note that the y_pred feeded to auc_roc is one hot encoded
+        Get the indexes of the maximum values in each row and
+        y_pred is the output of softmax function
         """
-        # get the indexes of the maximum values in each row
-        # y_pred is the output of softmax function
-        fpr = dict()
-        tpr = dict()
-        roc_auc = dict()
-        n_classes = y_true.shape[1]
 
         ## roc_curve need values as float
         y_true = y_true.astype(np.float)
 
-        # print("y_pred: {} \n y_true: {}".format(y_pred, y_true))
+        fpr = dict()
+        tpr = dict()
+        roc_auc = dict()
+        n_classes = y_true.shape[1]
 
         for i in range(n_classes):
             fpr[i], tpr[i] , thresholds = roc_curve(y_true[:,i], y_pred[:,i])
@@ -53,61 +54,61 @@ class Metrics:
         fpr["micro"], tpr["micro"], thresholds = roc_curve(y_true.ravel(), y_pred.ravel())
         roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
 
-        return roc_auc, tpr, fpr
+        return roc_auc
 
 
     def compute_metrics(self, y_true, y_pred):
         """
-        Compute fp, tp, and fn:
+        This function return a summarize matrix with:
+        true_positive, false_positive, false_negative, precision, recall and F1_score.
         """
 
-        # y_true = y_true.astype(np.float)
+        y_true = y_true.astype(np.float)
+        y_pred = y_pred.astype(np.float)
         y_true =  np.argmax(y_true, axis = 1)
         y_pred = np.argmax(y_pred, axis = 1)
 
-        # print("y_true: {} \n y_pred: {}".format(y_true, y_pred))
-
         ## Get labels from y_true
         labels, counts = np.unique(y_true, return_counts = True)
-        # print("labels: {}".format(labels))
-        # print("counts: {}".format(counts))
 
         ## Compute confusion_matrix
         conf_matrix = confusion_matrix(y_true, y_pred, labels)
 
-        FalsePositive = []
-        FalseNegative = []
-        TrueNegative = []
+        true_positive = []
+        false_positive = []
+        false_negative = []
 
-        ## Compute True positive
-        TruePositive = np.diag(conf_matrix)
+        ## Compute True Positive
+        true_positive = np.diag(conf_matrix)
 
-        ## Compute False positive
+        ## Compute False Positive and False Negative
         for i in range(len(conf_matrix)):
-            FalsePositive.append(int(sum(conf_matrix[:,i]) - conf_matrix[i,i]))
+            false_positive.append(int(sum(conf_matrix[:,i]) - conf_matrix[i,i]))
 
-        ## Compute False negative
-        for i in range(len(conf_matrix)):
-            FalseNegative.append(int(sum(conf_matrix[i,:]) - conf_matrix[i,i]))
+            false_negative.append(int(sum(conf_matrix[i,:]) - conf_matrix[i,i]))
 
-        # ## Compute True negative
-        # for i in range(len(conf_matrix)):
-        #     temp = np.delete(conf_matrix, i, 0)
-        #     temp = np.delete(temp, i, 1)
-        #     TrueNegative.append(int(sum(sum(temp))))
-
-        print("tp: {} \n fp: {} \n fn: {}".format(TruePositive, FalsePositive, FalseNegative))
 
         ## Compute metrics per class
         precision, recall, F1_score, support = precision_recall_fscore_support(y_true,
                                                         y_pred, average = None)
 
-        print("precision: {} \n recall: {} \n F1_score: {}".format(precision, recall, F1_score))
+        for i in range(len(labels)):
+            precision[i] =  round(precision[i], 2)
+            recall[i] =  round(recall[i], 2)
+            F1_score[i] = round(F1_score[i], 2)
 
 
-        return TruePositive, FalsePositive, FalseNegative
+        label_occurrences = np.where(support !=0)
+        occs = label_occurrences[0]
+        metrics_values = np.vstack((labels, true_positive, false_positive,
+                                    false_negative, precision[occs],
+                                    recall[occs], F1_score[occs], support[occs]))
+        metrics_values = np.transpose(metrics_values)
+        metrics_values = pd.DataFrame(metrics_values, columns = ["Labels", "TP", "FP", "FN",
+                                    "Precision", "Recall", "F1 Score", "Num. Records"])
+        print("{}".format(metrics_values))
 
-
+        return metrics_values
 
 
 
@@ -132,9 +133,10 @@ class Testbed(Metrics):
 
         hashids = Hashids(salt="diagnosenet")
         exp_id = hashids.encode(int(date), int(time))
-        # datetime = hashids.decode(exp_id)
 
-        # exp_id = hashlib.sha256(exp_description.encode('utf-8')).hexdigest()
+        # datetime = hashids.decode(exp_id)
+        # exp_id = hashlib.sha256(exp_idn.encode('utf-8')).hexdigest()
+
         return exp_id
 
     def eda_json(self):
