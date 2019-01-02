@@ -131,6 +131,15 @@ class DesktopExecution:
                 self.test_pred_1hot = np.vstack(test_pred_1hot)
                 self.test_true_1hot = np.vstack(test_true_1hot)
 
+                self.test_f1_weighted = f1_score(self.test_true_1hot,
+                                                    self.test_pred_1hot, average = "weighted")
+                self.test_f1_micro = f1_score(self.test_true_1hot,
+                                                    self.test_pred_1hot, average = "micro")
+
+                logger.info("-- Test Results --")
+                logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
+                logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
+
                 ## compute_metrics by each label
                 self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
                                                             y_true=self.test_true_1hot)
@@ -267,14 +276,14 @@ class DesktopExecution:
         IO_Functions()._write_list(self.training_track, track_path)
 
         ## Writes the Test labels
+        true_1h_path=str(self.testbed_exp+"/"+self.exp_id+"-true_1hot.txt")
+        np.savetxt(true_1h_path, self.test_true_1hot, delimiter=',', fmt='%d')
+
         pred_1h_path=str(self.testbed_exp+"/"+self.exp_id+"-pred_1hot.txt")
         np.savetxt(pred_1h_path, self.test_pred_1hot, delimiter=',', fmt='%d')
 
         pred_probas_path=str(self.testbed_exp+"/"+self.exp_id+"-pred_probas.txt")
-        np.savetxt(pred_probas_path, self.test_pred_probas, delimiter=',', fmt='%d')
-
-        true_1hot_path=str(self.testbed_exp+"/"+self.exp_id+"-true_1hot.txt")
-        np.savetxt(true_1hot_path, self.test_true_1hot, delimiter=',', fmt='%d')
+        np.savetxt(pred_probas_path, self.test_pred_probas, delimiter=',', fmt='%f')
 
         ## Writes Summarize Metrics
         metrics_values_path=str(self.testbed_exp+"/"+self.exp_id+"-metrics_values.txt")

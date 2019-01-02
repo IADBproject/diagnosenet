@@ -77,14 +77,19 @@ class Metrics:
         ## Compute True Positive
         true_positive = np.diag(conf_matrix)
 
-        ## Compute False Positive and False Negative
-        false_positive = []
+        ## Compute False Negative and False Positive
         false_negative = []
+        false_positive = []
         for i in range(len(conf_matrix)):
             false_positive.append(int(sum(conf_matrix[:,i]) - conf_matrix[i,i]))
-
             false_negative.append(int(sum(conf_matrix[i,:]) - conf_matrix[i,i]))
 
+        ## Compute True negative
+        # true_negative = []
+        # for i in range(len(conf_matrix)):
+        #     temp = np.delete(conf_matrix, i, 0)
+        #     temp = np.delete(temp, i, 1)
+        #     true_negative.append(int(sum(sum(temp))))
 
         ## Compute metrics per class
         precision, recall, F1_score, support = precision_recall_fscore_support(y_true,
@@ -103,7 +108,7 @@ class Metrics:
                                     recall[occs], F1_score[occs], support[occs]))
         metrics_values = np.transpose(metrics_values)
         metrics_values = pd.DataFrame(metrics_values, columns = ["Labels", "TP", "FN", "FP",
-                                    "Precision", "Recall", "F1 Score", "Num. Records"])
+                                    "Precision", "Recall", "F1 Score", "Records by Labels"])
         print("{}".format(metrics_values))
 
         return metrics_values
