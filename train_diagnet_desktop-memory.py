@@ -33,7 +33,7 @@ mlp_model = FullyConnected(input_size=14637, output_size=14,   #381,
                 optimizer=Adam(lr=0.01))
 
 ## 3) Dataset configurations for splitting, batching and target selection
-data_config = MultiTask(valid_size=0.10, test_size=0.15,
+data_config = MultiTask(valid_size=0.05, test_size=0.10,
                         batch_size=100,
                         target_name='Y11',
                         target_start=0, target_end=14)
