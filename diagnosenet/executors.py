@@ -131,11 +131,11 @@ class DesktopExecution:
                 self.test_pred_1hot = np.vstack(test_pred_1hot)
                 self.test_true_1hot = np.vstack(test_true_1hot)
 
+                ## Compute the F1 Score
                 self.test_f1_weighted = f1_score(self.test_true_1hot,
                                                     self.test_pred_1hot, average = "weighted")
                 self.test_f1_micro = f1_score(self.test_true_1hot,
                                                     self.test_pred_1hot, average = "micro")
-
                 logger.info("-- Test Results --")
                 logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
                 logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
@@ -253,6 +253,15 @@ class DesktopExecution:
                 self.test_pred_probas = np.vstack(test_pred_probas)
                 self.test_pred_1hot = np.vstack(test_pred_1hot)
                 self.test_true_1hot = np.vstack(test_true_1hot)
+
+                ## Compute the F1 Score
+                self.test_f1_weighted = f1_score(self.test_true_1hot,
+                                                    self.test_pred_1hot, average = "weighted")
+                self.test_f1_micro = f1_score(self.test_true_1hot,
+                                                    self.test_pred_1hot, average = "micro")
+                logger.info("-- Test Results --")
+                logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
+                logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
 
                 ## compute_metrics by each label
                 self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
