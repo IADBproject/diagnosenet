@@ -38,7 +38,8 @@ platform = DesktopExecution(model=mlp_model,
                             max_epochs=10)
 
 ## 5) Uses the platform modes for training in an efficient way
-platform.training_disk(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
+platform.training_disk( #dataset_name="PMSI_ICU_W1",
+                        dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
                         dataset_path="healthData/",
                         inputs_name="BPPR",
                         targets_name="labels_Y1")
