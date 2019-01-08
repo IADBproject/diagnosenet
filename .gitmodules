@@ -1,0 +1,4 @@
+[submodule "enerGyPU"]
+	path = enerGyPU
+	url = https://github.com/jagh/enerGyPU.git
+	branch = enerGyPUTesting
