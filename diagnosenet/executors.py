@@ -12,7 +12,9 @@ from diagnosenet.datamanager import Dataset, Batching
 from diagnosenet.io_functions import IO_Functions
 
 ## Write metrics
-from diagnosenet.metrics import Testbed, Metrics
+from diagnosenet.metrics import Testbed, Metrics #, enerGyPU
+from diagnosenet.energypu import enerGyPU
+
 from sklearn.metrics import f1_score
 
 import logging
@@ -35,7 +37,16 @@ class DesktopExecution:
         self.max_epochs = max_epochs
 
         ## Metrics
+        testbed_path: str = 'testbed'
         self.training_track: list = []
+
+        self.egpu = enerGyPU(self.model, self.data, self.__class__.__name__, self.max_epochs)
+        self.exp_id = self.egpu.generate_testbed(testbed_path)
+        self.testbed_exp = str(testbed_path+"/"+self.exp_id+"/")
+
+        ## Start power recording
+        self.egpu.start_power_recording(self.testbed_exp, self.exp_id)
+
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
         """
@@ -276,9 +287,9 @@ class DesktopExecution:
         """
 
         ## Generate a Testebed directory
-        tesbed = Testbed(self.model, self.data, self.__class__.__name__, self.max_epochs)
-        self.exp_id = tesbed.generate_testbed(testbed_path)
-        self.testbed_exp = str(testbed_path+"/"+self.exp_id+"/")
+        # tesbed = Testbed(self.model, self.data, self.__class__.__name__, self.max_epochs)
+        # self.exp_id = tesbed.generate_testbed(testbed_path)
+        # self.testbed_exp = str(testbed_path+"/"+self.exp_id+"/")
 
         ## Writes the training and validation track
         track_path=str(self.testbed_exp+"/"+self.exp_id+"-training_track.txt")
@@ -297,5 +308,8 @@ class DesktopExecution:
         ## Writes Summarize Metrics
         metrics_values_path=str(self.testbed_exp+"/"+self.exp_id+"-metrics_values.txt")
         np.savetxt(metrics_values_path, self.metrics_values, delimiter=',', fmt='%d')
+
+        ## End power recording
+        self.egpu.end_power_recording()
 
         logger.info("Tesbed directory: {}".format(self.testbed_exp))
