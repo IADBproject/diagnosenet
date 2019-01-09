@@ -6,7 +6,7 @@ from typing import Sequence, NamedTuple
 
 import tensorflow as tf
 import numpy as np
-import time
+import os, time
 
 from diagnosenet.datamanager import Dataset, Batching
 from diagnosenet.io_functions import IO_Functions
