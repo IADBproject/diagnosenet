@@ -36,7 +36,7 @@ class DesktopExecution:
         self.data = datamanager
         self.max_epochs = max_epochs
 
-        ## Metrics
+        ## Testbed and Metrics
         testbed_path: str = 'testbed'
         self.training_track: list = []
 
@@ -47,12 +47,10 @@ class DesktopExecution:
         ## Start power recording
         self.egpu.start_power_recording(self.testbed_exp, self.exp_id)
 
-        ## GPU availables
-        gpus = self.egpu._get_available_GPU()
-
+        ## Get GPU availeble and set for processing
+        idgpu = self.egpu._get_available_GPU()
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"]="2"
-
+        os.environ["CUDA_VISIBLE_DEVICES"]=idgpu[0]
 
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
