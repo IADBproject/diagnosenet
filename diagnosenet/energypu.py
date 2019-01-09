@@ -1,5 +1,5 @@
 """
-Energy-monitoring launcher for workload characterizatio
+Energy-monitoring launcher for workload characterization
 """
 
 import subprocess as sp
@@ -23,7 +23,8 @@ class enerGyPU(Testbed):
 
         ## Identification of GPUs
         idgpu = []
-        cmd_nvidia_smi = "nvidia-smi | grep 0000 | awk '{print $8}'"
+        # cmd_nvidia_smi = "nvidia-smi | grep 0000 | awk '{print $8}'"
+        cmd_nvidia_smi = "nvidia-smi | grep '0000' | awk '{if($7 ~ '0000') print $7; else if($8 ~ '0000') print $8}'"
         idgpu.append(sp.Popen(cmd_nvidia_smi, stdout=sp.PIPE, shell=True).stdout.readlines())
 
         ## Get ID GPUs available
