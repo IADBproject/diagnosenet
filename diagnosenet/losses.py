@@ -21,3 +21,10 @@ class CrossEntropy(Loss):
         self.y_pred = y_pred
         self.y_true = y_true
         return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = self.y_pred, labels = self.y_true))
+
+
+    def multiGPU_loss(self, y_pred: tf.Tensor, y_true: tf.Tensor) -> tf.Tensor:
+        self.y_pred = y_pred
+        self.y_true = y_true
+        # return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = self.y_pred, labels = self.y_true))
+        return tf.sqrt(tf.reduce_mean(tf.square(self.y_true - self.y_pred)))

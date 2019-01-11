@@ -66,3 +66,81 @@ class FullyConnected:
             self.soft_projection = tf.nn.softmax(self.projection)
             self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
             self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
+
+
+    def multiGPU_graph(self) -> tf.Tensor:
+
+        with tf.Graph().as_default() as self.mlp_graph:
+
+            self.num_gpus=2
+            self.gpu_batch_size=50
+            self.tower_grads = []
+
+            self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
+            self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
+
+            for gpu in range(self.num_gpus):
+                print("gpu: {}".format(gpu))
+
+                with tf.device('/gpu:%d' % gpu):
+                    _X = self.X[gpu * self.gpu_batch_size: gpu+1 * self.gpu_batch_size]
+
+                    _Y = self.Y[gpu * self.gpu_batch_size: gpu+1 * self.gpu_batch_size]
+
+
+                    self.projection = self.stacked(_X)
+                    print("++++++++++++++++++++++++++++++++++++++++++++")
+                    print("self.projection: {}".format(self.projection))
+
+
+                    self.mlp_loss = self.loss.multiGPU_loss(self.projection, _Y)
+
+                    self.mlp_grad_op = self.optimizer.desktop_Grad(self.mlp_loss)
+
+                    self.tower_grads.append(self.mlp_grad_op)
+
+                    ## Accuracy
+                    self.accuracy = Metrics().accuracy(_Y, self.projection)
+                    # print("self.accuracy: {}".format(self.accuracy))
+
+                    ## # Convert prediction to one hot encoding
+                    self.soft_projection = tf.nn.softmax(self.projection)
+                    self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
+                    self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
+
+
+
+    # def multiGPU_graph(self) -> tf.Tensor:
+    #
+    #
+    #     with tf.Graph().as_default() as self.mlp_graph:
+    #
+    #         self.num_gpus=2
+    #         self.gpu_batch_size=50
+    #
+    #         self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
+    #         self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
+    #
+    #         for gpu in range(self.num_gpus):
+    #             print("gpu: {}".format(gpu))
+    #
+    #             with tf.device('/gpu:%d' % gpu):
+    #                 _X = self.X[gpu * self.gpu_batch_size:
+    #                                 gpu+1 * self.gpu_batch_size]
+    #
+    #                 _Y = self.Y[gpu * self.gpu_batch_size:
+    #                                 gpu+1 * self.gpu_batch_size]
+    #
+    #
+    #                 self.projection = self.stacked(_X)
+    #                 self.mlp_loss = self.loss.desktop_loss(self, self.projection, _Y)
+    #                 self.mlp_grad_op = self.optimizer.desktop_Grad(self.mlp_loss)
+    #
+    #                 ## Accuracy
+    #                 self.accuracy = Metrics().accuracy(_Y, self.projection)
+    #                 # print("self.accuracy: {}".format(self.accuracy))
+    #
+    #                 ## # Convert prediction to one hot encoding
+    #                 self.soft_projection = tf.nn.softmax(self.projection)
+    #                 self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
+    #                 self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
