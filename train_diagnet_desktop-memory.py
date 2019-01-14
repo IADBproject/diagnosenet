@@ -27,16 +27,18 @@ layers = [Relu(14637, 2048),
             Linear(2048, 14)]
 
 ## 2) Select the neural network architecture and pass the hyper-parameters
-mlp_model = FullyConnected(input_size=14637, output_size=14,   #381,
+mlp_model = FullyConnected(input_size=14637, output_size=14,   #239,
                 layers=layers,
                 loss=CrossEntropy,
                 optimizer=Adam(lr=0.01))
 
 ## 3) Dataset configurations for splitting, batching and target selection
-data_config = MultiTask(valid_size=0.05, test_size=0.10,
+data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
+                        valid_size=0.05, test_size=0.10,
                         batch_size=100,
-                        target_name='Y11',
+                        target_name='Y12',
                         target_start=0, target_end=14)
+                        #14:253
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model,
