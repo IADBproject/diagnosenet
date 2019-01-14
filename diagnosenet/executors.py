@@ -6,7 +6,7 @@ from typing import Sequence, NamedTuple
 
 import tensorflow as tf
 import numpy as np
-import os, time
+import os, time, json
 
 from diagnosenet.datamanager import Dataset, Batching
 from diagnosenet.io_functions import IO_Functions
@@ -32,26 +32,43 @@ class DesktopExecution:
     """
 
     def __init__(self, model, datamanager: Dataset = None, max_epochs: int = 10) -> None:
+        latency_start = time.time()
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
 
+        ## Time logs
+        self.time_latency: time()
+        self.time_dataset: time()
+        self.time_training: time()
+        self.time_testing: time()
+        self.time_metrics: time()
+
         ## Testbed and Metrics
         testbed_path: str = 'testbed'
+        self.processing_mode: str
         self.training_track: list = []
 
-        self.egpu = enerGyPU(self.model, self.data, self.__class__.__name__, self.max_epochs)
-        self.exp_id = self.egpu.generate_testbed(testbed_path)
+        ## Initialize nerGyPU, Testbed and Metrics
+        self.energypu = enerGyPU(self.model,
+                                self.data,
+                                self.__class__.__name__,
+                                self.max_epochs)
+
+        ## Get the experiment ID
+        self.exp_id = self.energypu.generate_testbed(testbed_path)
         self.testbed_exp = str(testbed_path+"/"+self.exp_id+"/")
 
         ## Start power recording
-        self.egpu.start_power_recording(self.testbed_exp, self.exp_id)
+        self.energypu.start_power_recording(self.testbed_exp, self.exp_id)
 
         ## Get GPU availeble and set for processing
-        idgpu = self.egpu._get_available_GPU()
-        print("idgpu: {}".format(idgpu))
+        self.idgpu = self.energypu._get_available_GPU()
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"]="3,4"    #idgpu[0]
+        os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
+
+        self.time_latency = time.time()-latency_start
+
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
         """
@@ -85,7 +102,15 @@ class DesktopExecution:
         Training the deep neural network exploit the memory on desktop machine
         """
         ## Set dataset on memory
+        dataset_start = time.time()
         train, valid, test = self.set_dataset_memory(inputs, targets)
+        self.time_dataset = time.time()-dataset_start
+
+        ### Training Start
+        training_start = time.time()
+
+        ## Set processing_mode flat
+        self.processing_mode = "memory_batching"
         ## Generates a Desktop Graph
         self.model.desktop_graph()
 
@@ -125,9 +150,11 @@ class DesktopExecution:
                                                         train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
+            self.time_training = time.time()-training_start
 
+            ### Testing Starting
+            testing_start = time.time()
 
-            ## Testing
             if len(test.inputs) != 0:
                 test_pred_probas: list = []
                 test_pred_1hot: list = []
@@ -159,10 +186,9 @@ class DesktopExecution:
                 ## compute_metrics by each label
                 self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
                                                             y_true=self.test_true_1hot)
-
+                self.time_testing = time.time()-testing_start
                 return self.test_pred_probas
             return train_pred
-
 
     def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> BatchPath:
@@ -190,8 +216,16 @@ class DesktopExecution:
         Training the deep neural network exploit the memory on desktop machine
         """
         ## Set dataset on memory
+        dataset_start = time.time()
         train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
                                                     inputs_name, targets_name)
+        self.time_dataset = time.time()-dataset_start
+
+        ### Training Start
+        training_start = time.time()
+
+        ## Set processing_mode flat
+        self.processing_mode = "disk_batching"
         ## Generates a Desktop Graph
         self.model.desktop_graph()
 
@@ -242,9 +276,11 @@ class DesktopExecution:
                                                         train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
+            self.time_training = time.time()-training_start
 
+            ### Testing Starting
+            testing_start = time.time()
 
-            ## Testing
             if len(test.input_files) != 0:
                 test_pred_probas: list = []
                 test_pred_1hot: list = []
@@ -282,6 +318,7 @@ class DesktopExecution:
                 ## compute_metrics by each label
                 self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
                                                             y_true=self.test_true_1hot)
+                self.time_testing = time.time()-testing_start
                 return self.test_pred_probas
             return train_pred
 
@@ -290,7 +327,7 @@ class DesktopExecution:
         """
         Uses Testbed to isolate the training metrics by experiment directory
         """
-
+        metrics_start = time.time()
         ## Generate a Testebed directory
         # tesbed = Testbed(self.model, self.data, self.__class__.__name__, self.max_epochs)
         # self.exp_id = tesbed.generate_testbed(testbed_path)
@@ -314,8 +351,32 @@ class DesktopExecution:
         metrics_values_path=str(self.testbed_exp+"/"+self.exp_id+"-metrics_values.txt")
         np.savetxt(metrics_values_path, self.metrics_values, delimiter=',', fmt='%d')
 
+
+        ### Add elements to json experiment Description architecture
+        eda_json = self.energypu._get_eda_json(self.testbed_exp, self.exp_id)
+
         ## End power recording
-        self.egpu.end_power_recording()
+        self.energypu.end_power_recording()
+        self.time_metrics = time.time()-metrics_start
+
+        ## Add values to platform_parameters
+        eda_json['platform_parameters']['processing_mode'] = self.processing_mode
+        eda_json['platform_parameters']['gpu_id'] = self.idgpu[0]
+
+        ## Add values to results
+        eda_json['results']['f1_score_weigted'] = self.test_f1_weighted
+        eda_json['results']['f1_score_micro'] = self.test_f1_micro
+        eda_json['results']['time_latency'] = self.time_latency
+        eda_json['results']['time_dataset'] = self.time_dataset
+        eda_json['results']['time_training'] = self.time_training
+        eda_json['results']['time_testing'] = self.time_testing
+        eda_json['results']['time_metrics'] = self.time_metrics
+
+        ## Serialize the eda json and rewrite the file
+        eda_json = json.dumps(eda_json, separators=(',', ': '), indent=2)
+        file_path = str(self.testbed_exp+"/"+self.exp_id+"-exp_description.json")
+        IO_Functions()._write_file(eda_json, file_path)
+
 
         logger.info("Tesbed directory: {}".format(self.testbed_exp))
 

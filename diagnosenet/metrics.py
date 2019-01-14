@@ -30,7 +30,6 @@ class Metrics:
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
         return accuracy
 
-
     def auc_roc(self, y_pred, y_true):
         """
         Compute AUC | Note that the y_pred feeded to auc_roc is one hot encoded
@@ -55,7 +54,6 @@ class Metrics:
         roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
 
         return roc_auc
-
 
     def compute_metrics(self, y_true, y_pred):
         """
@@ -161,6 +159,7 @@ class Testbed(Metrics):
                     "dimension_layer": dim_layer,
                     "optimizer": str(self.model.optimizer.__class__.__name__),
                     "loss": str(self.model.loss),
+                    "max_epochs": self.max_epochs
                     },
             "dataset_config":{
                     "dataset_name": str(self.data.dataset_name),
@@ -169,11 +168,29 @@ class Testbed(Metrics):
                     },
             "platform_parameters": {
                     "platform": self.platform_name,
-                    "max_epochs": self.max_epochs
-                    } }
+                    "processing_mode": None,
+                    "gpu_id": None,
+                    },
+            "results": {
+                    "f1_score_weigted": None,
+                    "f1_score_micro": None,
+                    "time_training": None,
+                    "time_dataset": None,
+                    "time_testing": None,
+                    "time_metrics": None,
+                    "time_latency": None,
+                    },}
 
-        exp_description = json.dumps(exp_serialized, separators=(',', ': '))
+        exp_description = json.dumps(exp_serialized, separators=(',', ': '), indent=2)
         return exp_description
+
+    def _get_eda_json(self, testbed_exp, exp_id) -> None:
+        """
+        Read Json experiment Description architecture File
+        """
+        with open(testbed_exp+"/"+exp_id+"-exp_description.json") as eda_json:
+            eda_json = json.load(eda_json)
+        return eda_json
 
     def generate_testbed(self, testbed: str = 'testbed') -> None:
         """
