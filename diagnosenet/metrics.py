@@ -3,7 +3,8 @@ Metrics ...
 """
 
 from time import gmtime, strftime
-from hashids import Hashids
+# from hashids import Hashids
+import hashlib
 import json
 
 import numpy as np
@@ -129,16 +130,15 @@ class Testbed(Metrics):
         Generates a SHA256 hash object and return hexadecimal digits
         pip install hashids
         """
-        date = strftime("%Y%m%d", gmtime())
-        time = strftime("%H%M%S", gmtime())
+        # hashids = Hashids(salt="diagnosenet")
+        # exp_id = hashids.encode(exp_id)
+        # hashids = hashids.decode(exp_id)
 
-        hashids = Hashids(salt="diagnosenet")
-        exp_id = hashids.encode(int(date), int(time))
+        datetime = strftime("%Y%m%d%H%M%S", gmtime())
+        exp_id=str(self.data.dataset_name)+"-"+str(self.model.__class__.__name__)+"-"+str(self.platform_name)+"-"+str(datetime)
+        hash_id = hashlib.sha256(exp_id.encode('utf-8')).hexdigest()
 
-        # datetime = hashids.decode(exp_id)
-        # exp_id = hashlib.sha256(exp_idn.encode('utf-8')).hexdigest()
-
-        return exp_id
+        return hash_id
 
     def eda_json(self):
         """
@@ -199,8 +199,9 @@ class Testbed(Metrics):
         self.testbed = testbed
 
         ## Define a experiment id
-        datetime = strftime("%Y%m%d%H%M%S", gmtime())
-        self.exp_id=str(self.data.dataset_name)+"-"+str(self.model.__class__.__name__)+"-"+str(self.platform_name)+"-"+str(datetime)
+        # datetime = strftime("%Y%m%d%H%M%S", gmtime())
+        # exp_id=str(self.data.dataset_name)+"-"+str(self.model.__class__.__name__)+"-"+str(self.platform_name)+"-"+str(datetime)
+        self.exp_id=self._hashing_()
 
         ## Build a experiment testbed directory
         IO_Functions()._mkdir_(self.testbed)
