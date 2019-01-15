@@ -158,6 +158,7 @@ class Testbed(Metrics):
                     "activation_layer": act_layer,
                     "dimension_layer": dim_layer,
                     "optimizer": str(self.model.optimizer.__class__.__name__),
+                    "learning_rate": self.model.optimizer.lr,
                     "loss": str(self.model.loss),
                     "dropout": self.model.dropout,
                     "max_epochs": self.max_epochs,
@@ -175,6 +176,7 @@ class Testbed(Metrics):
             "results": {
                     "f1_score_weigted": None,
                     "f1_score_micro": None,
+                    "loss_validation": None,
                     "time_training": None,
                     "time_dataset": None,
                     "time_testing": None,

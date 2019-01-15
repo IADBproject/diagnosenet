@@ -31,11 +31,13 @@ class DesktopExecution:
     Returns:
     """
 
-    def __init__(self, model, datamanager: Dataset = None, max_epochs: int = 10) -> None:
+    def __init__(self, model, datamanager: Dataset = None,
+                    max_epochs: int = 10, min_loss: float = 2.0 ) -> None:
         latency_start = time.time()
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
+        self.min_loss = min_loss
 
         ## Time logs
         self.time_latency: time()
@@ -120,7 +122,9 @@ class DesktopExecution:
             sess.run(init)
 
             epoch: int = 0
-            while epoch < self.max_epochs:
+            epoch_convergence: bin = 0
+            while (epoch_convergence == 0):
+
                 epoch_start = time.time()
                 for i in range(len(train.inputs)):
                     train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
@@ -151,6 +155,15 @@ class DesktopExecution:
                                                         train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
+
+                ## While Convergence conditional
+                if valid_loss <= self.min_loss or epoch == self.max_epochs:
+                    epoch_convergence = 1
+                    self.max_epochs=epoch
+                    self.min_loss=valid_loss
+                else:
+                    epoch_convergence = 0
+                ### end While loop
             self.time_training = time.time()-training_start
 
             ### Testing Starting
@@ -239,8 +252,8 @@ class DesktopExecution:
             sess.run(init)
 
             epoch: int = 0
-            list_train_losses: list = []
-            while epoch < self.max_epochs:
+            epoch_convergence: bin = 0
+            while (epoch_convergence == 0):
                 epoch_start = time.time()
 
                 for i in range(len(train.input_files)):
@@ -285,6 +298,15 @@ class DesktopExecution:
                                                         train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
+
+                ## While Convergence conditional
+                if valid_loss <= self.min_loss or epoch == self.max_epochs:
+                    epoch_convergence = 1
+                    self.max_epochs=epoch
+                    self.min_loss=valid_loss
+                else:
+                    epoch_convergence = 0
+                ### end While loop
             self.time_training = time.time()-training_start
 
             ### Testing Starting
@@ -371,12 +393,16 @@ class DesktopExecution:
         self.time_metrics = time.time()-metrics_start
 
         ## Add values to platform_parameters
+        eda_json['model_hyperparameters']['max_epochs'] = self.max_epochs
+
+        ## Add values to platform_parameters
         eda_json['platform_parameters']['processing_mode'] = self.processing_mode
         eda_json['platform_parameters']['gpu_id'] = self.idgpu[0]
 
         ## Add values to results
         eda_json['results']['f1_score_weigted'] = self.test_f1_weighted
         eda_json['results']['f1_score_micro'] = self.test_f1_micro
+        eda_json['results']['loss_validation'] = str(self.min_loss)
         eda_json['results']['time_latency'] = self.time_latency
         eda_json['results']['time_dataset'] = self.time_dataset
         eda_json['results']['time_training'] = self.time_training
