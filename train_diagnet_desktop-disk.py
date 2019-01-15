@@ -19,11 +19,13 @@ layers = [Relu(14637, 2048),
             Relu(2048, 2048),
             Relu(2048, 2048),
             Linear(2048, 14)]
+
 ## 2) Select the neural network architecture and pass the hyper-parameters
 mlp_model = FullyConnected(input_size=14637, output_size=14,   #381,
                             layers=layers,
                             loss=CrossEntropy,
-                            optimizer=Adam(lr=0.01))
+                            optimizer=Adam(lr=0.001),
+                            dropout=0.8)
 
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
