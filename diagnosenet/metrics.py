@@ -159,7 +159,8 @@ class Testbed(Metrics):
                     "dimension_layer": dim_layer,
                     "optimizer": str(self.model.optimizer.__class__.__name__),
                     "loss": str(self.model.loss),
-                    "max_epochs": self.max_epochs
+                    "dropout": self.model.dropout,
+                    "max_epochs": self.max_epochs,
                     },
             "dataset_config":{
                     "dataset_name": str(self.data.dataset_name),

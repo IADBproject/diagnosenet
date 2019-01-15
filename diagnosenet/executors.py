@@ -55,14 +55,14 @@ class DesktopExecution:
                                 self.__class__.__name__,
                                 self.max_epochs)
 
-        ## Get the experiment ID
+        # Get the experiment ID
         self.exp_id = self.energypu.generate_testbed(testbed_path)
         self.testbed_exp = str(testbed_path+"/"+self.exp_id+"/")
 
         ## Start power recording
         self.energypu.start_power_recording(self.testbed_exp, self.exp_id)
 
-        ## Get GPU availeble and set for processing
+        # Get GPU availeble and set for processing
         self.idgpu = self.energypu._get_available_GPU()
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
@@ -97,6 +97,101 @@ class DesktopExecution:
 
         return train, valid, test
 
+
+    # def training_memory(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
+    #     """
+    #     Training the deep neural network exploit the memory on desktop machine
+    #     """
+    #     ## Set dataset on memory
+    #     dataset_start = time.time()
+    #     train, valid, test = self.set_dataset_memory(inputs, targets)
+    #     self.time_dataset = time.time()-dataset_start
+    #
+    #     ### Training Start
+    #     training_start = time.time()
+    #
+    #     ## Set processing_mode flat
+    #     self.processing_mode = "memory_batching"
+    #     ## Generates a Desktop Graph
+    #     self.model.desktop_graph()
+    #
+    #     with tf.Session(graph=self.model.mlp_graph) as sess:
+    #         init = tf.group(tf.global_variables_initializer(),
+    #                             tf.local_variables_initializer())
+    #         sess.run(init)
+    #
+    #         epoch: int = 0
+    #         while epoch < self.max_epochs:
+    #             epoch_start = time.time()
+    #             for i in range(len(train.inputs)):
+    #
+    #                 train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
+    #                                 feed_dict={self.model.X: train.inputs[i],
+    #                                             self.model.Y: train.targets[i]})
+    #
+    #                 train_pred = sess.run(self.model.projection_1hot,
+    #                                 feed_dict={self.model.X: train.inputs[i]})
+    #
+    #                 train_acc = f1_score(y_true=train.targets[i].astype(np.float),
+    #                                         y_pred=train_pred, average='micro')
+    #
+    #             for i in range(len(valid.inputs)):
+    #                 valid_loss = sess.run(self.model.mlp_loss,
+    #                                 feed_dict={self.model.X: valid.inputs[i],
+    #                                             self.model.Y: valid.targets[i]})
+    #
+    #                 valid_pred = sess.run(self.model.projection_1hot,
+    #                                 feed_dict={self.model.X: valid.inputs[i]})
+    #
+    #                 valid_acc = f1_score(y_true=valid.targets[i].astype(np.float),
+    #                                         y_pred=valid_pred, average='micro')
+    #
+    #             epoch_elapsed = (time.time() - epoch_start)
+    #             logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
+    #                                                     train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+    #             self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+    #             epoch = epoch + 1
+    #         self.time_training = time.time()-training_start
+    #
+    #         ### Testing Starting
+    #         testing_start = time.time()
+    #
+    #         if len(test.inputs) != 0:
+    #             test_pred_probas: list = []
+    #             test_pred_1hot: list = []
+    #             test_true_1hot: list = []
+    #
+    #             for i in range(len(test.inputs)):
+    #                 tt_pred_probas = sess.run(self.model.soft_projection,
+    #                                                 feed_dict={self.model.X: test.inputs[i]})
+    #                 tt_pred_1hot = sess.run(self.model.projection_1hot,
+    #                                                 feed_dict={self.model.X: test.inputs[i]})
+    #
+    #                 test_pred_probas.append(tt_pred_probas)
+    #                 test_pred_1hot.append(tt_pred_1hot)
+    #                 test_true_1hot.append(test.targets[i].astype(np.float))
+    #
+    #             self.test_pred_probas = np.vstack(test_pred_probas)
+    #             self.test_pred_1hot = np.vstack(test_pred_1hot)
+    #             self.test_true_1hot = np.vstack(test_true_1hot)
+    #
+    #             ## Compute the F1 Score
+    #             self.test_f1_weighted = f1_score(self.test_true_1hot,
+    #                                                 self.test_pred_1hot, average = "weighted")
+    #             self.test_f1_micro = f1_score(self.test_true_1hot,
+    #                                                 self.test_pred_1hot, average = "micro")
+    #             logger.info("-- Test Results --")
+    #             logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
+    #             logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
+    #
+    #             ## compute_metrics by each label
+    #             self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
+    #                                                         y_true=self.test_true_1hot)
+    #             self.time_testing = time.time()-testing_start
+    #             return self.test_pred_probas
+    #         return train_pred
+
+
     def training_memory(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
         """
         Training the deep neural network exploit the memory on desktop machine
@@ -123,25 +218,26 @@ class DesktopExecution:
             while epoch < self.max_epochs:
                 epoch_start = time.time()
                 for i in range(len(train.inputs)):
-
                     train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
                                     feed_dict={self.model.X: train.inputs[i],
-                                                self.model.Y: train.targets[i]})
-
+                                                self.model.Y: train.targets[i],
+                                                self.model.keep_prob: self.model.dropout})
                     train_pred = sess.run(self.model.projection_1hot,
-                                    feed_dict={self.model.X: train.inputs[i]})
-
+                                    feed_dict={self.model.X: train.inputs[i],
+                                                self.model.keep_prob: self.model.dropout})
+                    ## F1_score from Skit-learn metrics
                     train_acc = f1_score(y_true=train.targets[i].astype(np.float),
                                             y_pred=train_pred, average='micro')
 
                 for i in range(len(valid.inputs)):
                     valid_loss = sess.run(self.model.mlp_loss,
                                     feed_dict={self.model.X: valid.inputs[i],
-                                                self.model.Y: valid.targets[i]})
-
+                                                self.model.Y: valid.targets[i],
+                                                self.model.keep_prob: 1.0})
                     valid_pred = sess.run(self.model.projection_1hot,
-                                    feed_dict={self.model.X: valid.inputs[i]})
-
+                                    feed_dict={self.model.X: valid.inputs[i],
+                                                self.model.keep_prob: 1.0})
+                    ## F1_score from Skit-learn metrics
                     valid_acc = f1_score(y_true=valid.targets[i].astype(np.float),
                                             y_pred=valid_pred, average='micro')
 
@@ -162,9 +258,11 @@ class DesktopExecution:
 
                 for i in range(len(test.inputs)):
                     tt_pred_probas = sess.run(self.model.soft_projection,
-                                                    feed_dict={self.model.X: test.inputs[i]})
+                                                feed_dict={self.model.X: test.inputs[i],
+                                                            self.model.keep_prob: 1.0})
                     tt_pred_1hot = sess.run(self.model.projection_1hot,
-                                                    feed_dict={self.model.X: test.inputs[i]})
+                                                feed_dict={self.model.X: test.inputs[i],
+                                                            self.model.keep_prob: 1.0})
 
                     test_pred_probas.append(tt_pred_probas)
                     test_pred_1hot.append(tt_pred_1hot)
@@ -189,6 +287,7 @@ class DesktopExecution:
                 self.time_testing = time.time()-testing_start
                 return self.test_pred_probas
             return train_pred
+
 
     def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> BatchPath:
