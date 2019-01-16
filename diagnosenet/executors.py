@@ -6,7 +6,9 @@ from typing import Sequence, NamedTuple
 
 import tensorflow as tf
 import numpy as np
+
 import os, time, json
+import multiprocessing as mp
 
 from diagnosenet.datamanager import Dataset, Batching
 from diagnosenet.io_functions import IO_Functions
@@ -63,6 +65,13 @@ class DesktopExecution:
 
         ## Start power recording
         self.energypu.start_power_recording(self.testbed_exp, self.exp_id)
+
+        ## Start platform recording
+        pid = os.getpid()
+        proc = mp.Process(target = self.energypu.start_platform_recording, args = (pid,))
+        proc.start()
+        print("PID: {}".format(pid))
+
 
         # Get GPU availeble and set for processing
         self.idgpu = self.energypu._get_available_GPU()
@@ -387,6 +396,10 @@ class DesktopExecution:
 
         ### Add elements to json experiment Description architecture
         eda_json = self.energypu._get_eda_json(self.testbed_exp, self.exp_id)
+
+        ## End computational recording
+        row = self.energypu.end_platform_recording()
+        print(row)
 
         ## End power recording
         self.energypu.end_power_recording()
