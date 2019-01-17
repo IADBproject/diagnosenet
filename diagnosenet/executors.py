@@ -68,9 +68,7 @@ class DesktopExecution:
 
         ## Start platform recording
         pid = os.getpid()
-        proc = mp.Process(target = self.energypu.start_platform_recording, args = (pid,))
-        proc.start()
-        print("PID: {}".format(pid))
+        self.energypu.start_platform_recording(pid, self.testbed_exp, self.exp_id)
 
 
         # Get GPU availeble and set for processing
@@ -393,17 +391,8 @@ class DesktopExecution:
         metrics_values_path=str(self.testbed_exp+"/"+self.exp_id+"-metrics_values.txt")
         np.savetxt(metrics_values_path, self.metrics_values, delimiter=',', fmt='%d')
 
-
         ### Add elements to json experiment Description architecture
         eda_json = self.energypu._get_eda_json(self.testbed_exp, self.exp_id)
-
-        ## End computational recording
-        row = self.energypu.end_platform_recording()
-        print(row)
-
-        ## End power recording
-        self.energypu.end_power_recording()
-        self.time_metrics = time.time()-metrics_start
 
         ## Add values to platform_parameters
         eda_json['model_hyperparameters']['max_epochs'] = self.max_epochs
@@ -420,6 +409,9 @@ class DesktopExecution:
         eda_json['results']['time_dataset'] = self.time_dataset
         eda_json['results']['time_training'] = self.time_training
         eda_json['results']['time_testing'] = self.time_testing
+
+        ## End time metrics
+        self.time_metrics = time.time()-metrics_start
         eda_json['results']['time_metrics'] = self.time_metrics
 
         ## Serialize the eda json and rewrite the file
@@ -428,8 +420,13 @@ class DesktopExecution:
         IO_Functions()._write_file(eda_json, file_path)
 
 
-        logger.info("Tesbed directory: {}".format(self.testbed_exp))
+        ## End computational recording
+        self.energypu.end_platform_recording()
 
+        ## End power recording
+        self.energypu.end_power_recording()
+
+        logger.info("Tesbed directory: {}".format(self.testbed_exp))
 
 
 
