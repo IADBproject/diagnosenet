@@ -12,12 +12,7 @@ import multiprocessing as mp
 
 from diagnosenet.datamanager import Dataset, Batching
 from diagnosenet.io_functions import IO_Functions
-
-## Write metrics
 from diagnosenet.monitor import enerGyPU, Metrics
-# from diagnosenet.metrics import Testbed, Metrics #, enerGyPU
-# from diagnosenet.energypu import enerGyPU
-
 from sklearn.metrics import f1_score
 
 import logging
@@ -34,9 +29,8 @@ class DesktopExecution:
     Returns:
     """
 
-    def __init__(self, model,  monitor, datamanager: Dataset = None,
+    def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
                     max_epochs: int = 10, min_loss: float = 2.0) -> None:
-        latency_start = time.time()
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
@@ -51,67 +45,47 @@ class DesktopExecution:
         self.time_metrics: time()
 
         ## Testbed and Metrics
-        # testbed_path: str = 'testbed'
         self.processing_mode: str
         self.training_track: list = []
-
-        # ## Initialize enerGyPU, Testbed and Metrics
-        # self.energypu = enerGyPU(self.model,
-        #                         self.data,
-        #                         self.__class__.__name__,
-        #                         self.max_epochs)
-        #
-        # ## Get the experiment ID
-        # self.exp_id = self.energypu.generate_testbed(self.monitor.testbed_path)
-        # self.testbed_exp = str(self.monitor.testbed_path+"/"+self.exp_id+"/")
-        #
-        # ## Start power recording
-        # self.energypu.start_power_recording(self.testbed_exp, self.exp_id)
-        #
-        # ## Start platform recording
-        # pid = os.getpid()
-        # self.energypu.start_platform_recording(pid, self.testbed_exp, self.exp_id)
-        #
-        #
-        # # Get GPU availeble and set for processing
-        # self.idgpu = self.energypu._get_available_GPU()
-        # os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-        # os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
-
-        self.time_latency = time.time()-latency_start
 
 
     def set_monitor_recording(self) -> None:
         """
+        Power and performance monitoring launcher for workload characterization
         """
+        latency_start = time.time()
+        if self.monitor == None:
+            self.monitor = enerGyPU(testbed_path="testbed",
+                                write_metrics=True,
+                                power_recording=True,
+                                platform_recording=True)
 
-        ## Get the experiment ID
-        self.exp_id = self.monitor.generate_testbed(self.monitor.testbed_path,
-                                                        self.model,
-                                                        self.data,
-                                                        self.__class__.__name__,
-                                                        self.max_epochs)
-
-
-        self.testbed_exp = str(self.monitor.testbed_path+"/"+self.exp_id+"/")
+        ## Generate  experiment ID
+        self.monitor.generate_testbed(self.monitor.testbed_path,
+                                        self.model, self.data,
+                                        self.__class__.__name__,
+                                        self.max_epochs)
 
         ## Start power recording
-        self.monitor.start_power_recording(self.testbed_exp, self.exp_id)
+        if self.monitor.power_recording == True: self.monitor.start_power_recording()
 
         ## Start platform recording
-        pid = os.getpid()
-        self.monitor.start_platform_recording(pid, self.testbed_exp, self.exp_id)
+        if self.monitor.platform_recording == True: self.monitor.start_platform_recording(os.getpid())
 
-        # Get GPU availeble and set for processing
+        ## Get GPU availeble and set for processing
         self.idgpu = self.monitor._get_available_GPU()
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
+
+        ## Time recording
+        self.time_latency = time.time()-latency_start
 
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
         """
         Uses datamanager classes for splitting, batching the dataset and target selection
         """
+        dataset_start = time.time()
         try:
             self.data.set_data_file(inputs, targets)
             if 'MultiTask' in str(type(self.data)):
@@ -133,26 +107,22 @@ class DesktopExecution:
             self.data.set_data_file(inputs, targets)
             train, valid, test = self.data.memory_batching()
 
+        self.time_dataset = time.time()-dataset_start
         return train, valid, test
 
     def training_memory(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
         """
         Training the deep neural network exploit the memory on desktop machine
         """
-
+        ## Set processing_mode flat
+        self.processing_mode = "memory_batching"
         ## Set Monitor Recording
         self.set_monitor_recording()
-
         ## Set dataset on memory
-        dataset_start = time.time()
         train, valid, test = self.set_dataset_memory(inputs, targets)
-        self.time_dataset = time.time()-dataset_start
 
         ### Training Start
         training_start = time.time()
-
-        ## Set processing_mode flat
-        self.processing_mode = "memory_batching"
         ## Generates a Desktop Graph
         self.model.desktop_graph()
 
@@ -243,6 +213,9 @@ class DesktopExecution:
                 self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
                                                             y_true=self.test_true_1hot)
                 self.time_testing = time.time()-testing_start
+
+                if self.monitor.write_metrics == True: self.write_metrics()
+
                 return self.test_pred_probas
             return train_pred
 
@@ -407,25 +380,25 @@ class DesktopExecution:
         # self.testbed_exp = str(testbed_path+"/"+self.exp_id+"/")
 
         ## Writes the training and validation track
-        track_path=str(self.testbed_exp+"/"+self.exp_id+"-training_track.txt")
+        track_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-training_track.txt")
         IO_Functions()._write_list(self.training_track, track_path)
 
         ## Writes the Test labels
-        true_1h_path=str(self.testbed_exp+"/"+self.exp_id+"-true_1hot.txt")
+        true_1h_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-true_1hot.txt")
         np.savetxt(true_1h_path, self.test_true_1hot, delimiter=',', fmt='%d')
 
-        pred_1h_path=str(self.testbed_exp+"/"+self.exp_id+"-pred_1hot.txt")
+        pred_1h_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-pred_1hot.txt")
         np.savetxt(pred_1h_path, self.test_pred_1hot, delimiter=',', fmt='%d')
 
-        pred_probas_path=str(self.testbed_exp+"/"+self.exp_id+"-pred_probas.txt")
+        pred_probas_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-pred_probas.txt")
         np.savetxt(pred_probas_path, self.test_pred_probas, delimiter=',', fmt='%f')
 
         ## Writes Summarize Metrics
-        metrics_values_path=str(self.testbed_exp+"/"+self.exp_id+"-metrics_values.txt")
+        metrics_values_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-metrics_values.txt")
         np.savetxt(metrics_values_path, self.metrics_values, delimiter=',', fmt='%d')
 
         ### Add elements to json experiment Description architecture
-        eda_json = self.monitor._get_eda_json(self.testbed_exp, self.exp_id)
+        eda_json = self.monitor.read_eda_json(self.monitor.testbed_exp, self.monitor.exp_id)
 
         ## Add values to platform_parameters
         eda_json['model_hyperparameters']['max_epochs'] = self.max_epochs
@@ -449,7 +422,7 @@ class DesktopExecution:
 
         ## Serialize the eda json and rewrite the file
         eda_json = json.dumps(eda_json, separators=(',', ': '), indent=2)
-        file_path = str(self.testbed_exp+"/"+self.exp_id+"-exp_description.json")
+        file_path = str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-exp_description.json")
         IO_Functions()._write_file(eda_json, file_path)
 
 
@@ -459,7 +432,7 @@ class DesktopExecution:
         ## End power recording
         self.monitor.end_power_recording()
 
-        logger.info("Tesbed directory: {}".format(self.testbed_exp))
+        logger.info("Tesbed directory: {}".format(self.monitor.testbed_exp))
 
 
 

@@ -3,7 +3,6 @@ Integrated performance monitor for workload characterization
 """
 
 from time import gmtime, strftime
-# from hashids import Hashids
 import hashlib
 import json
 
@@ -21,15 +20,8 @@ import psutil, datetime
 from diagnosenet.io_functions import IO_Functions
 
 class Metrics:
-    def __init__(self, testbed_path: str = 'testbed',
-                    write_metrics: bool = True,
-                    power_recording: bool = True,
-                    platform_recording: bool = True) -> None:
-
-        self.testbed_path = testbed_path
-        self.write_metrics = write_metrics
-        self.power_recording = power_recording
-        self.platform_recording = platform_recording
+    def __init__(self) -> None:
+        pass
 
     def accuracy(self, target, projection):
         """
@@ -127,16 +119,12 @@ class Testbed(Metrics):
     """
     Build an experiment directory to isolate the training metrics files
     """
-    def __init__(self,testbed_path,
-                    write_metrics,
-                    power_recording,
-                    platform_recording) -> None:
-        super().__init__(testbed_path,write_metrics,power_recording,platform_recording)
-        #model, data, platform_name, max_epochs) -> None:
-        # self.model = model
-        # self.data = data
-        # self.platform_name = platform_name
-        # self.max_epochs = max_epochs
+    def __init__(self, testbed_path, write_metrics) -> None:
+        super().__init__()
+        self.testbed_path = testbed_path
+        self.write_metrics = write_metrics
+        self.exp_id: str
+        self.testbed_exp: str
 
     def _hashing_(self) -> float.hex:
         """
@@ -153,7 +141,7 @@ class Testbed(Metrics):
 
         return hash_id
 
-    def eda_json(self):
+    def _set_eda_json(self):
         """
         Experiment description architecture:
         build a document that consists of a header and body in JSON format
@@ -200,28 +188,19 @@ class Testbed(Metrics):
         exp_description = json.dumps(exp_serialized, separators=(',', ': '), indent=2)
         return exp_description
 
-    def _get_eda_json(self, testbed_exp, exp_id) -> None:
-        """
-        Read Json experiment Description architecture File
-        """
-        with open(testbed_exp+"/"+exp_id+"-exp_description.json") as eda_json:
-            eda_json = json.load(eda_json)
-        return eda_json
-
-    def generate_testbed(self, testbed_exp, model, data,
-                            platform_name, max_epochs) -> None:
+    def generate_testbed(self, testbed_path, model, data,
+                                            platform_name, max_epochs) -> None:
         """
         Build an experiment directory to isolate the training metrics files
+        and return experiment id
         """
-        self.testbed = testbed_exp
+        self.testbed = testbed_path
         self.model = model
         self.data = data
         self.platform_name = platform_name
         self.max_epochs = max_epochs
 
         ## Define a experiment id
-        # datetime = strftime("%Y%m%d%H%M%S", gmtime())
-        # exp_id=str(self.data.dataset_name)+"-"+str(self.model.__class__.__name__)+"-"+str(self.platform_name)+"-"+str(datetime)
         self.exp_id=self._hashing_()
 
         ## Build a experiment testbed directory
@@ -231,12 +210,18 @@ class Testbed(Metrics):
         IO_Functions()._mkdir_(self.testbed_exp)
 
         ## Write the experiment description in json format
-        exp_description = self.eda_json()
+        exp_description = self._set_eda_json()
 
         file_path = str(self.testbed_exp+"/"+self.exp_id+"-exp_description.json")
         IO_Functions()._write_file(exp_description, file_path)
 
-        return self.exp_id
+    def read_eda_json(self, testbed_exp, exp_id) -> None:
+        """
+        Read Json experiment Description architecture File
+        """
+        with open(testbed_exp+"/"+exp_id+"-exp_description.json") as eda_json:
+            eda_json = json.load(eda_json)
+        return eda_json
 
 
 class enerGyPU(Testbed):
@@ -244,11 +229,12 @@ class enerGyPU(Testbed):
     This module deploys an energy monitor to collect the energy consumption metrics
     while the DNN model is executed on the target platform.
     """
-    def __init__(self, testbed_path,
-                    write_metrics,
-                    power_recording,
-                    platform_recording) -> None:
-        super().__init__(testbed_path,write_metrics,power_recording,platform_recording)
+    def __init__(self, testbed_path, write_metrics: bool = True,
+                                power_recording: bool = True,
+                                platform_recording: bool = True) -> None:
+        super().__init__(testbed_path,write_metrics)
+        self.power_recording = power_recording
+        self.platform_recording = platform_recording
         self.idgpu_available: list = []
 
     def _get_available_GPU(self) -> list:
@@ -274,12 +260,12 @@ class enerGyPU(Testbed):
 
         return self.idgpu_available
 
-    def start_power_recording(self, testbed_path, exp_id) -> None:
+    def start_power_recording(self) -> None:
         """
         Launches a subprocess for recording the global GPU factors
         to power consumption measures.
         """
-        sp.run(["enerGyPU/dataCapture/enerGyPU_record.sh", testbed_path, exp_id])
+        sp.run(["enerGyPU/dataCapture/enerGyPU_record.sh", self.testbed_exp, self.exp_id])
 
     def end_power_recording(self) -> None:
         """
@@ -287,13 +273,13 @@ class enerGyPU(Testbed):
         """
         sp.call(["killall", "-9", "nvidia-smi"])
 
-    def start_platform_recording(self, pid, testbed_exp, exp_id) -> None:
+    def start_platform_recording(self, pid) -> None:
         """
         Subprocess recording for memory and cpu usage while the models are training
         This function uses the library psutil-5.4.8
         """
         self.proc_platform = sp.Popen(["python3.6", "enerGyPU/dataCapture/platform_record.py",
-                                str(pid), testbed_exp, exp_id])
+                                str(pid), self.testbed_exp, self.exp_id])
 
     def end_platform_recording(self) -> None:
         """
