@@ -14,6 +14,9 @@ from diagnosenet.optimizers import Adam
 from diagnosenet.graphs import FullyConnected
 from diagnosenet.executors import DesktopExecution
 
+from diagnosenet.monitor import enerGyPU#, Metrics
+
+
 ### Read the PMSI-Dataset using Pickle from diagnosenet.io_functions
 path = "healthData/sandbox-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1/1_Mining-Stage/binary_representation/"
 X = IO_Functions()._read_file(path+"BPPR-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
@@ -36,20 +39,19 @@ mlp_model = FullyConnected(input_size=14637, output_size=14,   #239,
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
                         valid_size=0.05, test_size=0.10,
-                        batch_size=100,
+                        batch_size=500,
                         target_name='Y12',
                         target_start=0, target_end=14)
-                        #14:253
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model,
                             datamanager=data_config,
-                            max_epochs=10)
+                            monitor=enerGyPU(testbed_path="testbed"),
+                            max_epochs=2,
+                            min_loss=2.0)
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.training_memory(X, y)
-platform.write_metrics()
-
 
 
 print("Execution Time: {}".format((time.time()-execution_start)))
