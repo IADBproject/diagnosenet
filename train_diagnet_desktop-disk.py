@@ -37,7 +37,8 @@ data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model,
                             datamanager=data_config,
-                            max_epochs=10)
+                            max_epochs=10,
+                            min_loss=2.0)
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.training_disk(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
