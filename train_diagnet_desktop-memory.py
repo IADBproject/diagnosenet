@@ -13,8 +13,7 @@ from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
 from diagnosenet.graphs import FullyConnected
 from diagnosenet.executors import DesktopExecution
-
-from diagnosenet.monitor import enerGyPU#, Metrics
+from diagnosenet.monitor import enerGyPU
 
 
 ### Read the PMSI-Dataset using Pickle from diagnosenet.io_functions
@@ -39,15 +38,15 @@ mlp_model = FullyConnected(input_size=14637, output_size=14,   #239,
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
                         valid_size=0.05, test_size=0.10,
-                        batch_size=500,
-                        target_name='Y12',
+                        batch_size=100,
+                        target_name='Y11',
                         target_start=0, target_end=14)
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model,
                             datamanager=data_config,
                             monitor=enerGyPU(testbed_path="testbed"),
-                            max_epochs=2,
+                            max_epochs=10,
                             min_loss=2.0)
 
 ## 5) Uses the platform modes for training in an efficient way
