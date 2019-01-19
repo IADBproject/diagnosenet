@@ -60,7 +60,7 @@ class DesktopExecution:
                                 power_recording=True,
                                 platform_recording=True)
 
-        ## Generate  experiment ID
+        ## Generate ID-experiment and their testebed directory
         self.monitor.generate_testbed(self.monitor.testbed_path,
                                         self.model, self.data,
                                         self.__class__.__name__,
@@ -79,7 +79,6 @@ class DesktopExecution:
 
         ## Time recording
         self.time_latency = time.time()-latency_start
-
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
         """
@@ -209,22 +208,23 @@ class DesktopExecution:
                 logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
                 logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
 
-                ## compute_metrics by each label
+                ## Compute_metrics by each label
                 self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
                                                             y_true=self.test_true_1hot)
                 self.time_testing = time.time()-testing_start
 
+                ## Write metrics on testbet directory = self.monitor.testbed_exp
                 if self.monitor.write_metrics == True: self.write_metrics()
 
                 return self.test_pred_probas
             return train_pred
-
 
     def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> BatchPath:
         """
         Uses datamanager classes for splitting, batching the dataset and target selection
         """
+        dataset_start = time.time()
         try:
             self.data.set_data_path(dataset_name=dataset_name,
                                dataset_path=dataset_path,
@@ -238,6 +238,7 @@ class DesktopExecution:
                 raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
         except AttributeError:
                 raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
+        self.time_dataset = time.time()-dataset_start
         return train, valid, test
 
     def training_disk(self, dataset_name: str, dataset_path: str,
@@ -245,17 +246,17 @@ class DesktopExecution:
         """
         Training the deep neural network exploit the memory on desktop machine
         """
+        ## Set processing_mode flat
+        self.processing_mode = "disk_batching"
+        ## Set Monitor Recording
+        self.set_monitor_recording()
         ## Set dataset on memory
-        dataset_start = time.time()
         train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
                                                     inputs_name, targets_name)
-        self.time_dataset = time.time()-dataset_start
 
         ### Training Start
         training_start = time.time()
 
-        ## Set processing_mode flat
-        self.processing_mode = "disk_batching"
         ## Generates a Desktop Graph
         self.model.desktop_graph()
 
@@ -365,19 +366,17 @@ class DesktopExecution:
                 self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
                                                             y_true=self.test_true_1hot)
                 self.time_testing = time.time()-testing_start
+
+                ## Write metrics on testbet directory = self.monitor.testbed_exp
+                if self.monitor.write_metrics == True: self.write_metrics()
                 return self.test_pred_probas
             return train_pred
-
 
     def write_metrics(self, testbed_path: str = 'testbed') -> None:
         """
         Uses Testbed to isolate the training metrics by experiment directory
         """
         metrics_start = time.time()
-        ## Generate a Testebed directory
-        # tesbed = Testbed(self.model, self.data, self.__class__.__name__, self.max_epochs)
-        # self.exp_id = tesbed.generate_testbed(testbed_path)
-        # self.testbed_exp = str(testbed_path+"/"+self.exp_id+"/")
 
         ## Writes the training and validation track
         track_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-training_track.txt")
