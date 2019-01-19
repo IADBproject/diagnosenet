@@ -14,8 +14,9 @@ from diagnosenet.datamanager import Dataset, Batching
 from diagnosenet.io_functions import IO_Functions
 
 ## Write metrics
-from diagnosenet.metrics import Testbed, Metrics #, enerGyPU
-from diagnosenet.energypu import enerGyPU
+from diagnosenet.monitor import enerGyPU, Metrics
+# from diagnosenet.metrics import Testbed, Metrics #, enerGyPU
+# from diagnosenet.energypu import enerGyPU
 
 from sklearn.metrics import f1_score
 
@@ -33,13 +34,14 @@ class DesktopExecution:
     Returns:
     """
 
-    def __init__(self, model, datamanager: Dataset = None,
-                    max_epochs: int = 10, min_loss: float = 2.0 ) -> None:
+    def __init__(self, model,  monitor, datamanager: Dataset = None,
+                    max_epochs: int = 10, min_loss: float = 2.0) -> None:
         latency_start = time.time()
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
         self.min_loss = min_loss
+        self.monitor = monitor
 
         ## Time logs
         self.time_latency: time()
@@ -49,34 +51,61 @@ class DesktopExecution:
         self.time_metrics: time()
 
         ## Testbed and Metrics
-        testbed_path: str = 'testbed'
+        # testbed_path: str = 'testbed'
         self.processing_mode: str
         self.training_track: list = []
 
-        ## Initialize nerGyPU, Testbed and Metrics
-        self.energypu = enerGyPU(self.model,
-                                self.data,
-                                self.__class__.__name__,
-                                self.max_epochs)
+        # ## Initialize enerGyPU, Testbed and Metrics
+        # self.energypu = enerGyPU(self.model,
+        #                         self.data,
+        #                         self.__class__.__name__,
+        #                         self.max_epochs)
+        #
+        # ## Get the experiment ID
+        # self.exp_id = self.energypu.generate_testbed(self.monitor.testbed_path)
+        # self.testbed_exp = str(self.monitor.testbed_path+"/"+self.exp_id+"/")
+        #
+        # ## Start power recording
+        # self.energypu.start_power_recording(self.testbed_exp, self.exp_id)
+        #
+        # ## Start platform recording
+        # pid = os.getpid()
+        # self.energypu.start_platform_recording(pid, self.testbed_exp, self.exp_id)
+        #
+        #
+        # # Get GPU availeble and set for processing
+        # self.idgpu = self.energypu._get_available_GPU()
+        # os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+        # os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
 
-        # Get the experiment ID
-        self.exp_id = self.energypu.generate_testbed(testbed_path)
-        self.testbed_exp = str(testbed_path+"/"+self.exp_id+"/")
+        self.time_latency = time.time()-latency_start
+
+
+    def set_monitor_recording(self) -> None:
+        """
+        """
+
+        ## Get the experiment ID
+        self.exp_id = self.monitor.generate_testbed(self.monitor.testbed_path,
+                                                        self.model,
+                                                        self.data,
+                                                        self.__class__.__name__,
+                                                        self.max_epochs)
+
+
+        self.testbed_exp = str(self.monitor.testbed_path+"/"+self.exp_id+"/")
 
         ## Start power recording
-        self.energypu.start_power_recording(self.testbed_exp, self.exp_id)
+        self.monitor.start_power_recording(self.testbed_exp, self.exp_id)
 
         ## Start platform recording
         pid = os.getpid()
-        self.energypu.start_platform_recording(pid, self.testbed_exp, self.exp_id)
-
+        self.monitor.start_platform_recording(pid, self.testbed_exp, self.exp_id)
 
         # Get GPU availeble and set for processing
-        self.idgpu = self.energypu._get_available_GPU()
+        self.idgpu = self.monitor._get_available_GPU()
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
-
-        self.time_latency = time.time()-latency_start
 
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
@@ -110,6 +139,10 @@ class DesktopExecution:
         """
         Training the deep neural network exploit the memory on desktop machine
         """
+
+        ## Set Monitor Recording
+        self.set_monitor_recording()
+
         ## Set dataset on memory
         dataset_start = time.time()
         train, valid, test = self.set_dataset_memory(inputs, targets)
@@ -392,7 +425,7 @@ class DesktopExecution:
         np.savetxt(metrics_values_path, self.metrics_values, delimiter=',', fmt='%d')
 
         ### Add elements to json experiment Description architecture
-        eda_json = self.energypu._get_eda_json(self.testbed_exp, self.exp_id)
+        eda_json = self.monitor._get_eda_json(self.testbed_exp, self.exp_id)
 
         ## Add values to platform_parameters
         eda_json['model_hyperparameters']['max_epochs'] = self.max_epochs
@@ -421,10 +454,10 @@ class DesktopExecution:
 
 
         ## End computational recording
-        self.energypu.end_platform_recording()
+        self.monitor.end_platform_recording()
 
         ## End power recording
-        self.energypu.end_power_recording()
+        self.monitor.end_power_recording()
 
         logger.info("Tesbed directory: {}".format(self.testbed_exp))
 

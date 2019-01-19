@@ -1,5 +1,5 @@
 """
-Energy-monitoring for workload characterization
+Integrated performance monitor for workload characterization
 """
 
 from time import gmtime, strftime
@@ -123,17 +123,20 @@ class Metrics:
         return metrics_values
 
 
-
 class Testbed(Metrics):
     """
     Build an experiment directory to isolate the training metrics files
     """
-    def __init__(self, model, data, platform_name, max_epochs) -> None:
-        super().__init__()
-        self.model = model
-        self.data = data
-        self.platform_name = platform_name
-        self.max_epochs = max_epochs
+    def __init__(self,testbed_path,
+                    write_metrics,
+                    power_recording,
+                    platform_recording) -> None:
+        super().__init__(testbed_path,write_metrics,power_recording,platform_recording)
+        #model, data, platform_name, max_epochs) -> None:
+        # self.model = model
+        # self.data = data
+        # self.platform_name = platform_name
+        # self.max_epochs = max_epochs
 
     def _hashing_(self) -> float.hex:
         """
@@ -205,11 +208,16 @@ class Testbed(Metrics):
             eda_json = json.load(eda_json)
         return eda_json
 
-    def generate_testbed(self, testbed: str = 'testbed') -> None:
+    def generate_testbed(self, testbed_exp, model, data,
+                            platform_name, max_epochs) -> None:
         """
         Build an experiment directory to isolate the training metrics files
         """
-        self.testbed = testbed
+        self.testbed = testbed_exp
+        self.model = model
+        self.data = data
+        self.platform_name = platform_name
+        self.max_epochs = max_epochs
 
         ## Define a experiment id
         # datetime = strftime("%Y%m%d%H%M%S", gmtime())
@@ -236,8 +244,11 @@ class enerGyPU(Testbed):
     This module deploys an energy monitor to collect the energy consumption metrics
     while the DNN model is executed on the target platform.
     """
-    def __init__(self, model, data, platform_name, max_epochs) -> None:
-        super().__init__(model, data, platform_name, max_epochs)
+    def __init__(self, testbed_path,
+                    write_metrics,
+                    power_recording,
+                    platform_recording) -> None:
+        super().__init__(testbed_path,write_metrics,power_recording,platform_recording)
         self.idgpu_available: list = []
 
     def _get_available_GPU(self) -> list:
