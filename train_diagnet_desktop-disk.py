@@ -12,6 +12,7 @@ from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
 from diagnosenet.graphs import FullyConnected
 from diagnosenet.executors import DesktopExecution
+from diagnosenet.monitor import enerGyPU
 
 ## 1) Define the stacked layers as the number of layers and their neurons
 layers = [Relu(14637, 2048),
@@ -37,6 +38,7 @@ data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model,
                             datamanager=data_config,
+                            monitor=enerGyPU(testbed_path="testbed"),
                             max_epochs=10,
                             min_loss=2.0)
 
@@ -45,6 +47,5 @@ platform.training_disk(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
                         dataset_path="healthData/",
                         inputs_name="BPPR",
                         targets_name="labels_Y1")
-platform.write_metrics()
 
 print("Execution Time: {}".format((time.time()-execution_start)))
