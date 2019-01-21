@@ -84,10 +84,16 @@ class Splitting(Dataset):
         super().__init__()
         self.valid_size = valid_size
         self.test_size = test_size
-
+        ## Datamanager
         self.train: DataSplit
         self.valid: DataSplit
         self.test: DataSplit
+
+        ## Dataset shape as number of records (inputs, targets)
+        self.train_shape: str = None
+        self.valid_shape: str = None
+        self.test_shape: str = None
+
 
     def dataset_split(self) -> None:
         """
@@ -112,11 +118,15 @@ class Splitting(Dataset):
         self.valid = DataSplit(name='valid', inputs=X_valid, targets=y_valid)
         self.test = DataSplit(name='test', inputs=X_test, targets=y_test)
 
+        self.train_shape = (len(self.train.inputs), len(self.train.targets))
+        self.valid_shape = (len(self.valid.inputs), len(self.valid.targets))
+        self.test_shape = (len(self.test.inputs), len(self.test.targets))
+
         logger.info('---------------------------------------------------------')
-        logger.info('++ Dataset Split:      Inputs | Targets ++')
-        logger.info('-- Train records:  {} | {} --'.format(len(self.train.inputs), len(self.train.targets)))
-        logger.info('-- Valid records:  {} | {} --'.format(len(self.valid.inputs), len(self.valid.targets)))
-        logger.info('-- Test records:   {} | {} --'.format(len(self.test.inputs), len(self.test.targets)))
+        logger.info('++ Dataset Split:  (Inputs, Targets) ++')
+        logger.info('-- Train records:  {} --'.format(self.train_shape)) #len(self.train.inputs), len(self.train.targets)))
+        logger.info('-- Valid records:  {} --'.format(self.valid_shape))  #len(self.valid.inputs), len(self.valid.targets)))
+        logger.info('-- Test records:   {} --'.format(self.test_shape))  #len(self.test.inputs), len(self.test.targets)))
 
 
 class Batching(Splitting):

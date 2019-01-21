@@ -401,6 +401,11 @@ class DesktopExecution:
 
         ## Add values to platform_parameters
         eda_json['model_hyperparameters']['max_epochs'] = self.max_epochs
+        
+        ## Add dataset shape as number of records (inputs, targets)
+        eda_json['dataset_config']['train_records'] = str(self.data.train_shape)
+        eda_json['dataset_config']['valid_records'] = str(self.data.valid_shape)
+        eda_json['dataset_config']['test_records'] = str(self.data.test_shape)
 
         ## Add values to platform_parameters
         eda_json['platform_parameters']['processing_mode'] = self.processing_mode
