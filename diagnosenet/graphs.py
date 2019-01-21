@@ -10,7 +10,6 @@ import tensorflow as tf
 from diagnosenet.layers import Layer
 from diagnosenet.losses import Loss
 from diagnosenet.optimizers import Optimizer
-from diagnosenet.metrics import Metrics
 
 class FullyConnected:
     """
