@@ -11,6 +11,8 @@ from diagnosenet.layers import Layer
 from diagnosenet.losses import Loss
 from diagnosenet.optimizers import Optimizer
 
+from diagnosenet.monitor import Metrics
+
 class FullyConnected:
     """
     Implements the back-propagation algorithm...
@@ -157,17 +159,18 @@ class FullyConnected:
 
             self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
             self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
+            self.keep_prob = tf.placeholder(tf.float32)
 
             for gpu in range(self.num_gpus):
                 print("gpu: {}".format(gpu))
 
                 with tf.device('/gpu:%d' % gpu):
                     _X = self.X[gpu * self.gpu_batch_size: gpu+1 * self.gpu_batch_size]
-
                     _Y = self.Y[gpu * self.gpu_batch_size: gpu+1 * self.gpu_batch_size]
 
 
-                    self.projection = self.stacked(_X)
+                    # self.projection = self.stacked(_X)
+                    self.projection = self.stacked(_X, self.keep_prob)
                     print("++++++++++++++++++++++++++++++++++++++++++++")
                     print("self.projection: {}".format(self.projection))
 

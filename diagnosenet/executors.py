@@ -401,7 +401,7 @@ class DesktopExecution:
 
         ## Add values to platform_parameters
         eda_json['model_hyperparameters']['max_epochs'] = self.max_epochs
-        
+
         ## Add dataset shape as number of records (inputs, targets)
         eda_json['dataset_config']['train_records'] = str(self.data.train_shape)
         eda_json['dataset_config']['valid_records'] = str(self.data.valid_shape)
@@ -457,18 +457,18 @@ class MultiGPU:
         testbed_path: str = 'testbed'
         self.training_track: list = []
 
-        self.egpu = enerGyPU(self.model, self.data, self.__class__.__name__, self.max_epochs)
-        self.exp_id = self.egpu.generate_testbed(testbed_path)
-        self.testbed_exp = str(testbed_path+"/"+self.exp_id+"/")
+        # self.egpu = enerGyPU(self.model, self.data, self.__class__.__name__, self.max_epochs)
+        # self.exp_id = self.egpu.generate_testbed(testbed_path)
+        # self.testbed_exp = str(testbed_path+"/"+self.exp_id+"/")
 
         ## Start power recording
         # self.egpu.start_power_recording(self.testbed_exp, self.exp_id)
 
         ## Get GPU availeble and set for processing
-        idgpu = self.egpu._get_available_GPU()
-        print("idgpu: {}".format(idgpu))
+        # idgpu = self.egpu._get_available_GPU()
+        # print("idgpu: {}".format(idgpu))
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"]="3,4"    #idgpu[0]
+        os.environ["CUDA_VISIBLE_DEVICES"]="1,5"    #idgpu[0]
 
 
         #######################################################################
@@ -772,7 +772,8 @@ class MultiGPU:
 
                     train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
                                     feed_dict={self.model.X: train.inputs[i],
-                                                self.model.Y: train.targets[i]})
+                                                self.model.Y: train.targets[i],
+                                                self.model.keep_prob: self.model.dropout})
 
                     # train_pred = sess.run(self.model.projection_1hot,
                     #                 feed_dict={self.model.X: train.inputs[i]})
@@ -784,7 +785,8 @@ class MultiGPU:
                 for i in range(len(valid.inputs)):
                     valid_loss = sess.run(self.model.mlp_loss,
                                     feed_dict={self.model.X: valid.inputs[i],
-                                                self.model.Y: valid.targets[i]})
+                                                self.model.Y: valid.targets[i],
+                                                self.model.keep_prob: self.model.dropout})
 
                     # valid_pred = sess.run(self.model.projection_1hot,
                     #                 feed_dict={self.model.X: valid.inputs[i]})
