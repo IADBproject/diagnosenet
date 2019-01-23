@@ -468,12 +468,12 @@ class MultiGPU:
         # idgpu = self.egpu._get_available_GPU()
         # print("idgpu: {}".format(idgpu))
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"]="1,5"    #idgpu[0]
+        os.environ["CUDA_VISIBLE_DEVICES"]="3,5"    #idgpu[0]
 
 
         #######################################################################
         ## MultiGPU
-        batch_size = 100
+        batch_size = 200
         self.num_gpus = os.environ["CUDA_VISIBLE_DEVICES"].split(",")
         self.gpu_batch_size = batch_size/len(self.num_gpus)
         print("self.gpu: {}".format(self.gpu_batch_size))
