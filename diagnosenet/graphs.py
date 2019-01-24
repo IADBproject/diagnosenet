@@ -110,35 +110,67 @@ class FullyConnected:
         return total_loss
 
 
+    def multiGPU_loss(self, y_pred: tf.Tensor, y_true: tf.Tensor) -> tf.Tensor:
+        # self.y_pred = y_pred
+        # self.y_true = y_true
+        # return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = self.y_pred, labels = self.y_true))
+        # return tf.sqrt(tf.reduce_mean(tf.square(self.y_true - self.y_pred)))
 
-    def multiGPU_graph(self) -> tf.Tensor:
+        ############################"
+        ###############################"
+        # print("y_pred: {}".format(y_pred))
+        # print("y_true: {}".format(y_true))
+
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=y_true, logits=y_pred)
+        cross_entropy_reduce = tf.reduce_mean(cross_entropy)
+
+        tf.add_to_collection('losses', cross_entropy_reduce)
+
+        # return tf.add_n(tf.get_collection('losses'), name='total_loss')
+        return cross_entropy_reduce
+
+        # tf.add_to_collection('losses', cross_entropy_mean)
+        # return tf.add_n(tf.get_collection('losses'), name='total_loss')
+
+
+    def multiGPU_graph(self, batch_size) -> tf.Tensor:
 
         with tf.Graph().as_default() as self.mlp_graph:
             self.num_gpus=2
-            self.gpu_batch_size=100
+            self.gpu_batch_size=int((batch_size/self.num_gpus))
             ###########################
             self.tower_grads = []
+            self.mlp_losses = []
 
             self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
-            self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
+            self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Targets")
             self.keep_prob = tf.placeholder(tf.float32)
 
             for gpu in range(self.num_gpus):
                 print("gpu: {}".format(gpu))
 
                 with tf.device('/gpu:%d' % gpu):
-                    _X = self.X[gpu * self.gpu_batch_size: gpu+1 * self.gpu_batch_size]
-                    _Y = self.Y[gpu * self.gpu_batch_size: gpu+1 * self.gpu_batch_size]
+                    _X = self.X[(gpu * self.gpu_batch_size):
+                                (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
+                    _Y = self.Y[(gpu * self.gpu_batch_size):
+                                (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
+
+                    print("_X: {}, {}".format((gpu * self.gpu_batch_size),
+                                            (gpu * self.gpu_batch_size) + (self.gpu_batch_size)))
+
 
                     # self.projection = self.stacked(_X)
                     self.projection = self.stacked(_X, self.keep_prob)
 
-                    print("++++++++++++++++++++++++++++++++++++++++++++")
+                    print("{}".format("+"*20))
                     print("self.projection: {}".format(self.projection))
 
 
-                    self.mlp_loss = self.loss.multiGPU_loss(self.projection, _Y)
+                    # self.mlp_loss = self.loss.multiGPU_loss(self.projection, _Y)
+                    self.mlp_loss = self.multiGPU_loss(self.projection, _Y)
                     self.mlp_grad_op = self.optimizer.desktop_Grad(self.mlp_loss)
+
+                    self.mlp_losses.append(self.mlp_loss)
 
                     #############################################################
                     #############################################################
