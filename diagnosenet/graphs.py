@@ -47,6 +47,10 @@ class FullyConnected:
         # self.metrics = Metrics()
         self.accuracy: tf.Tensor
 
+        ## MultiGPU
+        self.PS_OPS = ['Variable', 'VariableV2', 'AutoReloadVariable']
+        self.reuse=True
+
 
 
     def stacked(self, input_holder, keep_prob) -> tf.Tensor:
@@ -57,6 +61,26 @@ class FullyConnected:
             else:
                 input_holder = self.layers[i].dropout_activation(input_holder, keep_prob)
         return input_holder
+
+
+
+    def stacked_multigpu(self, input_holder, keep_prob) -> tf.Tensor:
+        """
+        """
+        # with self.mlp_graph.variable_scope("stacked_multigpu", reuse=self.reuse):
+        # with tf.variable_scope('FullyConnected', reuse=self.reuse):
+        # input_holder = tf.reshape(input_holder, shape=[-1, self.input_size])
+
+        with tf.variable_scope("StackedMultigpu", reuse=self.reuse):
+            input_holder = tf.reshape(input_holder, shape=[-1, self.input_size])
+            for i in range(len(self.layers)):
+                ## Prevention to use dropout in the projection layer
+                if len(self.layers)-1 == i:
+                    input_holder = self.layers[i].activation(input_holder)
+                else:
+                    input_holder = self.layers[i].dropout_activation(input_holder, keep_prob)
+            return input_holder
+
 
     def stacked_valid(self, input_holder) -> tf.Tensor:
         for layer in self.layers:
@@ -111,32 +135,57 @@ class FullyConnected:
 
 
     def multiGPU_loss(self, y_pred: tf.Tensor, y_true: tf.Tensor) -> tf.Tensor:
-        # self.y_pred = y_pred
-        # self.y_true = y_true
-        # return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = self.y_pred, labels = self.y_true))
-        # return tf.sqrt(tf.reduce_mean(tf.square(self.y_true - self.y_pred)))
-
-        ############################"
-        ###############################"
-        # print("y_pred: {}".format(y_pred))
-        # print("y_true: {}".format(y_true))
-
+        """
+        """
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=y_true, logits=y_pred)
         cross_entropy_reduce = tf.reduce_mean(cross_entropy)
 
-        tf.add_to_collection('losses', cross_entropy_reduce)
-
-        # return tf.add_n(tf.get_collection('losses'), name='total_loss')
         return cross_entropy_reduce
 
-        # tf.add_to_collection('losses', cross_entropy_mean)
-        # return tf.add_n(tf.get_collection('losses'), name='total_loss')
+
+    def average_gradients(self, tower_grads):
+        """
+        """
+        average_grads = []
+        for grad_and_vars in zip(*tower_grads):
+            grads = []
+            for g, _ in grad_and_vars:
+                # Add 0 dimension to the gradients to represent the tower.
+                expanded_g = tf.expand_dims(g, 0)
+
+                # Append on a 'tower' dimension which we will average over below.
+                grads.append(expanded_g)
+
+            # Average over the 'tower' dimension.
+            grad = tf.concat(grads, 0)
+            grad = tf.reduce_mean(grad, 0)
+
+            # Keep in mind that the Variables are redundant because they are shared
+            # across towers. So .. we will just return the first tower's pointer to
+            # the Variable.
+            v = grad_and_vars[0][1]
+            grad_and_var = (grad, v)
+            average_grads.append(grad_and_var)
+        return average_grads
+
+
+    def assign_to_device(self, device, ps_device='/cpu:0'):
+        def _assign(op):
+            node_def = op if isinstance(op, tf.NodeDef) else op.node_def
+            if node_def.op in self.PS_OPS:
+                return "/" + ps_device
+            else:
+                return device
+        return _assign
+
+
 
 
     def multiGPU_graph(self, batch_size) -> tf.Tensor:
 
         with tf.Graph().as_default() as self.mlp_graph:
-            self.num_gpus=2
+
+            self.num_gpus=1
             self.gpu_batch_size=int((batch_size/self.num_gpus))
             ###########################
             self.tower_grads = []
@@ -150,78 +199,50 @@ class FullyConnected:
                 print("gpu: {}".format(gpu))
 
                 with tf.device('/gpu:%d' % gpu):
+
+
+                    # Split data between GPUs
                     _X = self.X[(gpu * self.gpu_batch_size):
                                 (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
                     _Y = self.Y[(gpu * self.gpu_batch_size):
                                 (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
 
                     print("_X: {}, {}".format((gpu * self.gpu_batch_size),
-                                            (gpu * self.gpu_batch_size) + (self.gpu_batch_size)))
+                                    (gpu * self.gpu_batch_size) + (self.gpu_batch_size)))
 
 
                     # self.projection = self.stacked(_X)
-                    self.projection = self.stacked(_X, self.keep_prob)
+                    # self.projection = self.stacked(_X, self.keep_prob)
+                    self.projection = self.stacked_multigpu(_X, self.keep_prob)
 
                     print("{}".format("+"*20))
                     print("self.projection: {}".format(self.projection))
 
-
+                    ### Loss ###
+                    ## Desktop function
                     # self.mlp_loss = self.loss.multiGPU_loss(self.projection, _Y)
+
                     self.mlp_loss = self.multiGPU_loss(self.projection, _Y)
-                    self.mlp_grad_op = self.optimizer.desktop_Grad(self.mlp_loss)
 
-                    self.mlp_losses.append(self.mlp_loss)
+                    # self.mlp_losses.append(self.mlp_loss)
 
-                    #############################################################
-                    #############################################################
+                    ### optimizer ###
+                    ## Desktop function
+                    self.grad_from_optimizer = self.optimizer.desktop_Grad(self.mlp_loss)
 
+                    ### New grads
+                    self.adam_op = tf.train.AdamOptimizer(learning_rate=0.001)
+                    self.grads_computation = self.adam_op.compute_gradients(self.mlp_loss)
 
-                    # self.loss = self.tower_loss(y_pred=self.projection, y_true=_Y)
-
-                    self.tower_grads.append(self.mlp_grad_op)
-
-                    ## Accuracy
-                    # self.accuracy = Metrics().accuracy(_Y, self.projection)
-                    # print("self.accuracy: {}".format(self.accuracy))
-
-                    ## # Convert prediction to one hot encoding
-                    self.soft_projection = tf.nn.softmax(self.projection)
-                    self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
-                    self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
+                    self.tower_grads.append(self.grads_computation)
 
 
 
-    # def multiGPU_graph(self) -> tf.Tensor:
-    #
-    #
-    #     with tf.Graph().as_default() as self.mlp_graph:
-    #
-    #         self.num_gpus=2
-    #         self.gpu_batch_size=50
-    #
-    #         self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
-    #         self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
-    #
-    #         for gpu in range(self.num_gpus):
-    #             print("gpu: {}".format(gpu))
-    #
-    #             with tf.device('/gpu:%d' % gpu):
-    #                 _X = self.X[gpu * self.gpu_batch_size:
-    #                                 gpu+1 * self.gpu_batch_size]
-    #
-    #                 _Y = self.Y[gpu * self.gpu_batch_size:
-    #                                 gpu+1 * self.gpu_batch_size]
-    #
-    #
-    #                 self.projection = self.stacked(_X)
-    #                 self.mlp_loss = self.loss.desktop_loss(self, self.projection, _Y)
-    #                 self.mlp_grad_op = self.optimizer.desktop_Grad(self.mlp_loss)
-    #
-    #                 ## Accuracy
-    #                 self.accuracy = Metrics().accuracy(_Y, self.projection)
-    #                 # print("self.accuracy: {}".format(self.accuracy))
-    #
-    #                 ## # Convert prediction to one hot encoding
-    #                 self.soft_projection = tf.nn.softmax(self.projection)
-    #                 self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
-    #                 self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
+
+            self.mlp_tower_grads = self.average_gradients(self.tower_grads)
+            self.train_op = self.adam_op.apply_gradients(self.mlp_tower_grads)
+            # self.train_op = optimizer.apply_gradients(tower_grads)
+
+
+            #self.mlp_tower_grads = self.average_gradients(self.tower_grads)
+            # self.train_op = mgpu_optimizer.apply_gradients(tower_grads)

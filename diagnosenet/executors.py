@@ -507,6 +507,7 @@ class MultiGPU:
 
         return train, valid, test
 
+
     def training_multigpu(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
         """
         Training the deep neural network exploit the memory on desktop machine
@@ -524,7 +525,8 @@ class MultiGPU:
             # init = tf.group(tf.global_variables_initializer(),
             #                     tf.local_variables_initializer())
 
-            init = tf.group(tf.global_variables_initializer())
+            # init = tf.group(tf.global_variables_initializer())
+            init = tf.global_variables_initializer()
             sess.run(init)
 
             epoch: int = 0
@@ -540,6 +542,20 @@ class MultiGPU:
                         print("+++++++++")
 
                     else:
+
+                        ### Normal Gradient
+                        # train_loss = sess.run(self.model.grad_from_optimizer,
+
+                        ### Optimizer
+                        # train_loss = sess.run(self.model.grads_computation,
+
+                        train_loss, _ = sess.run([self.model.mlp_loss, self.model.train_op],
+                                        feed_dict={self.model.X: train.inputs[i],
+                                                    self.model.Y: train.targets[i],
+                                                    self.model.keep_prob: self.model.dropout})
+
+                        print("train_loss: {}".format(train_loss))
+
                         train_pred = sess.run(self.model.projection,
                                     feed_dict={self.model.X: train.inputs[i],
                                             self.model.keep_prob: self.model.dropout})
@@ -549,12 +565,10 @@ class MultiGPU:
                         # print("train_pred: {}".format(train_pred[0]))
 
                         # train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
-                        train_loss, _ = sess.run([self.model.mlp_losses, self.model.mlp_grad_op],
-                                        feed_dict={self.model.X: train.inputs[i],
-                                                    self.model.Y: train.targets[i],
-                                                    self.model.keep_prob: self.model.dropout})
-
-                        print("train_loss: {}".format(train_loss))
+                        # train_loss, _ = sess.run([self.model.mlp_losses, self.model.mlp_grad_op],
+                        #                 feed_dict={self.model.X: train.inputs[i],
+                        #                             self.model.Y: train.targets[i],
+                        #                             self.model.keep_prob: self.model.dropout})
 
                         # print("train_loss: {}".format(len(train_loss)))
                         # print("train_1: {}".format(train_loss[0]))
