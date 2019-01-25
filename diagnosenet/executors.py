@@ -458,26 +458,12 @@ class MultiGPU:
         testbed_path: str = 'testbed'
         self.training_track: list = []
 
-        # self.egpu = enerGyPU(self.model, self.data, self.__class__.__name__, self.max_epochs)
-        # self.exp_id = self.egpu.generate_testbed(testbed_path)
-        # self.testbed_exp = str(testbed_path+"/"+self.exp_id+"/")
-
-        ## Start power recording
-        # self.egpu.start_power_recording(self.testbed_exp, self.exp_id)
-
-        ## Get GPU availeble and set for processing
-        # idgpu = self.egpu._get_available_GPU()
-        # print("idgpu: {}".format(idgpu))
-        os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"]="4,5"    #idgpu[0]
-
 
         #######################################################################
         ## MultiGPU
-        batch_size = 200
+        os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+        os.environ["CUDA_VISIBLE_DEVICES"]="6,7"
         self.num_gpus = os.environ["CUDA_VISIBLE_DEVICES"].split(",")
-        self.gpu_batch_size = batch_size/len(self.num_gpus)
-        print("self.gpu: {}".format(self.gpu_batch_size))
 
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
@@ -516,16 +502,13 @@ class MultiGPU:
         train, valid, test = self.set_dataset_memory(inputs, targets)
         ## Generates a Desktop Graph
         self.model.multiGPU_graph(self.data.batch_size)
-        print("++ execute multiGPU graph ++")
+        print("++ Trainig Graph on MultiGPU ++")
 
-        with tf.Session(graph=self.model.mlp_graph) as sess:
-        # with tf.Session(config=tf.ConfigProto(log_device_placement=False),
-        #                 graph=self.model.mlp_graph) as sess:
-
-            # init = tf.group(tf.global_variables_initializer(),
-            #                     tf.local_variables_initializer())
-
-            # init = tf.group(tf.global_variables_initializer())
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        # config.gpu_options.per_process_gpu_memory_fraction = 0.4
+        
+        with tf.Session(config=config, graph=self.model.mlp_graph) as sess:
             init = tf.global_variables_initializer()
             sess.run(init)
 
@@ -534,7 +517,6 @@ class MultiGPU:
                 epoch_start = time.time()
                 for i in range(len(train.inputs)):
 
-
                     ### Temporaly conditional
                     if train.inputs[i].shape[0] < (self.data.batch_size/2):
                         print("+++++++++")
@@ -542,81 +524,154 @@ class MultiGPU:
                         print("+++++++++")
 
                     else:
+                        train_pred = sess.run(self.model.output1,
+                                    feed_dict={self.model.X: train.inputs[i],
+                                            self.model.keep_prob: self.model.dropout})
 
-                        ### Normal Gradient
-                        # train_loss = sess.run(self.model.grad_from_optimizer,
+                        # print("train.inputs {}".format(train.inputs[i].shape))
+                        # print("train_targets: {}".format(train.targets[i].shape))
+                        print("train_pred: {}".format(train_pred.shape))
 
-                        ### Optimizer
-                        # train_loss = sess.run(self.model.grads_computation,
-
-                        train_loss, _ = sess.run([self.model.mlp_loss, self.model.train_op],
-                                        feed_dict={self.model.X: train.inputs[i],
-                                                    self.model.Y: train.targets[i],
-                                                    self.model.keep_prob: self.model.dropout})
+                        train_loss = sess.run(self.model.output2,
+                                    feed_dict={self.model.X: train.inputs[i],
+                                            self.model.Y: train.targets[i],
+                                            self.model.keep_prob: self.model.dropout})
 
                         print("train_loss: {}".format(train_loss))
 
-                        train_pred = sess.run(self.model.projection,
+
+
+                        train_grads = sess.run(self.model.train_op,
                                     feed_dict={self.model.X: train.inputs[i],
+                                            self.model.Y: train.targets[i],
                                             self.model.keep_prob: self.model.dropout})
-                        # print("train.inputs {}".format(train.inputs[i].shape))
-                        # print("train_targets: {}".format(train.targets[i].shape))
-                        # print("train_pred: {}".format(train_pred.shape))
-                        # print("train_pred: {}".format(train_pred[0]))
 
-                        # train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
-                        # train_loss, _ = sess.run([self.model.mlp_losses, self.model.mlp_grad_op],
-                        #                 feed_dict={self.model.X: train.inputs[i],
-                        #                             self.model.Y: train.targets[i],
-                        #                             self.model.keep_prob: self.model.dropout})
-
-                        # print("train_loss: {}".format(len(train_loss)))
-                        # print("train_1: {}".format(train_loss[0]))
-                        # print("train_2: {}".format(train_loss[1]))
-
-
-                    # train_acc = f1_score(y_true=train.targets[i].astype(np.float),
-                    #                         y_pred=train_pred, average='micro')
-
-                print("{}".format("-"*20))
-                for i in range(len(valid.inputs)):
-
-                    ### Temporaly conditional
-                    # if train.inputs[i].shape[0] < self.data.batch_size:
-                    if valid.inputs[i].shape[0] < (self.data.batch_size):
-                        print("+++++++++")
-                        print("valid exclude -> {}".format(valid.inputs[i].shape))
-                        print("+++++++++")
-
-                    else:
-                        valid_loss = sess.run(self.model.mlp_loss,
-                                        feed_dict={self.model.X: valid.inputs[i],
-                                                    self.model.Y: valid.targets[i],
-                                                    self.model.keep_prob: self.model.dropout})
-
-
-                        valid_pred = sess.run(self.model.projection,
-                                    feed_dict={self.model.X: valid.inputs[i],
-                                             self.model.keep_prob: self.model.dropout})
-
-                        # print("valid.inputs[i]: {}".format(valid.inputs[i].shape))
-                        # print("valid_targets: {}".format(valid.targets[i].shape))
-                        # print("valid_pred: {}".format(valid_pred.shape))
-                        # print("valid_pred: {}".format(valid_pred))
-
-                        print("valid_loss: {}".format(valid_loss))
-
-                        # valid_acc = f1_score(y_true=valid.targets[i].astype(np.float),
-                        #                         y_pred=valid_pred, average='micro')
-
+                        print("train_grads: {}".format(train_grads))
 
                 epoch_elapsed = (time.time() - epoch_start)
-                print("train_loss: {} || valid_loss: {}".format(train_loss, valid_loss))
-                print("{} \n".format("/"*20))
-                # logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
-                #                                         train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-                # self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-
                 epoch = epoch + 1
 
-            # return train_loss
+
+
+    # def training_multigpu_OLD(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
+    #     """
+    #     Training the deep neural network exploit the memory on desktop machine
+    #     """
+    #     ## Set dataset on memory
+    #     train, valid, test = self.set_dataset_memory(inputs, targets)
+    #     ## Generates a Desktop Graph
+    #     self.model.multiGPU_graph(self.data.batch_size)
+    #     print("++ execute multiGPU graph ++")
+    #
+    #
+    #     config = tf.ConfigProto()
+    #     config.gpu_options.allow_growth = True
+    #     # config.gpu_options.per_process_gpu_memory_fraction = 0.4
+    #
+    #     with tf.Session(config=config, graph=self.model.mlp_graph) as sess:
+    #     # with tf.Session(config=tf.ConfigProto(log_device_placement=False),
+    #     #                 graph=self.model.mlp_graph) as sess:
+    #
+    #         # init = tf.group(tf.global_variables_initializer(),
+    #         #                     tf.local_variables_initializer())
+    #
+    #         init = tf.group(tf.global_variables_initializer())
+    #         # init = tf.global_variables_initializer()
+    #         sess.run(init)
+    #
+    #         epoch: int = 0
+    #         while epoch < self.max_epochs:
+    #             epoch_start = time.time()
+    #             for i in range(len(train.inputs)):
+    #
+    #
+    #                 ### Temporaly conditional
+    #                 if train.inputs[i].shape[0] < (self.data.batch_size/2):
+    #                     print("+++++++++")
+    #                     print("train exclude -> {}".format(train.inputs[i].shape))
+    #                     print("+++++++++")
+    #
+    #                 else:
+    #
+    #                     ### Normal Gradient
+    #                     # train_loss = sess.run(self.model.grad_from_optimizer,
+    #
+    #                     ### Optimizer
+    #                     # train_loss = sess.run(self.model.grads_computation,
+    #
+    #                     ### Works with one GPU
+    #                     # train_loss = sess.run(self.model.train_op,
+    #
+    #                     train_loss = sess.run(self.model.total_loss,
+    #                                     feed_dict={self.model.X: train.inputs[i],
+    #                                                 self.model.Y: train.targets[i],
+    #                                                 self.model.keep_prob: self.model.dropout})
+    #
+    #                     print("train_loss: {}".format(train_loss))
+    #
+    #                     train_pred = sess.run(self.model.projection,
+    #                                 feed_dict={self.model.X: train.inputs[i],
+    #                                         self.model.keep_prob: self.model.dropout})
+    #                     # print("train.inputs {}".format(train.inputs[i].shape))
+    #                     # print("train_targets: {}".format(train.targets[i].shape))
+    #                     print("train_pred: {}".format(train_pred.shape))
+    #                     # print("train_pred: {}".format(train_pred[0]))
+    #
+    #                     # train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
+    #                     # train_loss, _ = sess.run([self.model.mlp_losses, self.model.mlp_grad_op],
+    #                     #                 feed_dict={self.model.X: train.inputs[i],
+    #                     #                             self.model.Y: train.targets[i],
+    #                     #                             self.model.keep_prob: self.model.dropout})
+    #
+    #                     # print("train_loss: {}".format(train_loss))
+    #                     # print("train_1: {}".format(train_loss[0]))
+    #                     # print("train_2: {}".format(train_loss[1]))
+    #
+    #
+    #                 # train_acc = f1_score(y_true=train.targets[i].astype(np.float),
+    #                 #                         y_pred=train_pred, average='micro')
+    #
+    #             print("{}".format("-"*20))
+    #             for i in range(len(valid.inputs)):
+    #
+    #                 ### Temporaly conditional
+    #                 # if train.inputs[i].shape[0] < self.data.batch_size:
+    #                 if valid.inputs[i].shape[0] < (self.data.batch_size/2):
+    #                     print("+++++++++")
+    #                     print("valid exclude -> {}".format(valid.inputs[i].shape))
+    #                     print("+++++++++")
+    #
+    #                 else:
+    #                     # valid_loss = sess.run(self.model.mlp_loss,
+    #                     #                 feed_dict={self.model.X: valid.inputs[i],
+    #                     #                             self.model.Y: valid.targets[i],
+    #                     #                             self.model.keep_prob: self.model.dropout})
+    #                     #
+    #                     #
+    #                     # valid_pred = sess.run(self.model.projection,
+    #                     #             feed_dict={self.model.X: valid.inputs[i],
+    #                     #                      self.model.keep_prob: self.model.dropout})
+    #
+    #                     # print("valid.inputs[i]: {}".format(valid.inputs[i].shape))
+    #                     # print("valid_targets: {}".format(valid.targets[i].shape))
+    #                     # print("valid_pred: {}".format(valid_pred.shape))
+    #                     # print("valid_pred: {}".format(valid_pred))
+    #
+    #                     valid_loss = 113374.24
+    #                     print("valid_loss: {}".format(valid_loss))
+    #
+    #
+    #                     # valid_acc = f1_score(y_true=valid.targets[i].astype(np.float),
+    #                     #                         y_pred=valid_pred, average='micro')
+    #
+    #
+    #             epoch_elapsed = (time.time() - epoch_start)
+    #             print("train_loss: {} || valid_loss: {}".format(train_loss, valid_loss))
+    #             print("{} \n".format("/"*20))
+    #             # logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
+    #             #                                         train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+    #             # self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+    #
+    #             epoch = epoch + 1
+    #
+    #         # return train_loss
