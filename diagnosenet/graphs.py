@@ -48,7 +48,7 @@ class FullyConnected:
         self.accuracy: tf.Tensor
 
         ## MultiGPU
-        self.reuse=True
+        # self.reuse_vars: bool = False
 
 
 
@@ -64,15 +64,15 @@ class FullyConnected:
     def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
         """
         """
-        # with tf.variable_scope("TowerModelMultiGPU", reuse=reuse):
-        with tf.name_scope("TowerModelMultiGPU"):
+        with tf.variable_scope("TowerModelMultiGPU", reuse=reuse):
+        # with tf.name_scope("TowerModelMultiGPU"):
             for i in range(len(self.layers)):
                 ## Prevention to use dropout in the projection layer
                 if len(self.layers)-1 == i:
                     input_holder = self.layers[i].activation(input_holder)
                 else:
                     input_holder = self.layers[i].dropout_activation(input_holder, keep_prob)
-            return input_holder
+        return input_holder
 
 
     def stacked_valid(self, input_holder) -> tf.Tensor:
@@ -176,11 +176,11 @@ class FullyConnected:
 
         return average_grads
 
-    def multiGPU_graph(self, batch_size) -> tf.Tensor:
+    def multiGPU_graph(self, batch_size, num_gpus) -> tf.Tensor:
 
         with tf.Graph().as_default() as self.mlp_graph:
             # with tf.device('/cpu:0'):
-                self.num_gpus=2
+                self.num_gpus=num_gpus
                 self.gpu_batch_size=int((batch_size/self.num_gpus))
 
                 ################
@@ -196,6 +196,7 @@ class FullyConnected:
 
                 for gpu in range(self.num_gpus):
                     with tf.device('/gpu:%d' % gpu):
+
                         # Split data between GPUs
                         _X = self.X[(gpu * self.gpu_batch_size):
                             (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
@@ -205,6 +206,7 @@ class FullyConnected:
                         ## Projection by Tower Model operations
                         self.projection = self.stacked_multigpu(_X, self.keep_prob, reuse_vars)
                         self.total_projection.append(self.projection)
+
 
                         ## Loss by Tower Model operations
                         self.loss = self.multiGPU_loss(self.projection, _Y)

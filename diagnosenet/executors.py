@@ -463,7 +463,7 @@ class MultiGPU:
         ## MultiGPU
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"]="6,7"
-        self.num_gpus = os.environ["CUDA_VISIBLE_DEVICES"].split(",")
+        self.num_gpus = len(os.environ["CUDA_VISIBLE_DEVICES"].split(","))
 
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
@@ -501,13 +501,13 @@ class MultiGPU:
         ## Set dataset on memory
         train, valid, test = self.set_dataset_memory(inputs, targets)
         ## Generates a Desktop Graph
-        self.model.multiGPU_graph(self.data.batch_size)
+        self.model.multiGPU_graph(self.data.batch_size, self.num_gpus)
         print("++ Trainig Graph on MultiGPU ++")
 
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         # config.gpu_options.per_process_gpu_memory_fraction = 0.4
-        
+
         with tf.Session(config=config, graph=self.model.mlp_graph) as sess:
             init = tf.global_variables_initializer()
             sess.run(init)
