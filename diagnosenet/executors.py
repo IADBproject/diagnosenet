@@ -506,10 +506,13 @@ class MultiGPU:
 
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
+        config.intra_op_parallelism_threads = 16
+
         # config.gpu_options.per_process_gpu_memory_fraction = 0.4
 
         with tf.Session(config=config, graph=self.model.mlp_graph) as sess:
-            init = tf.global_variables_initializer()
+            init = tf.group(tf.global_variables_initializer(),
+                            tf.local_variables_initializer())
             sess.run(init)
 
             epoch: int = 0

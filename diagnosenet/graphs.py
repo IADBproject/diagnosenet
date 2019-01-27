@@ -49,6 +49,7 @@ class FullyConnected:
 
         ## MultiGPU
         # self.reuse_vars: bool = False
+        self.PS_OPS = ['Variable', 'VariableV2', 'AutoReloadVariable']
 
 
 
@@ -64,15 +65,19 @@ class FullyConnected:
     def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
         """
         """
-        with tf.variable_scope("TowerModelMultiGPU", reuse=reuse):
-        # with tf.name_scope("TowerModelMultiGPU"):
-            for i in range(len(self.layers)):
+        # with tf.variable_scope("BackPropagation", reuse=reuse):
+        # with tf.variable_scope("BackPropagation", reuse=reuse):
+        # with tf.variable_scope(scope.name):
+            # input_holder = tf.reshape(input_holder, shape=[-1, 14637])
+        for i in range(len(self.layers)):
                 ## Prevention to use dropout in the projection layer
                 if len(self.layers)-1 == i:
                     input_holder = self.layers[i].activation(input_holder)
                 else:
                     input_holder = self.layers[i].dropout_activation(input_holder, keep_prob)
         return input_holder
+
+
 
 
     def stacked_valid(self, input_holder) -> tf.Tensor:
@@ -141,7 +146,8 @@ class FullyConnected:
         Merge the grads computations done by each GPU tower
         """
         ### First Print
-        # print("tower_grads: {}".format(*tower_grads))
+        print("\n \n")
+        # print("tower_grads: {}".format(tower_grads))
         average_grads = []
         for grad_and_vars in zip(*tower_grads):
             ## Second print
@@ -176,124 +182,151 @@ class FullyConnected:
 
         return average_grads
 
+
+
+    def assign_to_device(self, device, ps_device='/cpu:0'):
+        def _assign(op):
+            node_def = op if isinstance(op, tf.NodeDef) else op.node_def
+            if node_def.op in self.PS_OPS:
+                return "/" + ps_device
+            else:
+                return device
+
+        return _assign
+
     def multiGPU_graph(self, batch_size, num_gpus) -> tf.Tensor:
+        """
+        """
+        self.num_gpus=num_gpus
+        self.gpu_batch_size=int((batch_size/self.num_gpus))
+
 
         with tf.Graph().as_default() as self.mlp_graph:
-            # with tf.device('/cpu:0'):
-                self.num_gpus=num_gpus
-                self.gpu_batch_size=int((batch_size/self.num_gpus))
 
-                ################
-                self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
-                self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Targets")
-                self.keep_prob = tf.placeholder(tf.float32)
-
+            with tf.device('/cpu:0'):
                 ###########################
                 self.total_projection = []
                 self.total_losses = []
                 self.total_grads = []
+
+                self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
+                self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Targets")
+                self.keep_prob = tf.placeholder(tf.float32)
+
+                self.adam_op = tf.train.AdamOptimizer(learning_rate=0.001)
                 reuse_vars = False
 
+                ################
                 for gpu in range(self.num_gpus):
-                    with tf.device('/gpu:%d' % gpu):
+                    # with tf.device('/gpu:%d' % gpu):
+                    with tf.device(self.assign_to_device('/gpu:{}'.format(gpu), ps_device='/cpu:0')):
 
-                        # Split data between GPUs
-                        _X = self.X[(gpu * self.gpu_batch_size):
-                            (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
-                        _Y = self.Y[(gpu * self.gpu_batch_size):
-                            (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
+                        with self.mlp_graph.name_scope("Tower") as scope:
+                            # tf.variable_scope.reuse_variables()
+                            # Split data between GPUs
+                            self._X = self.X[(gpu * self.gpu_batch_size):
+                                    (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
+                            self._Y = self.Y[(gpu * self.gpu_batch_size):
+                                    (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
 
-                        ## Projection by Tower Model operations
-                        self.projection = self.stacked_multigpu(_X, self.keep_prob, reuse_vars)
-                        self.total_projection.append(self.projection)
-
-
-                        ## Loss by Tower Model operations
-                        self.loss = self.multiGPU_loss(self.projection, _Y)
-                        self.total_losses.append(self.loss)
-
-                        ## Grads by Tower Model operations
-                        self.adam_op = tf.train.AdamOptimizer(learning_rate=0.001)
-                        self.grads_computation = self.adam_op.compute_gradients(self.loss)
-
-                        reuse_vars = True
-                        self.total_grads.append(self.grads_computation)
+                            ## Projection by Tower Model operations
+                            if gpu == 0:
+                                with tf.variable_scope("BackPropagation", reuse=False):
+                                        self.projection = self.stacked_multigpu(self._X, self.keep_prob, reuse_vars)
+                            else:
+                                with tf.variable_scope("BackPropagation", reuse=True):
+                                    self.projection = self.stacked_multigpu(self._X, self.keep_prob, reuse_vars)
+                                self.total_projection.append(self.projection)
 
 
-                        print("{}".format("+"*20))
-                        print("+ GPU: {}".format(gpu))
-                        print("+ Split_X: {}, {}".format((gpu * self.gpu_batch_size),
+                            ## Loss by Tower Model operations
+                            self.loss = self.multiGPU_loss(self.projection, self._Y)
+                            self.total_losses.append(self.loss)
+
+                            ## Grads by Tower Model operations
+                            self.grads_computation = self.adam_op.compute_gradients(self.loss)
+                                                            # gate_gradients=2,
+                                                            # colocate_gradients_with_ops=True,)
+                            # reuse_vars = True
+                            self.total_grads.append(self.grads_computation)
+
+
+                            print("{}".format("+"*20))
+                            print("+ GPU: {}".format(gpu))
+                            print("+ Split_X: {}, {}".format((gpu * self.gpu_batch_size),
                                 (gpu * self.gpu_batch_size) + (self.gpu_batch_size)))
-                        print("+ Tower_Projection: {}".format(self.projection.name))
-                        print("{}".format("+"*20))
+                            print("+ Tower_Projection: {}".format(self.projection.name))
+                            print("+ Gradient_T: {}".format(self.grads_computation))
+                            print("{}".format("+"*20))
 
 
                 with tf.device('/cpu:0'):
                     self.output1 = tf.concat(self.total_projection, axis=0)
                     self.output2 = self.total_losses
                     self.output3 = self.average_gradients(self.total_grads)
-                    self.train_op = self.adam_op.apply_gradients(self.output3)
+                    self.train_op = tf.group(self.adam_op.apply_gradients(self.output3))
                     # self.output3 = tf.concat(self.total_grads, axis=0)
+        ## End Graph
 
 
 
 
-        # def multiGPU_graph_OLD(self, batch_size) -> tf.Tensor:
-        #
-        #     with tf.Graph().as_default() as self.mlp_graph:
-        #
-        #         self.num_gpus=1
-        #         self.gpu_batch_size=int((batch_size/self.num_gpus))
-        #         ###########################
-        #         self.tower_grads = []
-        #         self.mlp_losses = []
-        #
-        #         self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
-        #         self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Targets")
-        #         self.keep_prob = tf.placeholder(tf.float32)
-        #
-        #         for gpu in range(self.num_gpus):
-        #             print("gpu: {}".format(gpu))
-        #
-        #             with tf.device('/gpu:%d' % gpu):
-        #
-        #                 # Split data between GPUs
-        #                 _X = self.X[(gpu * self.gpu_batch_size):
-        #                             (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
-        #                 _Y = self.Y[(gpu * self.gpu_batch_size):
-        #                             (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
-        #
-        #                 print("_X: {}, {}".format((gpu * self.gpu_batch_size),
-        #                                 (gpu * self.gpu_batch_size) + (self.gpu_batch_size)))
-        #
-        #
-        #                 # self.projection = self.stacked(_X)
-        #                 # self.projection = self.stacked(_X, self.keep_prob)
-        #                 self.projection = self.stacked_multigpu(_X, self.keep_prob)
-        #
-        #                 print("{}".format("+"*20))
-        #                 print("self.projection: {}".format(self.projection))
-        #
-        #                 ### Loss ###
-        #                 ## Desktop function
-        #                 # self.mlp_loss = self.loss.multiGPU_loss(self.projection, _Y)
-        #
-        #                 self.mlp_loss = self.multiGPU_loss(self.projection, _Y)
-        #
-        #                 # self.mlp_losses.append(self.mlp_loss)
-        #
-        #                 ### optimizer ###
-        #                 ## Desktop function
-        #                 self.grad_from_optimizer = self.optimizer.desktop_Grad(self.mlp_loss)
-        #
-        #                 ### New grads
-        #                 self.adam_op = tf.train.AdamOptimizer(learning_rate=0.001)
-        #                 self.grads_computation = self.adam_op.compute_gradients(self.mlp_loss)
-        #                 self.tower_grads.append(self.grads_computation)
-        #
-        #         self.mlp_tower_grads = self.average_gradients(self.tower_grads)
-        #         self.train_op = self.adam_op.apply_gradients(self.mlp_tower_grads)
-        #         # self.train_op = optimizer.apply_gradients(tower_grads)
-        #
-        #         #self.mlp_tower_grads = self.average_gradients(self.tower_grads)
-        #         # self.train_op = mgpu_optimizer.apply_gradients(tower_grads)
+    # def multiGPU_graph_OLD(self, batch_size) -> tf.Tensor:
+    #
+    #     with tf.Graph().as_default() as self.mlp_graph:
+    #
+    #         self.num_gpus=1
+    #         self.gpu_batch_size=int((batch_size/self.num_gpus))
+    #         ###########################
+    #         self.tower_grads = []
+    #         self.mlp_losses = []
+    #
+    #         self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
+    #         self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Targets")
+    #         self.keep_prob = tf.placeholder(tf.float32)
+    #
+    #         for gpu in range(self.num_gpus):
+    #             print("gpu: {}".format(gpu))
+    #
+    #             with tf.device('/gpu:%d' % gpu):
+    #
+    #                 # Split data between GPUs
+    #                 _X = self.X[(gpu * self.gpu_batch_size):
+    #                             (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
+    #                 _Y = self.Y[(gpu * self.gpu_batch_size):
+    #                             (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
+    #
+    #                 print("_X: {}, {}".format((gpu * self.gpu_batch_size),
+    #                                 (gpu * self.gpu_batch_size) + (self.gpu_batch_size)))
+    #
+    #
+    #                 # self.projection = self.stacked(_X)
+    #                 # self.projection = self.stacked(_X, self.keep_prob)
+    #                 self.projection = self.stacked_multigpu(_X, self.keep_prob)
+    #
+    #                 print("{}".format("+"*20))
+    #                 print("self.projection: {}".format(self.projection))
+    #
+    #                 ### Loss ###
+    #                 ## Desktop function
+    #                 # self.mlp_loss = self.loss.multiGPU_loss(self.projection, _Y)
+    #
+    #                 self.mlp_loss = self.multiGPU_loss(self.projection, _Y)
+    #
+    #                 # self.mlp_losses.append(self.mlp_loss)
+    #
+    #                 ### optimizer ###
+    #                 ## Desktop function
+    #                 self.grad_from_optimizer = self.optimizer.desktop_Grad(self.mlp_loss)
+    #
+    #                 ### New grads
+    #                 self.adam_op = tf.train.AdamOptimizer(learning_rate=0.001)
+    #                 self.grads_computation = self.adam_op.compute_gradients(self.mlp_loss)
+    #                 self.tower_grads.append(self.grads_computation)
+    #
+    #         self.mlp_tower_grads = self.average_gradients(self.tower_grads)
+    #         self.train_op = self.adam_op.apply_gradients(self.mlp_tower_grads)
+    #         # self.train_op = optimizer.apply_gradients(tower_grads)
+    #
+    #         #self.mlp_tower_grads = self.average_gradients(self.tower_grads)
+    #         # self.train_op = mgpu_optimizer.apply_gradients(tower_grads)
