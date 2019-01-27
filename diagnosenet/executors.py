@@ -493,6 +493,139 @@ class MultiGPU:
 
         return train, valid, test
 
+    # def training_multigpu(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
+    #     """
+    #     Training the deep neural network exploit the memory on desktop machine
+    #     """
+    #     ## Set dataset on memory
+    #     train, valid, test = self.set_dataset_memory(inputs, targets)
+    #     ## Generates a Desktop Graph
+    #     self.model.multiGPU_graph(self.data.batch_size, self.num_gpus)
+    #     print("++ Trainig Graph on MultiGPU ++")
+    #
+    #     config = tf.ConfigProto()
+    #     config.gpu_options.allow_growth = True
+    #     config.intra_op_parallelism_threads = 16
+    #
+    #     # config.gpu_options.per_process_gpu_memory_fraction = 0.4
+    #
+    #     with tf.Session(config=config, graph=self.model.mlp_graph) as sess:
+    #         init = tf.group(tf.global_variables_initializer(),
+    #                         tf.local_variables_initializer())
+    #         sess.run(init)
+    #
+    #         epoch: int = 0
+    #         while epoch < self.max_epochs:
+    #             epoch_start = time.time()
+    #             for i in range(len(train.inputs)):
+    #
+    #                 ### Temporaly conditional
+    #                 if train.inputs[i].shape[0] < (self.data.batch_size/2):
+    #                     print("+++++++++")
+    #                     print("train exclude -> {}".format(train.inputs[i].shape))
+    #                     print("+++++++++")
+    #
+    #                 else:
+    #                     train_pred = sess.run(self.model.output1,
+    #                                 feed_dict={self.model.X: train.inputs[i],
+    #                                         self.model.keep_prob: self.model.dropout})
+    #
+    #                     # print("train.inputs {}".format(train.inputs[i].shape))
+    #                     # print("train_targets: {}".format(train.targets[i].shape))
+    #                     print("train_pred: {}".format(train_pred.shape))
+    #
+    #                     train_loss = sess.run(self.model.output2,
+    #                                 feed_dict={self.model.X: train.inputs[i],
+    #                                         self.model.Y: train.targets[i],
+    #                                         self.model.keep_prob: self.model.dropout})
+    #
+    #                     print("train_loss: {}".format(train_loss))
+    #
+    #
+    #
+    #                     train_grads = sess.run(self.model.train_op,
+    #                                 feed_dict={self.model.X: train.inputs[i],
+    #                                         self.model.Y: train.targets[i],
+    #                                         self.model.keep_prob: self.model.dropout})
+    #
+    #                     print("train_grads: {}".format(train_grads))
+    #
+    #             epoch_elapsed = (time.time() - epoch_start)
+    #             epoch = epoch + 1
+
+
+
+
+
+
+
+###############################################################################"
+###############################################################################"
+
+
+    def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
+        """
+        """
+        # with tf.variable_scope("BackPropagation", reuse=reuse):
+        w1 = tf.Variable(tf.random_normal([14637, 2048], stddev=0.1), dtype=tf.float32)
+        b1 = tf.Variable(tf.random_normal([2048]), dtype=tf.float32)
+        l1= tf.nn.relu(tf.matmul(input_holder, w1) + b1)
+
+        w2 = tf.Variable(tf.random_normal([2048, 14], stddev=0.1), dtype=tf.float32)
+        b2 = tf.Variable(tf.random_normal([14]), dtype=tf.float32)
+        l2 = tf.matmul(l1, w2 + b2)
+        return l2
+
+    def multiGPU_loss(self, y_pred: tf.Tensor, y_true: tf.Tensor) -> tf.Tensor:
+        """
+        """
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=y_true, logits=y_pred)
+        cross_entropy_reduce = tf.reduce_mean(cross_entropy)
+
+        return cross_entropy_reduce
+
+    def average_gradients(self, tower_grads):
+        """
+        Merge the grads computations done by each GPU tower
+        """
+        ### First Print
+        print("\n \n")
+        # print("tower_grads: {}".format(tower_grads))
+        average_grads = []
+        for grad_and_vars in zip(*tower_grads):
+            ## Second print
+            # print("grad_and_vars: {}".format(grad_and_vars))
+            grads = []
+            for g, _ in grad_and_vars:
+                ## Third Print
+                print("+ Grad by Tower: {}".format(g))
+                if g is None:
+                    pass
+                else:
+                    # Add 0 dimension to the gradients to represent the tower.
+                    expanded_g = tf.expand_dims(g, 0)
+
+                    # Append on a 'tower' dimension which we will average over below.
+                    grads.append(expanded_g)
+
+        #### JAGH DEbug
+        #         grads.append(g)
+        # return grads
+
+            # Average over the 'tower' dimension.
+            grad = tf.concat(grads, 0)
+            grad = tf.reduce_mean(grad, 0)
+
+            # Keep in mind that the Variables are redundant because they are shared
+            # across towers. So .. we will just return the first tower's pointer to
+            # the Variable.
+            v = grad_and_vars[0][1]
+            grad_and_var = (grad, v)
+            average_grads.append(grad_and_var)
+
+        return average_grads
+
+
 
     def training_multigpu(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
         """
@@ -501,16 +634,86 @@ class MultiGPU:
         ## Set dataset on memory
         train, valid, test = self.set_dataset_memory(inputs, targets)
         ## Generates a Desktop Graph
-        self.model.multiGPU_graph(self.data.batch_size, self.num_gpus)
-        print("++ Trainig Graph on MultiGPU ++")
 
+
+
+        #######################################################################
+        #########################################################################
+        ######################################################################
+
+        self.gpu_batch_size=int((self.data.batch_size/self.num_gpus))
+
+
+        # with tf.Graph().as_default() as self.mlp_graph:
+        with tf.device('/cpu:0'):
+                ###########################
+                self.total_projection = []
+                self.total_losses = []
+                self.total_grads = []
+
+                self.X = tf.placeholder(tf.float32, shape=(None, 14637), name="Inputs")
+                self.Y = tf.placeholder(tf.float32, shape=(None, 14), name="Targets")
+                self.keep_prob = tf.placeholder(tf.float32)
+
+                self.adam_op = tf.train.AdamOptimizer(learning_rate=0.001)
+                reuse_vars = False
+
+                ################
+                for gpu in range(self.num_gpus):
+                    with tf.device('/gpu:%d' % gpu):
+                            # tf.variable_scope.reuse_variables()
+                            # Split data between GPUs
+                            self._X = self.X[(gpu * self.gpu_batch_size):
+                                    (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
+                            self._Y = self.Y[(gpu * self.gpu_batch_size):
+                                    (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
+
+                            ## Projection by Tower Model operations
+                            if gpu == 0:
+                                with tf.variable_scope("BackPropagation", reuse=True):
+                                        self.projection = self.stacked_multigpu(self._X, self.keep_prob, reuse_vars)
+
+                            else:
+                                with tf.variable_scope("BackPropagation", reuse=True):
+                                    self.projection = self.stacked_multigpu(self._X, self.keep_prob, reuse_vars)
+                            self.total_projection.append(self.projection)
+
+
+                            # ## Loss by Tower Model operations
+                            self.loss = self.multiGPU_loss(self.projection, self._Y)
+                            self.total_losses.append(self.loss)
+
+                            ## Grads by Tower Model operations
+                            self.grads_computation = self.adam_op.compute_gradients(self.loss)
+                            # reuse_vars = True
+                            self.total_grads.append(self.grads_computation)
+
+
+                            print("{}".format("+"*20))
+                            print("+ GPU: {}".format(gpu))
+                            print("+ Split_X: {}, {}".format((gpu * self.gpu_batch_size),
+                                (gpu * self.gpu_batch_size) + (self.gpu_batch_size)))
+                            print("+ Tower_Projection: {}".format(self.projection.name))
+                            print("{}".format("+"*20))
+
+
+                with tf.device('/cpu:0'):
+                    self.output1 = tf.concat(self.total_projection, axis=0)
+                    self.output2 = self.total_losses
+                    self.output3 = self.average_gradients(self.total_grads)
+                    self.train_op = tf.group(self.adam_op.apply_gradients(self.output3))
+
+
+
+
+        #################################################################""
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         config.intra_op_parallelism_threads = 16
 
         # config.gpu_options.per_process_gpu_memory_fraction = 0.4
 
-        with tf.Session(config=config, graph=self.model.mlp_graph) as sess:
+        with tf.Session(config=config) as sess:
             init = tf.group(tf.global_variables_initializer(),
                             tf.local_variables_initializer())
             sess.run(init)
@@ -527,32 +730,35 @@ class MultiGPU:
                         print("+++++++++")
 
                     else:
-                        train_pred = sess.run(self.model.output1,
-                                    feed_dict={self.model.X: train.inputs[i],
-                                            self.model.keep_prob: self.model.dropout})
+                        train_pred = sess.run(self.output1,
+                                    feed_dict={self.X: train.inputs[i],
+                                            self.keep_prob: self.model.dropout})
 
                         # print("train.inputs {}".format(train.inputs[i].shape))
                         # print("train_targets: {}".format(train.targets[i].shape))
                         print("train_pred: {}".format(train_pred.shape))
 
-                        train_loss = sess.run(self.model.output2,
-                                    feed_dict={self.model.X: train.inputs[i],
-                                            self.model.Y: train.targets[i],
-                                            self.model.keep_prob: self.model.dropout})
+                        train_loss = sess.run(self.output2,
+                                    feed_dict={self.X: train.inputs[i],
+                                            self.Y: train.targets[i],
+                                            self.keep_prob: self.model.dropout})
 
                         print("train_loss: {}".format(train_loss))
 
 
 
-                        train_grads = sess.run(self.model.train_op,
-                                    feed_dict={self.model.X: train.inputs[i],
-                                            self.model.Y: train.targets[i],
-                                            self.model.keep_prob: self.model.dropout})
+                        train_grads = sess.run(self.train_op,
+                                    feed_dict={self.X: train.inputs[i],
+                                            self.Y: train.targets[i],
+                                            self.keep_prob: self.model.dropout})
 
                         print("train_grads: {}".format(train_grads))
 
                 epoch_elapsed = (time.time() - epoch_start)
                 epoch = epoch + 1
+
+
+
 
 
 

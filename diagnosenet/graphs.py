@@ -62,21 +62,31 @@ class FullyConnected:
                 input_holder = self.layers[i].dropout_activation(input_holder, keep_prob)
         return input_holder
 
+    # def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
+    #     """
+    #     """
+    #     # with tf.variable_scope("BackPropagation", reuse=reuse):
+    #     for i in range(len(self.layers)):
+    #             ## Prevention to use dropout in the projection layer
+    #             if len(self.layers)-1 == i:
+    #                 input_holder = self.layers[i].activation(input_holder)
+    #             else:
+    #                 input_holder = self.layers[i].dropout_activation(input_holder, keep_prob)
+    #     return input_holder
+
+
     def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
         """
         """
         # with tf.variable_scope("BackPropagation", reuse=reuse):
-        # with tf.variable_scope("BackPropagation", reuse=reuse):
-        # with tf.variable_scope(scope.name):
-            # input_holder = tf.reshape(input_holder, shape=[-1, 14637])
-        for i in range(len(self.layers)):
-                ## Prevention to use dropout in the projection layer
-                if len(self.layers)-1 == i:
-                    input_holder = self.layers[i].activation(input_holder)
-                else:
-                    input_holder = self.layers[i].dropout_activation(input_holder, keep_prob)
-        return input_holder
+        w1 = tf.Variable(tf.random_normal([14637, 2048], stddev=0.1), dtype=tf.float32)
+        b1 = tf.Variable(tf.random_normal([2048]), dtype=tf.float32)
+        l1= tf.nn.relu(tf.matmul(input_holder, w1) + b1)
 
+        w2 = tf.Variable(tf.random_normal([2048, 14], stddev=0.1), dtype=tf.float32)
+        b2 = tf.Variable(tf.random_normal([14]), dtype=tf.float32)
+        l2 = tf.matmul(l1, w2 + b2)
+        return l2
 
 
 
@@ -236,7 +246,7 @@ class FullyConnected:
                             else:
                                 with tf.variable_scope("BackPropagation", reuse=True):
                                     self.projection = self.stacked_multigpu(self._X, self.keep_prob, reuse_vars)
-                                self.total_projection.append(self.projection)
+                            self.total_projection.append(self.projection)
 
 
                             ## Loss by Tower Model operations
