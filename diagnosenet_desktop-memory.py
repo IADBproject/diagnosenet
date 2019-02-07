@@ -31,22 +31,34 @@ y = IO_Functions()._read_file(path+"labels_Y1-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_
 
 
 ## 1) Define the stacked layers as the number of layers and their neurons
-layers = [Relu(10833, 1024),
-#layers = [Relu(14637, 2048),
+layers_1 = [Relu(14637, 2048),
+            Relu(1024, 1024),
+            Relu(1024, 1024),
+            Relu(1024, 1024),
+            Linear(1024, 14)] #MT1
+            #Linear(2048, 5)] #MT3
+            #Linear(2048, 239)] #MT2
+
+## 2) Select the neural network architecture and pass the hyper-parameters
+mlp_model_1 = FullyConnected(input_size=14637, output_size=14,   #239,
+                layers=layers_1,
+                loss=CrossEntropy,
+                optimizer=Adam(lr=0.001),
+                dropout=0.8)
+
+## Added a second model for a network architecture search
+layers_2 = [Relu(10833, 1024),
             Relu(1024, 1024),
             Relu(1024, 1024),
             Relu(1024, 1024),
             Linear(1024, 14)]
-#            Linear(2048, 5)]
-            #Linear(2048, 239)]
 
-## 2) Select the neural network architecture and pass the hyper-parameters
-#mlp_model = FullyConnected(input_size=14637, output_size=14,   #239,
-mlp_model = FullyConnected(input_size=10833, output_size=14,
-                layers=layers,
+mlp_model_2 = FullyConnected(input_size=10833, output_size=14,
+                layers=layers_2,
                 loss=CrossEntropy,
                 optimizer=Adam(lr=0.001),
                 dropout=0.8)
+
 
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config = MultiTask(dataset_name="SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1",
@@ -58,7 +70,7 @@ data_config = MultiTask(dataset_name="SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1",
                         #target_start=14, target_end=253) 
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
-platform = DesktopExecution(model=mlp_model,
+platform = DesktopExecution(model=mlp_model_1,
                             datamanager=data_config,
                             monitor=enerGyPU(testbed_path="/data/jagh/green_learning/testbed"),
                             max_epochs=40,
