@@ -74,7 +74,7 @@ class DesktopExecution:
 
         ## Get GPU availeble and set for processing
         #self.idgpu = self.monitor._get_available_GPU()
-        self.idgpu = "3"
+        self.idgpu = "4"
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
 
@@ -126,7 +126,12 @@ class DesktopExecution:
         ## Generates a Desktop Graph
         self.model.desktop_graph()
 
-        with tf.Session(graph=self.model.mlp_graph) as sess:
+
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+
+
+        with tf.Session(config=config, graph=self.model.mlp_graph) as sess:
             init = tf.group(tf.global_variables_initializer(),
                                 tf.local_variables_initializer())
             sess.run(init)
@@ -449,9 +454,13 @@ class MultiGPU:
     Returns:
     """
 
-    def __init__(self, model, datamanager: Dataset = None, max_epochs: int = 10) -> None:
+    def __init__(self, model, monitor: enerGyPU = None,
+                            datamanager: Dataset = None,
+                            gpus: int = 2, max_epochs: int = 10) -> None:
         self.model = model
+        self.monitor = monitor
         self.data = datamanager
+        self.num_gpus = gpus
         self.max_epochs = max_epochs
 
         ## Testbed and Metrics
@@ -461,9 +470,45 @@ class MultiGPU:
 
         #######################################################################
         ## MultiGPU
+        # os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+        # os.environ["CUDA_VISIBLE_DEVICES"]="5,6"
+        # self.num_gpus = len(os.environ["CUDA_VISIBLE_DEVICES"].split(","))
+
+
+    def set_monitor_recording(self) -> None:
+        """
+        Power and performance monitoring launcher for workload characterization
+        """
+        latency_start = time.time()
+        if self.monitor == None:
+            self.monitor = enerGyPU(testbed_path="testbed",
+                                write_metrics=False,
+                                power_recording=True,
+                                platform_recording=False)
+
+        ## Generate ID-experiment and their testebed directory
+        self.monitor.generate_testbed(self.monitor.testbed_path,
+                                        self.model, self.data,
+                                        self.__class__.__name__,
+                                        self.max_epochs)
+
+        ## Start power recording
+        if self.monitor.power_recording == True: self.monitor.start_power_recording()
+
+        ## Start platform recording
+        if self.monitor.platform_recording == True: self.monitor.start_platform_recording(os.getpid())
+
+        ## Get GPU availeble and set for processing
+        self.idgpu = self.monitor._get_available_GPU()
+        # self.idgpu = "4"
+        # print()
+
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"]="6,7"
+        os.environ["CUDA_VISIBLE_DEVICES"]="5,6"
         self.num_gpus = len(os.environ["CUDA_VISIBLE_DEVICES"].split(","))
+
+        ## Time recording
+        self.time_latency = time.time()-latency_start
 
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
@@ -631,18 +676,18 @@ class MultiGPU:
         """
         Training the deep neural network exploit the memory on desktop machine
         """
+        ## Set processing_mode flat
+        self.processing_mode = "multiGPU"
+        ## Set Monitor Recording
+        self.set_monitor_recording()
+
+
         ## Set dataset on memory
         train, valid, test = self.set_dataset_memory(inputs, targets)
         ## Generates a Desktop Graph
 
-
-
-        #######################################################################
-        #########################################################################
         ######################################################################
-
         self.gpu_batch_size=int((self.data.batch_size/self.num_gpus))
-
 
         # with tf.Graph().as_default() as self.mlp_graph:
         with tf.device('/cpu:0'):
@@ -757,9 +802,8 @@ class MultiGPU:
                 epoch_elapsed = (time.time() - epoch_start)
                 epoch = epoch + 1
 
-
-
-
+            ## Print the sandbox
+            logger.info("Tesbed directory: {}".format(self.monitor.testbed_exp))
 
 
     # def training_multigpu_OLD(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:

@@ -30,13 +30,7 @@ print("y: {}".format(len(y)))
 ## 1) Define the stacked layers as the number of layers and their neurons
 layers = [Relu(14637, 2048),
             Relu(2048, 2048),
-            Relu(2048, 8048),
-            Relu(8048, 8048),
-            # Relu(8048, 16048),
-            # Relu(16048, 16048),
-            # Relu(16048, 8048),
-            Relu(8048, 8048),
-            Relu(8048, 2048),
+            Relu(2048, 2048),
             Relu(2048, 2048),
             Linear(2048, 14)]
 
@@ -50,14 +44,15 @@ mlp_model = FullyConnected(input_size=14637, output_size=14,   #381,
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
                         valid_size=0.10, test_size=0.10,
-                        batch_size=500,
+                        batch_size=200,
                         target_name='Y11',
                         target_start=0, target_end=14)
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = MultiGPU(model=mlp_model,
                     datamanager=data_config,
-                    max_epochs=4)
+                    gpus=2,
+                    max_epochs=2)
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.training_multigpu(X, y)
