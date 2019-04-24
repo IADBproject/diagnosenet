@@ -1,13 +1,9 @@
 <p align="center"><img width="70%" src="docs/img/diagnosenet-logo.png" /></p>
 
 --------------------------------------------------------------------------------
-**DiagnoseNET** is an open source framework for tailoring deep neural networks to computational architectures with an efficient balance between accuracy and energy consumption. The first application built is for deploying medical diagnostic tools inside the hospitals. In which, a feedforward network was trained on mini-cluster Jetson TX2, delivering the performance of an HPC platform in embedded modules with minimal infrastructure requirements and low power consumption. The Package provides three high-level features:
+**DiagnoseNET** is an open source framework for tailoring deep neural networks into computational architectures from CPU-GPU implementation to multi-GPU and multi-nodes with an efficient ratio between accuracy and energy consumption. 
 
-1. A medical diagnostic workflow for deploying inside the hospitals: This workflow is divided into three stages: The first stage mining electronic health records to build a binary matrix of patients clinical descriptors. The second stage embedding the patient’s binary matrix via an unsupervised learning to obtain a new latent space and identify the patient’s phenotypic representations. The last stage focuses on supervised learning using the latent representation of patients as an input for a machine learning algorithms or as an initialiser for deep neural networks.
-
-2. A multi-platform training DNN model: This module integrates a data and resource manager for training the DNN model, over: CPU-GPU desktop machines, on multi-GPU nodes or in the embedded computation cluster of Jetson TX2.
-
-3. An energy-monitoring tool for workload characterization: This module deploys an energy monitor to collect the energy consumption metrics while the DNN model is executed on the target platform for analyzing the balance between accuracy and energy consumption.
+This framework is oriented to propose a green intelligence medical workflow for deploying medical diagnostic tools inside the hospitals with minimal infrastructure requirements and low power consumption. The first application built was to automate the [patient phenotype representation workflow](https://link.springer.com/chapter/10.1007/978-3-030-16205-4_1) trained on a mini-cluster of Nvidia Jetson TX2. This workflow is divided into three stages: The first stage mining electronic health records to build a binary matrix of patients clinical descriptors. The second stage embedding the patient’s binary matrix via an unsupervised learning to obtain a new latent space and identify the patient’s phenotypic representations. The last stage focuses on supervised learning using the latent representation of patients as an input for a machine learning algorithms or as an initialiser for deep neural networks.
 
 
 ## Installation ##
@@ -27,5 +23,14 @@ git clone https://github.com/IADBproject/diagnosenet.git
 
 ## DiagnoseNET Cross-Platform Library ##
 DiagnoseNET is extending TensorFLow library to characterize the deep learning tasks and improve the balance between accuracy and energy-efficient performance.
+
+It is composed as: one module for write the DNN models integrated with 
+a module to parallel and distributed training over diferent platforms;
+a second model for data and resource manager, 
+one model for energy-monitoring and other model to collect all the experiments to analyze them as shown in the next schema.
+
+1. A multi-platform training DNN model: This module integrates a data and resource manager for training the DNN model, over: CPU-GPU desktop machines, on multi-GPU nodes or in the embedded computation cluster of Jetson TX2.
+
+2. An energy-monitoring tool for workload characterization: This module deploys an energy monitor to collect the energy consumption metrics while the DNN model is executed on the target platform for analyzing the balance between accuracy and energy consumption.
 
 <p align="center"><img width="80%" src="docs/img/diagnosenet_cross-platform_library.png" /></p>
