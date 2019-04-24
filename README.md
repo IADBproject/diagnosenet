@@ -31,15 +31,8 @@ See a good practice guide to build a [mini-cluster Nvidia Jetson TK1 & TX2](http
 ## Cross-platform Library ##
 DiagnoseNET is extending the TensorFLow library to characterize and automate the deep learning workflows on distributed platforms to improve the ratio between accuracy and energy-efficient performance.
 It is designed into independent and interchangeable modules to exploit the computational resources on two levels of parallel and distributed processing. The first level management and synchronize the data parallelism for mini-batch learning between the workers, while the second level adjust the task granularity (model dimension and batch partition) according to the computational platform characteristics (memory capacity, number of CPUs, GPUs, the GPU micro-architecture, clocks frequency and among of others), as shown in the next schema.
+
 <p align="center"><img width="100%" src="docs/img/diagnosenet_cross-platform_library.png" /></p>
 
-An module integrate   for write the DNN models integrated with 
-a module to parallel and distributed training over diferent platforms
-
-; a second model for data and resource manager, 
-one model for energy-monitoring and other model to collect all the experiments to analyze them as shown in the next schema.
-1. A multi-platform training DNN model: This module integrates a data and resource manager for training the DNN model, over: CPU-GPU desktop machines, on multi-GPU nodes or in the embedded computation cluster of Jetson TX2.
-
-2. An energy-monitoring tool for workload characterization: This module deploys an energy monitor to collect the energy consumption metrics while the DNN model is executed on the target platform for analyzing the balance between accuracy and energy consumption.
-
+The cross-platform library contains a task-based programming interface module for building the DNN model graphs, in which the developers design and parameterize a pre-build neural network family as fully-connected, stacked encoder-decoder and among others. The second module is called platform execution modes to select the computational platform and exploit the training process according to the capabilities of the machine. Another module integrates a data and resource manager for training the DNN model graph, over CPU-GPU desktop machines, on multi-GPU nodes or in the embedded computation cluster of Jetson TX2. And the last module integrated an energy-monitoring tool called enerGyPU for workload characterization, which collects the energy consumption metrics while the DNN model is executed on the target platform.
 
