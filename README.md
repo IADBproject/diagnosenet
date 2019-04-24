@@ -25,13 +25,15 @@ To install the current release:
 git clone https://github.com/IADBproject/diagnosenet.git
 ```
 
+See a good practice guide to build a [mini-cluster Nvidia Jetson TK1 & TX2](https://diagnosenet.github.io/getstarted/) from scratch.
+
 
 ## Cross-platform Library ##
 DiagnoseNET is extending TensorFLow library to characterize and automate the deep learning workflows to improve the ratio between accuracy and energy-efficient performance.
 It is designed into independent and interchangeable modules, such as; an module for write the DNN models integrated with 
 a module to parallel and distributed training over diferent platforms; a second model for data and resource manager, 
 one model for energy-monitoring and other model to collect all the experiments to analyze them as shown in the next schema.
-<p align="center"><img width="90%" src="docs/img/diagnosenet_cross-platform_library.png" /></p>
+<p align="center"><img width="100%" src="docs/img/diagnosenet_cross-platform_library.png" /></p>
 
 1. A multi-platform training DNN model: This module integrates a data and resource manager for training the DNN model, over: CPU-GPU desktop machines, on multi-GPU nodes or in the embedded computation cluster of Jetson TX2.
 
