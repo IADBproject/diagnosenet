@@ -75,7 +75,7 @@ platform = DesktopExecution(model=mlp_model_1,
 
 ## 5) Load the data and Select the training platform modes:
 path = "/data_B/datasets/drg-PACA/healthData/sandbox-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1/1_Mining-Stage/binary_representation/"
-X = IO_Functions()._read_file(path+"BPPR-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
-y = IO_Functions()._read_file(path+"labels_Y1-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
+X = dt._read_file(path+"BPPR-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
+y = dt._read_file(path+"labels_Y1-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
 
 platform.training_memory(X, y)
