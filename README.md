@@ -17,7 +17,7 @@ The main dependencies install:
 pip3 install numpy==1.15.4, scipy==1.1.0, pandas==0.23.4, scikit-learn==0.20.1
 pip3 install tensorflow-gpu==1.3.0
 ## Warning: When using Tensorflow-gpu in version 1.4.1, 
-## the module 'tensorflow.python.framework.fast\_tensor\_util' does not match with runtime Python version 3.6.
+## the module 'tensorflow.python.framework.fast\_tensor\_util' does not match with the runtime Python 3.6.
 ```
 
 To install the current release:
