@@ -36,3 +36,46 @@ It is designed into independent and interchangeable modules to exploit the compu
 
 The cross-platform library contains a task-based programming interface module for building the DNN model graphs, in which the developers design and parameterize a pre-build neural network family as fully-connected, stacked encoder-decoder and among others. The second module is called platform execution modes to select the computational platform for training the DNN model graph and hides the complexity posed by the heterogeneity in the computing platforms. Another module integrates a data and resource manager for training the DNN model graph, over CPU-GPU desktop machines, on multi-GPU nodes or in the embedded computation cluster of Jetson TX2. And the last module integrated an energy-monitoring tool called [enerGyPU](https://github.com/jagh/enerGyPU) for workload characterization, which collects the energy consumption metrics while the DNN model is executed on the target platform.
 
+
+## Get Started with DiagnoseNET ##
+Programming interface to build a fully-connected model:
+```bash
+import diagnosenet as dt
+
+## 1) Set stacked layers as type, depth and width:
+layers_1 = [Relu(14637, 2048),
+            Relu(1024, 1024),
+            Relu(1024, 1024),
+            Relu(1024, 1024),
+            Linear(1024, 14)] 
+
+## 2) Model and hyperparameters setting:
+mlp_model_1 = FullyConnected(input_size=14637, output_size=14,
+                layers=layers_1,
+                loss=CrossEntropy,
+                optimizer=Adam(lr=0.001),
+                dropout=0.8)
+
+## 3) Set splitting, batching and target for the dataset:
+data_config = MultiTask(dataset_name="SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1",
+                        valid_size=0.05, test_size=0.15,
+                        batch_size=100,	#3072,	#100,
+                        target_name='Y11',
+                        target_start=0, target_end=14)
+```
+
+Programming interface for processing the model on CPU-GPU implementation using memory execution modes:
+```bash
+## 4) Select the computational platform and pass the DNN and Dataset configurations:
+platform = DesktopExecution(model=mlp_model_1,
+                            datamanager=data_config,
+                            monitor=enerGyPU(testbed_path="/data/jagh/green_learning/testbed"),
+                            max_epochs=40,
+                            min_loss=0.02)
+
+## 5) Load the data and Select the training platform modes:
+path = "/data_B/datasets/drg-PACA/healthData/sandbox-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1/1_Mining-Stage/binary_representation/"
+X = IO_Functions()._read_file(path+"BPPR-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
+y = IO_Functions()._read_file(path+"labels_Y1-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
+
+platform.training_memory(X, y)
