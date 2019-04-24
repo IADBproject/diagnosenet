@@ -1,7 +1,7 @@
 <p align="center"><img width="70%" src="docs/img/diagnosenet-logo.png" /></p>
 
 --------------------------------------------------------------------------------
-**DiagnoseNET** is an open source framework for tailoring deep neural networks into computational architectures from CPU-GPU implementation to multi-GPU and multi-nodes with an efficient ratio between accuracy and energy consumption. It is oriented to propose a green intelligence medical workflow for deploying medical diagnostic tools inside the hospitals with minimal infrastructure requirements and low power consumption.
+**DiagnoseNET** is an open source framework for tailoring deep neural networks into different computational architectures from CPU-GPU implementation to multi-GPU and multi-nodes with an efficient ratio between accuracy and energy consumption. It is oriented to propose a green intelligence medical workflow for deploying medical diagnostic tools inside the hospitals with minimal infrastructure requirements and low power consumption.
 
 The first application built was to automate the [unsupervised patient phenotype representation workflow](https://link.springer.com/chapter/10.1007/978-3-030-16205-4_1) trained on a mini-cluster of Nvidia Jetson TX2. This workflow was divided into three stages: 
 1. The first stage mining electronic health records for patient feature extraction and serialised each patient record in a clinical document architecture schema to create a binary patient representation.
