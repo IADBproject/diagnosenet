@@ -31,9 +31,10 @@ DiagnoseNET is extending TensorFLow library to characterize and automate the dee
 It is designed into independent and interchangeable modules, such as; an module for write the DNN models integrated with 
 a module to parallel and distributed training over diferent platforms; a second model for data and resource manager, 
 one model for energy-monitoring and other model to collect all the experiments to analyze them as shown in the next schema.
+<p align="center"><img width="90%" src="docs/img/diagnosenet_cross-platform_library.png" /></p>
 
 1. A multi-platform training DNN model: This module integrates a data and resource manager for training the DNN model, over: CPU-GPU desktop machines, on multi-GPU nodes or in the embedded computation cluster of Jetson TX2.
 
 2. An energy-monitoring tool for workload characterization: This module deploys an energy monitor to collect the energy consumption metrics while the DNN model is executed on the target platform for analyzing the balance between accuracy and energy consumption.
 
-<p align="center"><img width="80%" src="docs/img/diagnosenet_cross-platform_library.png" /></p>
+
