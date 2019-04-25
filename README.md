@@ -39,13 +39,12 @@ The cross-platform library contains a task-based programming interface module fo
 
 ## Get Started with DiagnoseNET ##
 Let’s start with an example to build a feed-forward neural network to predict medical care purpose of hospitalized patients and training it on a traditional CPU-GPU machine.
-* The first step consists to build a fully-connected model graph. In the simplest way, the developer set the type of each layer, their neurons numbers and the number of layers building a stacked network and followed by a linear output on top.  After we select the neural network family graph 'FullyConnected' and set the hyperparameters.
+* The first and the second step consist in builds a fully-connected model graph. In the simplest way, the developer set the type of each layer, their neurons numbers and the number of layers building a stacked network and followed by a linear output on top.  After we select the neural network family graph 'FullyConnected' and set the hyperparameters.
 ```bash
 from diagnosenet.layers import Relu, Linear
 from diagnosenet.graphs import FullyConnected
 from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
-from diagnosenet.datamanager import MultiTask
 
 ## 1) Set stacked layers as type, depth and width:
 layers_1 = [Relu(14637, 2048),
@@ -60,16 +59,21 @@ mlp_model_1 = FullyConnected(input_size=14637, output_size=14,
                 loss=CrossEntropy,
                 optimizer=Adam(lr=0.001),
                 dropout=0.8)
+```
+
+* The third step allows managing a multitask target, split the dataset in training, validation and test, likewise partitioning each set in defined batch size.
+```bash
+from diagnosenet.datamanager import MultiTask
 
 ## 3) Set splitting, batching and target for the dataset:
 data_config = MultiTask(dataset_name="SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1",
                         valid_size=0.05, test_size=0.15,
-                        batch_size=100,	#3072,	#100,
+                        batch_size=3072,
                         target_name='Y11',
                         target_start=0, target_end=14)
 ```
 
-Programming interface for processing the model on CPU-GPU implementation using memory execution modes:
+* In the last two steps, we select the computational platform 'DesktopExecution' and pass the DNN model and dataset configuration. According to the machine-memory capacity, if the full-dataset plus the model can be allocated in memory is to select 'training_memory' execution modes or in another wise is selected 'training_disk'.
 ```bash
 from diagnosenet.executors import DesktopExecution
 from diagnosenet.monitor import enerGyPU
