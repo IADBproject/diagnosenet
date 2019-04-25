@@ -40,7 +40,11 @@ The cross-platform library contains a task-based programming interface module fo
 ## Get Started with DiagnoseNET ##
 Programming interface to build a fully-connected model:
 ```bash
-import diagnosenet as dt
+from diagnosenet.layers import Relu, Linear
+from diagnosenet.graphs import FullyConnected
+from diagnosenet.losses import CrossEntropy
+from diagnosenet.optimizers import Adam
+from diagnosenet.datamanager import MultiTask
 
 ## 1) Set stacked layers as type, depth and width:
 layers_1 = [Relu(14637, 2048),
@@ -66,6 +70,10 @@ data_config = MultiTask(dataset_name="SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1",
 
 Programming interface for processing the model on CPU-GPU implementation using memory execution modes:
 ```bash
+from diagnosenet.executors import DesktopExecution
+from diagnosenet.monitor import enerGyPU
+from diagnosenet.io_functions import IO_Functions
+
 ## 4) Select the computational platform and pass the DNN and Dataset configurations:
 platform = DesktopExecution(model=mlp_model_1,
                             datamanager=data_config,
@@ -73,9 +81,14 @@ platform = DesktopExecution(model=mlp_model_1,
                             max_epochs=40,
                             min_loss=0.02)
 
-## 5) Load tha dataset and select the training platform modes:
+## 5) Select the training platform modes:
+## Dataset Load
 path = "healthData/sandbox-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1/1_Mining-Stage/binary_representation/"
-X = dt._read_file(path+"BPPR-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
-y = dt._read_file(path+"labels_Y1-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
+X = IO_Functions._read_file(path+"BPPR-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
+y = IO_Functions._read_file(path+"labels_Y1-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
 
+## Training Start
 platform.training_memory(X, y)
+
+
+--------------------------------------------------------------------------------
