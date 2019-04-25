@@ -61,7 +61,7 @@ mlp_model_1 = FullyConnected(input_size=14637, output_size=14,
                 dropout=0.8)
 ```
 
-* The third step allows managing a multitask target, split the dataset in training, validation and test, likewise partitioning each set in defined batch size.
+* The third step allows: managing a multitask target; automatically split the dataset in training, validation and test; as well as partitioning each set according to defined batch size.
 ```bash
 from diagnosenet.datamanager import MultiTask
 
