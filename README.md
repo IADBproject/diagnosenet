@@ -39,7 +39,7 @@ The cross-platform library contains a task-based programming interface module fo
 
 ## Get Started with DiagnoseNET ##
 Let’s start with an example to build a feed-forward neural network to predict medical care purpose of hospitalized patients and training it on a traditional CPU-GPU machine.
-* The first and the second step consist in builds a fully-connected model graph. In the simplest way, the developer set the type of each layer, their neurons numbers and the number of layers building a stacked network and followed by a linear output on top.  After we select the neural network family graph 'FullyConnected' and set the hyperparameters.
+* The first and the second step consist in builds a fully-connected model graph. In the simplest way, the developer set the type of each layer, their neurons numbers and the number of layers building a stacked network and followed by a linear output on top.  After is to select the neural network family graph 'FullyConnected' and set the hyperparameters.
 ```bash
 from diagnosenet.layers import Relu, Linear
 from diagnosenet.graphs import FullyConnected
