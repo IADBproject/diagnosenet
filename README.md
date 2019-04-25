@@ -95,6 +95,6 @@ y = IO_Functions._read_file(path+"labels_Y1-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1
 ## Training Start
 platform.training_memory(X, y)
 ```
-The source code is avaiable here to [diagnosenet_desktop-memory](https://github.com/IADBproject/diagnosenet/blob/master/diagnosenet_desktop-memory.py) or [diagnosenet_desktop-disk](https://github.com/IADBproject/diagnosenet/blob/master/diagnosenet_desktop-disk.py).
+The source code is available here for [diagnosenet_desktop-memory](https://github.com/IADBproject/diagnosenet/blob/master/diagnosenet_desktop-memory.py) or [diagnosenet_desktop-disk](https://github.com/IADBproject/diagnosenet/blob/master/diagnosenet_desktop-disk.py).
 
 --------------------------------------------------------------------------------
