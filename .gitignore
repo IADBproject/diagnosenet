@@ -11,3 +11,6 @@ healthData/1_Mining-Stage/binary_representation/labels_Y14-W1-TEST_x1_x2_x3_x4_x
 diagnosenet/__pycache__/
 .diagnosenet.log
 .mypy_cache/*
+
+## enerGyPU monitor
+enerGyPU/testbed/*
