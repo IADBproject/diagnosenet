@@ -73,19 +73,13 @@ class Softmax(Layer):
 
 
 class Conv1D(Layer):
-    def __init__(self, input_size: int, output_size: int, kernel: list) -> None:
+    def __init__(self, input_size: int, input_length: int, dimension: int) -> None:
         super().__init__()
         self.input_size = input_size
-        self.output_size = output_size
-        self.k = tf.constant(kernel, dtype=tf.float32)
-        self.batch_size = 100
+        self.output_length = input_length
+        self.dimension = dimension
+        # self.k = tf.constant(kernel, dtype=tf.float32)
 
     def activation(self, input_holder) -> tf.Tensor:
-        self.data = tf.reshape(input_holder, [self.batch_size, int(input_holder[0]), 1])
-        self.kernel = tf.reshape(self.k, [int(k.shape[0], 1, 1)])
-        return tf.squeeze(tf.nn.conv1d(self.data, self.kernel, 1, 'VALID'))
-
-    def dropout_activation(self, input_holder, k_prob) -> tf.Tensor:
-        self.data = tf.reshape(input_holder, [self.batch_size, int(input_holder[0]), 1])
-        self.kernel = tf.reshape(self.k, [int(k.shape[0], 1, 1)])
-        return tf.squeeze(tf.nn.conv1d(self.data, self.kernel, 1, 'VALID'))
+        self.filter = tf.zeros([1300, 1, 1])
+        return tf.nn.conv1d(input_holder, self.filter, stride=2, padding='VALID')
