@@ -282,8 +282,9 @@ class ConvNetworks:
             that will be assign data in the executors class.
     """
     def __init__(self,  input_size: int,
-                        input_lengh: int,
-                        dimension: int) -> None:
+                        input_length: int,
+                        dimension: int,
+                        layers: Sequence[Layer]) -> None:
                         # input_size: int, output_size: int,
                         # layers: Sequence[Layer],
                         # loss: Loss,
@@ -292,19 +293,27 @@ class ConvNetworks:
 
         ## A neural network architecture:
         self.input_size = input_size
-        self.input_lengh = input_lengh
+        self.input_length = input_length
         self.dimension = dimension
+        self.layers = layers
+
+
+    def stacked(self, input_holder) -> tf.Tensor:
+        for i in range(len(self.layers)):
+            ## Prevention to use dropout in the projection layer
+            if len(self.layers)-1 == i:
+                input_holder = self.layers[i].activation(input_holder)
+        return input_holder
 
 
 
     def desktop_graph(self) -> tf.Tensor:
         with tf.Graph().as_default() as self.conv1d_graph:
-            self.X = tf.placeholder(tf.float32, shape=(None, self.input_lengh, self.dimension), name="Inputs")
+            self.X = tf.placeholder(tf.float32, shape=(None, self.input_length, self.dimension), name="Inputs")
+            output = self.stacked(self.X)
 
-            filter=tf.zeros([1300, 1, 1])
-
-            output = tf.nn.conv1d(self.X, filter, stride=2, padding='VALID')
-
+            # filter=tf.zeros([1300, 1, 1])
+            # output = tf.nn.conv1d(self.X, filter, stride=2, padding='VALID')
 
             init_op = tf.global_variables_initializer()
             config = tf.ConfigProto()
