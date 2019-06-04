@@ -88,8 +88,6 @@ class FullyConnected:
         l2 = tf.matmul(l1, w2 + b2)
         return l2
 
-
-
     def stacked_valid(self, input_holder) -> tf.Tensor:
         for layer in self.layers:
             print("layer: {}".format(layer.__class__.__name__))
@@ -120,7 +118,6 @@ class FullyConnected:
             self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
 
 
-
     def multiGPU_loss(self, y_pred: tf.Tensor, y_true: tf.Tensor) -> tf.Tensor:
         """
         """
@@ -149,7 +146,6 @@ class FullyConnected:
         #     total_loss = tf.identity(total_loss)
         # return total_loss
         return loss
-
 
     def average_gradients(self, tower_grads):
         """
@@ -191,8 +187,6 @@ class FullyConnected:
             average_grads.append(grad_and_var)
 
         return average_grads
-
-
 
     def assign_to_device(self, device, ps_device='/cpu:0'):
         def _assign(op):
@@ -279,64 +273,44 @@ class FullyConnected:
         ## End Graph
 
 
+import numpy as np
+class ConvNetworks:
+    """
+    Implements a fully-connected algorithm for convolutional networks.
+    Args: A convolution architecture defined by the user.
+    Returns: A graph object with trainable parameters;
+            that will be assign data in the executors class.
+    """
+    def __init__(self,  input_size: int,
+                        input_lengh: int,
+                        dimension: int) -> None:
+                        # input_size: int, output_size: int,
+                        # layers: Sequence[Layer],
+                        # loss: Loss,
+                        # optimizer: Optimizer,
+                        # dropout: float = 1.0) -> None:
+
+        ## A neural network architecture:
+        self.input_size = input_size
+        self.input_lengh = input_lengh
+        self.dimension = dimension
 
 
-    # def multiGPU_graph_OLD(self, batch_size) -> tf.Tensor:
-    #
-    #     with tf.Graph().as_default() as self.mlp_graph:
-    #
-    #         self.num_gpus=1
-    #         self.gpu_batch_size=int((batch_size/self.num_gpus))
-    #         ###########################
-    #         self.tower_grads = []
-    #         self.mlp_losses = []
-    #
-    #         self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
-    #         self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Targets")
-    #         self.keep_prob = tf.placeholder(tf.float32)
-    #
-    #         for gpu in range(self.num_gpus):
-    #             print("gpu: {}".format(gpu))
-    #
-    #             with tf.device('/gpu:%d' % gpu):
-    #
-    #                 # Split data between GPUs
-    #                 _X = self.X[(gpu * self.gpu_batch_size):
-    #                             (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
-    #                 _Y = self.Y[(gpu * self.gpu_batch_size):
-    #                             (gpu * self.gpu_batch_size) + (self.gpu_batch_size)]
-    #
-    #                 print("_X: {}, {}".format((gpu * self.gpu_batch_size),
-    #                                 (gpu * self.gpu_batch_size) + (self.gpu_batch_size)))
-    #
-    #
-    #                 # self.projection = self.stacked(_X)
-    #                 # self.projection = self.stacked(_X, self.keep_prob)
-    #                 self.projection = self.stacked_multigpu(_X, self.keep_prob)
-    #
-    #                 print("{}".format("+"*20))
-    #                 print("self.projection: {}".format(self.projection))
-    #
-    #                 ### Loss ###
-    #                 ## Desktop function
-    #                 # self.mlp_loss = self.loss.multiGPU_loss(self.projection, _Y)
-    #
-    #                 self.mlp_loss = self.multiGPU_loss(self.projection, _Y)
-    #
-    #                 # self.mlp_losses.append(self.mlp_loss)
-    #
-    #                 ### optimizer ###
-    #                 ## Desktop function
-    #                 self.grad_from_optimizer = self.optimizer.desktop_Grad(self.mlp_loss)
-    #
-    #                 ### New grads
-    #                 self.adam_op = tf.train.AdamOptimizer(learning_rate=0.001)
-    #                 self.grads_computation = self.adam_op.compute_gradients(self.mlp_loss)
-    #                 self.tower_grads.append(self.grads_computation)
-    #
-    #         self.mlp_tower_grads = self.average_gradients(self.tower_grads)
-    #         self.train_op = self.adam_op.apply_gradients(self.mlp_tower_grads)
-    #         # self.train_op = optimizer.apply_gradients(tower_grads)
-    #
-    #         #self.mlp_tower_grads = self.average_gradients(self.tower_grads)
-    #         # self.train_op = mgpu_optimizer.apply_gradients(tower_grads)
+
+    def desktop_graph(self) -> tf.Tensor:
+        with tf.Graph().as_default() as self.conv1d_graph:
+            self.X = tf.placeholder(tf.float32, shape=(None, self.input_lengh, self.dimension), name="Inputs")
+
+            filter=tf.zeros([1300, 1, 1])
+
+            output = tf.nn.conv1d(self.X, filter, stride=2, padding='VALID')
+
+
+            init_op = tf.global_variables_initializer()
+            config = tf.ConfigProto()
+            config.gpu_options.per_process_gpu_memory_fraction = 0.7
+
+            with tf.Session(config=config) as sess:
+                sess.run(init_op)
+                matrix = np.load('/home/jagarcia/Documents/05_dIAgnoseNET/04-stage-2019/Version1/input/xdata.npy')
+                print(sess.run(output, feed_dict={self.X:matrix}))
