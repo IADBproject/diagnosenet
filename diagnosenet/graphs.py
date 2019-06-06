@@ -323,3 +323,4 @@ class ConvNetworks:
                 sess.run(init_op)
                 matrix = np.load('/home/jagarcia/Documents/05_dIAgnoseNET/04-stage-2019/Version1/input/xdata.npy')
                 print(sess.run(output, feed_dict={self.X:matrix}))
+                # print(sess.run(output.shape))
