@@ -3,9 +3,9 @@
 --------------------------------------------------------------------------------
 **DiagnoseNET** is an open source framework for tailoring deep neural networks into different computational architectures from CPU-GPU implementation to multi-GPU and multi-nodes with an efficient ratio between accuracy and energy consumption. It is oriented to propose a green intelligence medical workflow for deploying medical diagnostic tools inside the hospitals with minimal infrastructure requirements and low power consumption.
 
-The first application built was to automate the [unsupervised patient phenotype representation workflow](https://link.springer.com/chapter/10.1007/978-3-030-16205-4_1) trained on a mini-cluster of Nvidia Jetson TX2. This workflow was divided into three stages: 
+The first application built was to automate the [unsupervised patient phenotype representation workflow](https://link.springer.com/chapter/10.1007/978-3-030-16205-4_1) trained on a mini-cluster of Nvidia Jetson TX2. This workflow was divided into three stages:
 1. The first stage mining electronic health records for patient feature extraction and serialised each patient record in a clinical document architecture schema to create a binary patient representation.
-2. The second stage embedding the patient’s binary matrix via an unsupervised learning to obtain a new latent space and identify the patient’s phenotypic representations. 
+2. The second stage embedding the patient’s binary matrix via an unsupervised learning to obtain a new latent space and identify the patient’s phenotypic representations.
 3. The last stage focuses on supervised learning using the patient's features (binary or latent representation) as an input for machine learning algorithms or as an initialiser for deep neural networks.
 
 
@@ -16,13 +16,13 @@ The main dependencies install:
 ```bash
 pip3 install numpy==1.15.4, scipy==1.1.0, pandas==0.23.4, scikit-learn==0.20.1
 pip3 install tensorflow-gpu==1.3.0
-## Warning: When using Tensorflow-gpu in version 1.4.1, 
+## Warning: When using Tensorflow-gpu in version 1.4.1,
 ## the module 'tensorflow.python.framework.fast\_tensor\_util' does not match with the runtime Python 3.6.
 ```
 
-To install the current release:
+To install the current release, clone it including submodules:
 ```bash
-git clone https://github.com/IADBproject/diagnosenet.git
+git clone --recurse-submodules https://github.com/IADBproject/diagnosenet.git
 ```
 
 See a good practice guide to build a [mini-cluster Nvidia Jetson TK1 & TX2](https://diagnosenet.github.io/getstarted/) from scratch.
@@ -51,7 +51,7 @@ layers_1 = [Relu(14637, 2048),
             Relu(1024, 1024),
             Relu(1024, 1024),
             Relu(1024, 1024),
-            Linear(1024, 14)] 
+            Linear(1024, 14)]
 
 ## 2) Model and hyperparameters setting:
 mlp_model_1 = FullyConnected(input_size=14637, output_size=14,
