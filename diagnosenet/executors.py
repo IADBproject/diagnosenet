@@ -74,12 +74,13 @@ class DesktopExecution:
 
         ## Get GPU availeble and set for processing
         #self.idgpu = self.monitor._get_available_GPU()
-        self.idgpu = "4"
+        self.idgpu = "0"
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
 
         ## Time recording
         self.time_latency = time.time()-latency_start
+
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
         """
