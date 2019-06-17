@@ -6,9 +6,10 @@ healthData/1_Mining-Stage/binary_representation/labels_Y11-W1-TEST_x1_x2_x3_x4_x
 healthData/1_Mining-Stage/binary_representation/labels_Y12-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt
 healthData/1_Mining-Stage/binary_representation/labels_Y13-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt
 healthData/1_Mining-Stage/binary_representation/labels_Y14-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt
+healthData/*
 
 ## Splitting data produced by diagnosenet_desktop-disk.py
-healthData/sandbox-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1/*
+# healthData/sandbox-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1/*
 
 ## DiagnoseNET Framework
 diagnosenet/__pycache__/
