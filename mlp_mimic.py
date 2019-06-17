@@ -9,7 +9,7 @@ execution_start = time.time()
 from diagnosenet.io_functions import IO_Functions
 from diagnosenet.datamanager import MultiTask
 from diagnosenet.layers import Relu, Linear
-from diagnosenet.losses import CrossEntropy
+from diagnosenet.losses import MSE
 from diagnosenet.optimizers import Adam
 from diagnosenet.graphs import FullyConnected
 from diagnosenet.executors import DesktopExecution
@@ -46,7 +46,7 @@ layers_1 = [Relu(input_size, 100),
 #                 dropout=0.8)
 mlp_model_1 = FullyConnected(input_size=input_size, output_size=output_size,   #239,
                 layers=layers_1,
-                loss=CrossEntropy,
+                loss=MSE,
                 optimizer=Adam(lr=0.001),
                 dropout=0.8)
 
