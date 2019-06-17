@@ -8,7 +8,7 @@ execution_start = time.time()
 
 from diagnosenet.io_functions import IO_Functions
 from diagnosenet.datamanager import MultiTask
-from diagnosenet.layers import Relu, Linear
+from diagnosenet.layers import Relu, Linear, Softmax
 from diagnosenet.losses import MSE
 from diagnosenet.optimizers import Adam
 from diagnosenet.graphs import FullyConnected
@@ -32,11 +32,11 @@ output_size = 5
 #             Relu(1024, 1024),
 #             Linear(1024, output_size)]
 
-layers_1 = [Relu(input_size, 100),
-            Relu(100, 100),
-            Relu(100, 50),
-            Relu(50, 50),
-            Linear(50, output_size)]
+layers_1 = [Relu(input_size, 128),
+            Relu(128, 128),
+            Relu(128, 64),
+            Relu(64, 64),
+            Softmax(64, output_size)]
 
 ## 2) Select the neural network architecture and pass the hyper-parameters
 # mlp_model_1 = FullyConnected(input_size=input_size, output_size=output_size,   #239,
@@ -47,7 +47,7 @@ layers_1 = [Relu(input_size, 100),
 mlp_model_1 = FullyConnected(input_size=input_size, output_size=output_size,   #239,
                 layers=layers_1,
                 loss=MSE,
-                optimizer=Adam(lr=0.001),
+                optimizer=Adam(lr=0.0001),
                 dropout=0.8)
 
 ## 3) Dataset configurations for splitting, batching and target selection
@@ -62,7 +62,7 @@ data_config = MultiTask(dataset_name=dataset_name,
 platform = DesktopExecution(model=mlp_model_1,
                             datamanager=data_config,
                             monitor=enerGyPU(testbed_path="enerGyPU/testbed"),
-                            max_epochs=10,
+                            max_epochs=30,
                             min_loss=0.02)
 
 ## 5) Uses the platform modes for training in an efficient way
