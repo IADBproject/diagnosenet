@@ -62,32 +62,6 @@ class FullyConnected:
                 input_holder = self.layers[i].dropout_activation(input_holder, keep_prob)
         return input_holder
 
-    # def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
-    #     """
-    #     """
-    #     # with tf.variable_scope("BackPropagation", reuse=reuse):
-    #     for i in range(len(self.layers)):
-    #             ## Prevention to use dropout in the projection layer
-    #             if len(self.layers)-1 == i:
-    #                 input_holder = self.layers[i].activation(input_holder)
-    #             else:
-    #                 input_holder = self.layers[i].dropout_activation(input_holder, keep_prob)
-    #     return input_holder
-
-
-    def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
-        """
-        """
-        # with tf.variable_scope("BackPropagation", reuse=reuse):
-        w1 = tf.Variable(tf.random_normal([14637, 2048], stddev=0.1), dtype=tf.float32)
-        b1 = tf.Variable(tf.random_normal([2048]), dtype=tf.float32)
-        l1= tf.nn.relu(tf.matmul(input_holder, w1) + b1)
-
-        w2 = tf.Variable(tf.random_normal([2048, 14], stddev=0.1), dtype=tf.float32)
-        b2 = tf.Variable(tf.random_normal([14]), dtype=tf.float32)
-        l2 = tf.matmul(l1, w2 + b2)
-        return l2
-
     def stacked_valid(self, input_holder) -> tf.Tensor:
         for layer in self.layers:
             print("layer: {}".format(layer.__class__.__name__))
@@ -117,6 +91,33 @@ class FullyConnected:
             self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
             self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
 
+
+    #########################################################################
+    ## MultiGPU-GRAPH
+    # def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
+    #     """
+    #     """
+    #     # with tf.variable_scope("BackPropagation", reuse=reuse):
+    #     for i in range(len(self.layers)):
+    #             ## Prevention to use dropout in the projection layer
+    #             if len(self.layers)-1 == i:
+    #                 input_holder = self.layers[i].activation(input_holder)
+    #             else:
+    #                 input_holder = self.layers[i].dropout_activation(input_holder, keep_prob)
+    #     return input_holder
+
+    def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
+        """
+        """
+        # with tf.variable_scope("BackPropagation", reuse=reuse):
+        w1 = tf.Variable(tf.random_normal([14637, 2048], stddev=0.1), dtype=tf.float32)
+        b1 = tf.Variable(tf.random_normal([2048]), dtype=tf.float32)
+        l1= tf.nn.relu(tf.matmul(input_holder, w1) + b1)
+
+        w2 = tf.Variable(tf.random_normal([2048, 14], stddev=0.1), dtype=tf.float32)
+        b2 = tf.Variable(tf.random_normal([14]), dtype=tf.float32)
+        l2 = tf.matmul(l1, w2 + b2)
+        return l2
 
     def multiGPU_loss(self, y_pred: tf.Tensor, y_true: tf.Tensor) -> tf.Tensor:
         """
@@ -322,5 +323,5 @@ class ConvNetworks:
             with tf.Session(config=config) as sess:
                 sess.run(init_op)
                 matrix = np.load('/home/jagarcia/Documents/05_dIAgnoseNET/04-stage-2019/Version1/input/xdata.npy')
-                print(sess.run(output, feed_dict={self.X:matrix}))
-                # print(sess.run(output.shape))
+                output_l = sess.run(output, feed_dict={self.X: matrix})
+                print(output_l.shape)

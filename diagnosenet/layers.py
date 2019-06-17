@@ -100,3 +100,21 @@ class BatchNormalization(Layer):
         avg, var = tf.nn.moments(input_holder, list(range(len(shape)-1))) #range(len(shape)-1))
 
         return tf.nn.batch_normalization(input_holder, avg, var, offset=beta, scale=gamma, variance_epsilon=self.epsilon)
+
+
+class ReluConv(Layer):
+    def __init__(self, input_size: int, output_size: int) -> None:
+        super().__init__()
+        self.input_size = input_size
+        self.output_size = output_size
+
+    def activation(self, input_holder) -> tf.Tensor:
+        self.params["w"] = tf.Variable(tf.random_normal([self.input_size, self.output_size], stddev=0.1), dtype=tf.float32)
+        self.params["b"] = tf.Variable(tf.random_normal([self.output_size]), dtype=tf.float32)
+        return tf.nn.relu(tf.matmul(input_holder, self.params["w"]) + self.params["b"])
+
+    def dropout_activation(self, input_holder, k_prob) -> tf.Tensor:
+        self.params["w"] = tf.Variable(tf.random_normal([self.input_size, self.output_size], stddev=0.1), dtype=tf.float32)
+        self.params["b"] = tf.Variable(tf.random_normal([self.output_size]), dtype=tf.float32)
+        act_layer =  tf.nn.relu(tf.matmul(input_holder, self.params["w"]) + self.params["b"])
+        return tf.nn.dropout(act_layer, k_prob)
