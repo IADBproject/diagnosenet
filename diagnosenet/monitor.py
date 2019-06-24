@@ -137,7 +137,7 @@ class Testbed(Metrics):
 
         datetime = strftime("%Y%m%d%H%M%S", gmtime())
         exp_id=str(self.data.dataset_name)+"-"+str(self.model.__class__.__name__)+"-"+str(self.platform_name)+"-"+str(datetime)
-        ## Deactivated the encryption of the testbed id
+        ## Deactivated the encryption of testbed-ID
         #hash_id = hashlib.sha256(exp_id.encode('utf-8')).hexdigest()
         hash_id = exp_id
 
