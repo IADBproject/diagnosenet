@@ -154,7 +154,7 @@ class Testbed(Metrics):
             act_layer.append(layer.__class__.__name__)
             dim_layer.append((layer.input_size, layer.output_size))
 
-        target_range = (self.data.target_start, self.data.target_end)
+        # target_range = (self.data.target_start, self.data.target_end)
 
         exp_serialized = {
             "exp_id": self.exp_id,
@@ -174,8 +174,8 @@ class Testbed(Metrics):
                     "valid_records": str(self.data.valid_shape),
                     "test_records": str(self.data.test_shape),
                     "batch_size": str(self.data.batch_size),
-                    "target_name": str(self.data.target_name),
-                    "target_range": str(target_range),
+                    # "target_name": str(self.data.target_name),
+                    # "target_range": str(target_range),
                     },
             "platform_parameters": {
                     "platform": self.platform_name,
