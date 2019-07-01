@@ -16,6 +16,7 @@ diagnosenet/__pycache__/
 diagnosenet/*.pyc
 .diagnosenet.log
 .mypy_cache/*
+dashboard/.ipynb_checkpoints/
 
 ## enerGyPU monitor testbed produce by default
 testbed/*
