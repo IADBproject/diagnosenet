@@ -48,7 +48,6 @@ class DesktopExecution:
         self.processing_mode: str
         self.training_track: list = []
 
-
     def set_monitor_recording(self) -> None:
         """
         Power and performance monitoring launcher for workload characterization
@@ -80,7 +79,6 @@ class DesktopExecution:
 
         ## Time recording
         self.time_latency = time.time()-latency_start
-
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
         """
@@ -523,13 +521,14 @@ class Distibuted:
             if 'MultiTask' in str(type(self.data)):
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
-                train, valid, test = self.data.disk_batching()
+                # train, valid, test = self.data.distributed_batching()
+                self.data.distributed_batching()
             else:
                 raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
         except AttributeError:
                 raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
         self.time_dataset = time.time()-dataset_start
-        return train, valid, test
+        # return train, valid, test
 
 
     def training_disk(self, dataset_name: str, dataset_path: str,
@@ -542,7 +541,10 @@ class Distibuted:
         ## Set Monitor Recording
         # self.set_monitor_recording()
         ## Set dataset on memory
-        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
+        # train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
+        #                                             inputs_name, targets_name)
+
+        self.set_dataset_disk(dataset_name, dataset_path,
                                                     inputs_name, targets_name)
 
 
