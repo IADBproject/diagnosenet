@@ -134,9 +134,12 @@ class Batching(Splitting):
     Write micro-batches by a size split factor
     for each part of the data, Training, Valid, Test
     """
-    def __init__(self, valid_size: float = None, test_size: float = None,
-                        batch_size: int = 1000):
+    def __init__(self, dataset_name: str = None,
+                        valid_size: float = None, test_size: float = None,
+                        devices_number: int = 1, batch_size: int = 1000):
         super().__init__(valid_size, test_size)
+        self.dataset_name = dataset_name
+        self.devices_number = devices_number
         self.batch_size = batch_size
 
     def batching(self, data: DataSplit) -> List[Batch]:
@@ -177,7 +180,7 @@ class Batching(Splitting):
         """
         output batch path:
         """
-        ## Splittting the Dataset
+        ## Splitting the Dataset
         self.dataset_split()
 
         ## Defining split directories
@@ -209,6 +212,45 @@ class Batching(Splitting):
         return train_batch_path, valid_batch_path, test_batch_path
 
 
+    def distributed_batching(self) -> BatchPath:
+        """
+        output batch path:
+        """
+        ## Splittting the Dataset
+        self.dataset_split()
+
+        ## Defining split directories
+        self.split_path = str(self.sandbox+"/2_Split_Point-"+str(self.devices_number)+"-"+str(self.batch_size))
+        train_path = str(self.split_path+"/data_training/")
+        valid_path = str(self.split_path+"/data_valid/")
+        test_path = str(self.split_path+"/data_test/")
+
+        ## Build split directories
+        IO_Functions()._mkdir_(self.split_path)
+        IO_Functions()._mkdir_(train_path)
+        IO_Functions()._mkdir_(valid_path)
+        IO_Functions()._mkdir_(test_path)
+
+        ## Writing records in batches
+        IO_Functions()._write_batches_worker(train_path, self.train, self.devices_number,
+                                                        self.batch_size, self.dataset_name)
+        IO_Functions()._write_batches_worker(valid_path, self.valid, self.devices_number,
+                                                        self.batch_size, self.dataset_name)
+        IO_Functions()._write_batches_worker(test_path, self.test, self.devices_number,
+                                                        self.batch_size, self.dataset_name)
+
+        logger.info('-- Split path: {} --'.format(self.split_path))
+        train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.txt")),
+                                            sorted(glob.glob(train_path+"/y-*.txt")))
+        valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-*.txt")),
+                                            sorted(glob.glob(valid_path+"/y-*.txt")))
+        test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-*.txt")),
+                                            sorted(glob.glob(test_path+"/y-*.txt")))
+
+        return train_batch_path, valid_batch_path, test_batch_path
+
+
+
 
 class MultiTask(Batching):
     """
@@ -219,8 +261,8 @@ class MultiTask(Batching):
                         batch_size: int = 1000,
                         target_name: str = 'Y11',
                         target_start: int = 0, target_end: int = 14) -> None:
-        super().__init__(valid_size, test_size, batch_size)
-        self.dataset_name = dataset_name
+        super().__init__(dataset_name, valid_size, test_size, batch_size)
+        # self.dataset_name = dataset_name
         self.target_name = target_name
         self.target_start = target_start
         self.target_end = target_end

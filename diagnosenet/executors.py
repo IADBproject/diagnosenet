@@ -48,7 +48,6 @@ class DesktopExecution:
         self.processing_mode: str
         self.training_track: list = []
 
-
     def set_monitor_recording(self) -> None:
         """
         Power and performance monitoring launcher for workload characterization
@@ -80,7 +79,6 @@ class DesktopExecution:
 
         ## Time recording
         self.time_latency = time.time()-latency_start
-
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
         """
@@ -446,6 +444,117 @@ class DesktopExecution:
         logger.info("Tesbed directory: {}".format(self.monitor.testbed_exp))
 
 
+class Distibuted:
+    """
+    Implements the back-propagation algorithm ...
+    Args:
+        model: Is a graph object of the neural network architecture selected
+    Returns:
+    """
+
+
+    def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
+                    max_epochs: int = 10, min_loss: float = 2.0) -> None:
+        self.model = model
+        self.data = datamanager
+        self.max_epochs = max_epochs
+        self.min_loss = min_loss
+        self.monitor = monitor
+
+        ## Time logs
+        self.time_latency: time()
+        self.time_dataset: time()
+        self.time_training: time()
+        self.time_testing: time()
+        self.time_metrics: time()
+
+        ## Testbed and Metrics
+        self.processing_mode: str
+        self.training_track: list = []
+
+
+    def set_monitor_recording(self) -> None:
+        """
+        Power and performance monitoring launcher for workload characterization
+        """
+        latency_start = time.time()
+        if self.monitor == None:
+            self.monitor = enerGyPU(testbed_path="testbed",
+                                write_metrics=True,
+                                power_recording=True,
+                                platform_recording=True)
+
+        ## Generate ID-experiment and their testebed directory
+        self.monitor.generate_testbed(self.monitor.testbed_path,
+                                        self.model, self.data,
+                                        self.__class__.__name__,
+                                        self.max_epochs)
+
+        ## Start power recording
+        if self.monitor.power_recording == True: self.monitor.start_power_recording()
+
+        ## Start platform recording
+        if self.monitor.platform_recording == True: self.monitor.start_platform_recording(os.getpid())
+
+        ## Get GPU availeble and set for processing
+        #self.idgpu = self.monitor._get_available_GPU()
+        self.idgpu = "0"
+        os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+        os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
+
+        ## Time recording
+        self.time_latency = time.time()-latency_start
+
+    def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
+                        inputs_name: str, targets_name: str) -> BatchPath:
+        """
+        Uses datamanager classes for splitting, batching the dataset and target selection
+        """
+        dataset_start = time.time()
+
+        print("+++ Type: {}".format(type(self.data)))
+        try:
+            self.data.set_data_path(dataset_name=dataset_name,
+                               dataset_path=dataset_path,
+                               inputs_name=inputs_name,
+                               targets_name=targets_name)
+            if 'MultiTask' in str(type(self.data)):
+                train, valid, test = self.data.disk_one_target()
+            elif 'Batching' in str(type(self.data)):
+                # train, valid, test = self.data.distributed_batching()
+                self.data.distributed_batching()
+            else:
+                raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
+        except AttributeError:
+                raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
+        self.time_dataset = time.time()-dataset_start
+        # return train, valid, test
+
+
+    def training_disk(self, dataset_name: str, dataset_path: str,
+                        inputs_name: str, targets_name: str) -> tf.Tensor:
+        """
+        Training the deep neural network exploit the memory on desktop machine
+        """
+        ## Set processing_mode flat
+        self.processing_mode = "distributed_processing"
+        ## Set Monitor Recording
+        # self.set_monitor_recording()
+        ## Set dataset on memory
+        # train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
+        #                                             inputs_name, targets_name)
+
+        self.set_dataset_disk(dataset_name, dataset_path,
+                                                    inputs_name, targets_name)
+
+
+
+
+
+
+
+
+
 
 class MultiGPU:
     """
@@ -598,12 +707,6 @@ class MultiGPU:
     #
     #             epoch_elapsed = (time.time() - epoch_start)
     #             epoch = epoch + 1
-
-
-
-
-
-
 
 ###############################################################################"
 ###############################################################################"
