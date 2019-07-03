@@ -35,7 +35,7 @@ mlp_model = FullyConnected(input_size=input_size, output_size=output_size,
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config_1 = Batching(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
                         valid_size=0.05, test_size=0.10,
-                        devices_number=3, batch_size=200,
+                        devices_number=4, batch_size=200,
                         # target_name='Y11'
                         # target_start=0, target_end=14
                         )

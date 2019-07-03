@@ -81,13 +81,13 @@ class IO_Functions:
                 elif batch_file_num < math.ceil(worker_samples/float(batch_size)):
                     batch_range_end = mod_index+j+batch_size
 
-                # print("Batch file: {} || i: {} || worker_count: {}".format(batch_file_num, mod_index+j, batch_range_end))
                 ## Write batches by worker
                 if j % batch_size == 0:
                     ## Added the batch index into the path name
                     X_fname = str(X_worker_name+"-"+str(batch_file_num)+'.txt')
                     y_fname = str(y_worker_name+"-"+str(batch_file_num)+'.txt')
-                    batch_file_num += 1
+                    # print("++ batches: {}".format(math.ceil(worker_samples/float(batch_size))))
+                    # print("Batch file: {} || j_index: {} || worker_count: {}".format(batch_file_num, mod_index+j, batch_range_end))
 
                     if os.path.exists(X_fname) == False:
                         open(X_fname, 'w+').writelines(data.inputs[mod_index+j:batch_range_end])
@@ -97,118 +97,26 @@ class IO_Functions:
                         open(y_fname, 'w+').writelines(data.targets[mod_index+j:batch_range_end])
                     else:
                         pass
+                    batch_file_num += 1
 
         ## samples sweep by worker
         worker_samples = math.ceil(len(data.inputs)/int(devices_number))
-        worker_file_num = 0
+        worker_file_num = 1
         samples_index = 0
         for i in range(len(data.inputs)):
 
             if i % worker_samples == 0:
-                worker_file_num += 1
                 samples_index = worker_file_num * worker_samples
 
                 ## Defined the worker index into the path name
                 X_worker_name = str(path+"X-"+dataset_name+"-"+str(worker_file_num))
                 y_worker_name = str(path+"y-"+dataset_name+"-"+str(worker_file_num))
-                # print("Worker mod: {} || Worker num: {} || Samples index: {}".format(i, worker_file_num, samples_index))
+                # print("+++++++++++++++++++++++++++++++++++++++++++++")
+                # print("Worker_file_num: {} || devices_number: {}".format(worker_file_num, devices_number))
+                # print("Mod: {} || samples_index: {}".format(i, samples_index))
 
-                ## Guarantees that the number of files is created
-                ## as number of workers
-                if worker_file_num == int(devices_number):
-                    batching_woker(i, X_worker_name, y_worker_name,
+                batching_woker(i, X_worker_name, y_worker_name,
                                             data.inputs[i:samples_index],
                                             data.targets[i:samples_index])
-
-                elif worker_file_num < int(devices_number):
-                    batching_woker(i, X_worker_name, y_worker_name,
-                                            data.inputs[i:i+samples_index],
-                                            data.targets[i:i+samples_index])
-
-
-
-
-
-
-        #########################################################################
-        ### working
-        # worker_samples = math.ceil(len(data.inputs)/int(devices_number))
-        # worker_num = 0
-        # samples_index = 0
-        # for i in range(len(data.inputs)):
-        #
-        #     if i % worker_samples == 0:
-        #         worker_num += 1
-        #         samples_index = worker_num * worker_samples
-        #         batch_file_num = 1
-        #
-        #         ## Defined the worker index into the path name
-        #         X_worker_name = str(path+"X-"+dataset_name+"-"+str(worker_num))
-        #         y_worker_name = str(path+"y-"+dataset_name+"-"+str(worker_num))
-        #
-        #         print("Worker mod: {} || Worker num: {} || Sample count: {}".format(i, worker_num, samples_index))
-        #
-        #
-        #     if batch_file_num == math.ceil(worker_samples/float(batch_size)):
-        #         if i % batch_size == 0 or i % worker_samples == 0:
-        #
-        #             ## Added the batch index into the path name
-        #             X_fname = str(X_worker_name+"-"+str(batch_file_num)+'.txt')
-        #             y_fname = str(y_worker_name+"-"+str(batch_file_num)+'.txt')
-        #             batch_file_num += 1
-        #
-        #             print("Last Samples_index: {}".format(int(samples_index)))
-        #             print("Last Batch file: {} || i: {} || worker_count: {}".format(batch_file_num, i, worker_samples))
-        #
-        #             if os.path.exists(X_fname) == False:
-        #                 open(X_fname, 'w+').writelines(data.inputs[i:samples_index])
-        #             else:
-        #                 pass
-        #
-        #             if os.path.exists(y_fname) == False:
-        #                     open(y_fname, 'w+').writelines(data.targets[i:samples_index])
-        #             else:
-        #                 pass
-        #
-        #     elif batch_file_num < math.ceil(worker_samples/float(batch_size)):
-        #
-        #         if i % batch_size == 0 or i % worker_samples == 0:  #or i % worker_samples == batch_size:
-        #             print("samples_index: {}".format(int(samples_index)))
-        #             print("batch_file_num: {} || i: {} || worker_count: {}".format(batch_file_num, i, i+batch_size))
-        #             # print("Data shape: {} | {}".format(i, i+batch_size))
-        #             X_fname = str(X_worker_name+"-"+str(batch_file_num)+'.txt')
-        #             y_fname = str(y_worker_name+"-"+str(batch_file_num)+'.txt')
-        #             batch_file_num += 1
-        #
-        #             if os.path.exists(X_fname) == False:
-        #                 open(X_fname, 'w+').writelines(data.inputs[i:i+batch_size])
-        #             else:
-        #                 pass
-        #
-        #             if os.path.exists(y_fname) == False:
-        #                 open(y_fname, 'w+').writelines( data.targets[i:i+batch_size])
-        #             else:
-        #                 pass
-
-
-
-
-                # sample_count = worker_num*len(data.inputs)
-            #
-            #     if worker_num == int(devices_number):
-            #         print("Data shape: {} | {}".format(i, len(data.inputs)))
-            #         fnumber = 1
-            #
-            #     elif worker_num < int(devices_number):
-            #         print("Data shape: {} | {}".format(i, i+new_sdw_factor))
-            #         fnumber = 1
-            #     worker_num += 1
-
-                # if worker_num == int(devices_number):
-                #     print("Data shape: {} | {}".format(i, len(data.inputs)))
-                #
-                # elif worker_num <= int(devices_number):
-                #     print("Data shape: {} | {}".format(i, new_sdw_factor))
-                #     # print("++ sample_count: {}".format(sample_count))
-
-                # if i <= (sample_count - batch_size):
+                worker_file_num += 1
+                

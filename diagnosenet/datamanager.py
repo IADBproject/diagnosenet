@@ -239,7 +239,6 @@ class Batching(Splitting):
         IO_Functions()._write_batches_worker(test_path, self.test, self.devices_number,
                                                         self.batch_size, self.dataset_name)
 
-
         logger.info('-- Split path: {} --'.format(self.split_path))
         train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.txt")),
                                             sorted(glob.glob(train_path+"/y-*.txt")))
