@@ -211,7 +211,6 @@ class Batching(Splitting):
 
         return train_batch_path, valid_batch_path, test_batch_path
 
-
     def distributed_batching(self) -> BatchPath:
         """
         output batch path:
