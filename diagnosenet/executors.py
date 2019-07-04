@@ -55,6 +55,7 @@ class DesktopExecution:
         latency_start = time.time()
         if self.monitor == None:
             self.monitor = enerGyPU(testbed_path="testbed",
+                                machine_type="x86",
                                 write_metrics=True,
                                 power_recording=True,
                                 platform_recording=True)
