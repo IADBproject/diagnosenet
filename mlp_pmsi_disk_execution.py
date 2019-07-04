@@ -10,19 +10,26 @@ from diagnosenet.datamanager import MultiTask
 from diagnosenet.layers import Relu, Linear
 from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
-from diagnosenet.graphs import FullyConnected
+from diagnosenet.graphs import SequentialGraph
 from diagnosenet.executors import DesktopExecution
 from diagnosenet.monitor import enerGyPU
 
+
+## PMSI-ICU Dataset shapes
+X_shape = 14637
+Y1_shape = 14
+Y2_shape = 239
+Y3_shape = 5
+
 ## 1) Define the stacked layers as the number of layers and their neurons
-layers = [Relu(14637, 2048),
+layers = [Relu(X_shape, 2048),
             Relu(2048, 2048),
             Relu(2048, 2048),
             Relu(2048, 2048),
-            Linear(2048, 14)]
+            Linear(2048, Y1_shape)]
 
 ## 2) Select the neural network architecture and pass the hyper-parameters
-mlp_model = FullyConnected(input_size=14637, output_size=14,   #381,
+mlp_model = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
                             layers=layers,
                             loss=CrossEntropy,
                             optimizer=Adam(lr=0.001),

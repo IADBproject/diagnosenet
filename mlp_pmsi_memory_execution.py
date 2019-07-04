@@ -11,56 +11,30 @@ from diagnosenet.datamanager import MultiTask
 from diagnosenet.layers import Relu, Linear
 from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
-from diagnosenet.graphs import FullyConnected
+from diagnosenet.graphs import SequentialGraph
 from diagnosenet.executors import DesktopExecution
 from diagnosenet.monitor import enerGyPU
 
 
-### Read the PMSI-Dataset using Pickle from diagnosenet.io_functions
-## Path for Octopus Machine: Full Representation
-#path = "/data_B/datasets/drg-PACA/healthData/sandbox-FULL-W1_x1_x2_x3_x4_x5_x7_x8_Y1/1_Mining-Stage/binary_representation/"
-#X = IO_Functions()._read_file(path+"BPPR-FULL-W1_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
-#y = IO_Functions()._read_file(path+"labels_Y1-FULL-W1_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
-
-## Path for Octopus Machine: SENSE-CUSTOM Representation
-#path = "/data_B/datasets/drg-PACA/healthData/sandbox-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1/1_Mining-Stage/binary_representation/"
-#X = IO_Functions()._read_file(path+"BPPR-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
-#y = IO_Functions()._read_file(path+"labels_Y1-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
-
-path = "healthData/sandbox-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1/1_Mining-Stage/binary_representation/"
-X = IO_Functions()._read_file(path+"BPPR-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
-y = IO_Functions()._read_file(path+"labels_Y1-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
-
+## PMSI-ICU Dataset shapes
+X_shape = 14637
+Y1_shape = 14
+Y2_shape = 239
+Y3_shape = 5
 
 ## 1) Define the stacked layers as the number of layers and their neurons
-layers_1 = [Relu(14637, 2048),
+layers_1 = [Relu(X_shape, 2048),
             Relu(2048, 2048),
             Relu(2048, 1024),
             Relu(1024, 1024),
-            Linear(1024, 14)]
+            Linear(1024, Y1_shape)]
 
 ## 2) Select the neural network architecture and pass the hyper-parameters
-mlp_model_1 = FullyConnected(input_size=14637, output_size=14,   #239,
+mlp_model_1 = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
                 layers=layers_1,
                 loss=CrossEntropy,
                 optimizer=Adam(lr=0.001),
                 dropout=0.8)
-
-# ## Added a second model for a network architecture search
-# layers_2 = [Relu(10833, 1024),
-#             Relu(1024, 1024),
-#             Relu(1024, 1024),
-#             Relu(1024, 1024),
-#             Linear(1024, 14)] #MT1
-#             Linear(2048, 239)] #MT2
-#             Linear(2048, 5)] #MT3
-#
-# mlp_model_2 = FullyConnected(input_size=10833, output_size=14,
-#                 layers=layers_2,
-#                 loss=CrossEntropy,
-#                 optimizer=Adam(lr=0.001),
-#                 dropout=0.8)
-
 
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
@@ -78,8 +52,25 @@ platform = DesktopExecution(model=mlp_model_1,
                             max_epochs=10,
                             min_loss=0.02)
 
+### Read the PMSI-Dataset using Pickle from diagnosenet.io_functions
+path = "healthData/sandbox-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1/1_Mining-Stage/binary_representation/"
+X = IO_Functions()._read_file(path+"BPPR-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
+y = IO_Functions()._read_file(path+"labels_Y1-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
+
 ## 5) Uses the platform modes for training in an efficient way
 platform.training_memory(X, y)
 
-
 print("Execution Time: {}".format((time.time()-execution_start)))
+
+
+
+####################################################
+## Path for Octopus Machine: Full Representation
+#path = "/data_B/datasets/drg-PACA/healthData/sandbox-FULL-W1_x1_x2_x3_x4_x5_x7_x8_Y1/1_Mining-Stage/binary_representation/"
+#X = IO_Functions()._read_file(path+"BPPR-FULL-W1_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
+#y = IO_Functions()._read_file(path+"labels_Y1-FULL-W1_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
+
+## Path for Octopus Machine: SENSE-CUSTOM Representation
+#path = "/data_B/datasets/drg-PACA/healthData/sandbox-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1/1_Mining-Stage/binary_representation/"
+#X = IO_Functions()._read_file(path+"BPPR-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
+#y = IO_Functions()._read_file(path+"labels_Y1-SENSE-CUSTOM_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
