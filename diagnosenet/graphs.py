@@ -91,28 +91,42 @@ class SequentialGraph:
             self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
             self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
 
-    def distributed_grpc_graph(self) -> tf.Tensor:
-        with tf.Graph().as_default() as self.mlp_graph:
-            self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
-            self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
-            self.keep_prob = tf.placeholder(tf.float32)
+    def distributed_grpc_graph(self, cluster, task_index) -> tf.Tensor:
+        with tf.Graph().as_default() as self.graph:
 
-            self.projection = self.stacked(self.X, self.keep_prob)
-            self.mlp_loss = self.loss.desktop_loss(self, self.projection, self.Y)
-            self.mlp_grad_op = self.optimizer.desktop_Grad(self.mlp_loss)
+                with tf.device(tf.train.replica_device_setter(
+                                worker_device="/job:worker/task:%d" % task_index,
+                                cluster=cluster)):
 
-            ## Accuracy
-            # self.accuracy = Metrics().accuracy(self.Y, self.projection)
-            # print("self.accuracy: {}".format(self.accuracy))
+                    self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
+                    self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
+                    self.keep_prob = tf.placeholder(tf.float32)
 
-            ## # Convert prediction to one hot encoding
-            self.soft_projection = tf.nn.softmax(self.projection)
-            self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
-            self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
+                    self.projection = self.stacked(self.X, self.keep_prob)
+                    self.loss = self.loss.desktop_loss(self, self.projection, self.Y)
+                    self.grad_op = self.optimizer.desktop_Grad(self.loss)
+
+                    ## Accuracy
+                    ## self.accuracy = Metrics().accuracy(self.Y, self.projection)
+                    ## print("self.accuracy: {}".format(self.accuracy))
+
+                    ## # Convert prediction to one hot encoding
+                    self.soft_projection = tf.nn.softmax(self.projection)
+                    self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
+                    self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
+
+
+#                    ## Uses the executor self.create_done_queues
+#                    enq_ops = []
+#                    for q in self.create_done_queues():
+#                        qop = q.enqueue(1)
+#                        enq_ops.append(qop)
 
 
 
 
+    #########################################################################
+    #########################################################################
     #########################################################################
     ## MultiGPU-GRAPH
     # def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
