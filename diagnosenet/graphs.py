@@ -13,7 +13,7 @@ from diagnosenet.optimizers import Optimizer
 
 from diagnosenet.monitor import Metrics
 
-class FullyConnected:
+class SequentialGraph:
     """
     Implements the back-propagation algorithm...
     Args: A neural network architecture defined by the user.
@@ -35,13 +35,13 @@ class FullyConnected:
         self.dropout = dropout
 
         ## Graph object trainable parameters:
-        self.mlp_graph = tf.Graph()
+        self.graph = tf.Graph()
         self.X: tf.placeholder
         self.Y: tf.placeholder
         self.keep_prob: tf.placeholder
         self.projection: tf.Tensor
-        self.mlp_loss: tf.Tensor
-        self.mlp_grad_op: tf.Tensor
+        self.loss: tf.Tensor
+        self.grad_op: tf.Tensor
 
         ## metrics
         # self.metrics = Metrics()
@@ -73,14 +73,14 @@ class FullyConnected:
         return input_holder
 
     def desktop_graph(self) -> tf.Tensor:
-        with tf.Graph().as_default() as self.mlp_graph:
+        with tf.Graph().as_default() as self.graph:
             self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
             self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
             self.keep_prob = tf.placeholder(tf.float32)
 
             self.projection = self.stacked(self.X, self.keep_prob)
-            self.mlp_loss = self.loss.desktop_loss(self, self.projection, self.Y)
-            self.mlp_grad_op = self.optimizer.desktop_Grad(self.mlp_loss)
+            self.loss = self.loss.desktop_loss(self, self.projection, self.Y)
+            self.grad_op = self.optimizer.desktop_Grad(self.loss)
 
             ## Accuracy
             # self.accuracy = Metrics().accuracy(self.Y, self.projection)

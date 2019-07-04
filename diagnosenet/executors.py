@@ -130,7 +130,7 @@ class DesktopExecution:
         config.gpu_options.allow_growth = True
 
 
-        with tf.Session(config=config, graph=self.model.mlp_graph) as sess:
+        with tf.Session(config=config, graph=self.model.graph) as sess:
             init = tf.group(tf.global_variables_initializer(),
                                 tf.local_variables_initializer())
             sess.run(init)
@@ -141,7 +141,7 @@ class DesktopExecution:
 
                 epoch_start = time.time()
                 for i in range(len(train.inputs)):
-                    train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
+                    train_loss, _ = sess.run([self.model.loss, self.model.grad_op],
                                     feed_dict={self.model.X: train.inputs[i],
                                                 self.model.Y: train.targets[i],
                                                 self.model.keep_prob: self.model.dropout})
@@ -153,7 +153,7 @@ class DesktopExecution:
                                             y_pred=train_pred, average='micro')
 
                 for i in range(len(valid.inputs)):
-                    valid_loss = sess.run(self.model.mlp_loss,
+                    valid_loss = sess.run(self.model.loss,
                                     feed_dict={self.model.X: valid.inputs[i],
                                                 self.model.Y: valid.targets[i],
                                                 self.model.keep_prob: 1.0})
@@ -265,7 +265,7 @@ class DesktopExecution:
         ## Generates a Desktop Graph
         self.model.desktop_graph()
 
-        with tf.Session(graph=self.model.mlp_graph) as sess:
+        with tf.Session(graph=self.model.graph) as sess:
             init = tf.group(tf.global_variables_initializer(),
                                 tf.local_variables_initializer())
             sess.run(init)
@@ -282,7 +282,7 @@ class DesktopExecution:
                     train_batch = Dataset()
                     train_batch.set_data_file(train_inputs, train_targets)
 
-                    train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
+                    train_loss, _ = sess.run([self.model.loss, self.model.grad_op],
                                         feed_dict={self.model.X: train_batch.inputs,
                                                     self.model.Y: train_batch.targets,
                                                     self.model.keep_prob: self.model.dropout})
@@ -300,7 +300,7 @@ class DesktopExecution:
                     valid_batch= Dataset()
                     valid_batch.set_data_file(valid_inputs, valid_targets)
 
-                    valid_loss = sess.run(self.model.mlp_loss,
+                    valid_loss = sess.run(self.model.loss,
                                         feed_dict={self.model.X: valid_batch.inputs,
                                                     self.model.Y: valid_batch.targets,
                                                     self.model.keep_prob: 1.0})
@@ -699,7 +699,6 @@ class Distibuted_GRPC:
             return train_pred
 
 
-
 class MultiGPU:
     """
     Implements the back-propagation algorithm ...
@@ -727,7 +726,6 @@ class MultiGPU:
         # os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
         # os.environ["CUDA_VISIBLE_DEVICES"]="5,6"
         # self.num_gpus = len(os.environ["CUDA_VISIBLE_DEVICES"].split(","))
-
 
     def set_monitor_recording(self) -> None:
         """
@@ -763,7 +761,6 @@ class MultiGPU:
 
         ## Time recording
         self.time_latency = time.time()-latency_start
-
 
     def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
         """
@@ -852,9 +849,8 @@ class MultiGPU:
     #             epoch_elapsed = (time.time() - epoch_start)
     #             epoch = epoch + 1
 
-###############################################################################"
-###############################################################################"
-
+    ###############################################################################"
+    ###############################################################################"
 
     def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
         """
@@ -917,8 +913,6 @@ class MultiGPU:
             average_grads.append(grad_and_var)
 
         return average_grads
-
-
 
     def training_multigpu(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
         """
@@ -1052,7 +1046,6 @@ class MultiGPU:
 
             ## Print the sandbox
             logger.info("Tesbed directory: {}".format(self.monitor.testbed_exp))
-
 
     # def training_multigpu_OLD(self, inputs: np.ndarray, targets: np.ndarray) -> tf.Tensor:
     #     """
