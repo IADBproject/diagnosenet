@@ -306,4 +306,8 @@ class enerGyPU(Testbed):
         """
         Send signal to kill platform recording process
         """
-        self.proc_platform.kill()
+        if self.machine_type=="x86":
+            self.proc_platform.kill()
+        else:
+            print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+
