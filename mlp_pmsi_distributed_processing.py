@@ -35,7 +35,7 @@ mlp_model = FullyConnected(input_size=input_size, output_size=output_size,
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config_1 = Batching(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
                         valid_size=0.05, test_size=0.10,
-                        devices_number=4,
+                        devices_number=2,
                         batch_size=200)
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
@@ -53,6 +53,6 @@ platform.synchronous_training(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
                                 inputs_name="BPPR",
                                 targets_name="labels_Y1",
                                 num_ps=1,
-                                num_workers=1)
+                                num_workers=2)
 
 print("Execution Time: {}".format((time.time()-execution_start)))

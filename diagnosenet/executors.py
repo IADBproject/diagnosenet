@@ -578,7 +578,7 @@ class Distibuted_GRPC:
         training_start = time.time()
 
         ## Generates a Desktop Graph
-        self.model.desktop_graph()
+        self.model.distributed_grpc_graph()
 
         print("cluster: {}".format(self.cluster))
         print("ps: {} || worker: {}".format(self.ip_ps, self.ip_workers))
@@ -587,123 +587,116 @@ class Distibuted_GRPC:
         print("ps num: {} || workers num: {}".format(num_ps, num_workers))
 
         ## Add model training
-        # with tf.Session(graph=self.model.mlp_graph) as sess:
-        #     init = tf.group(tf.global_variables_initializer(),
-        #                         tf.local_variables_initializer())
-        #     sess.run(init)
-        #
-        #     epoch: int = 0
-        #     epoch_convergence: bin = 0
-        #     while (epoch_convergence == 0):
-        #         epoch_start = time.time()
-        #
-        #         for i in range(len(train.input_files)):
-        #             train_inputs = IO_Functions()._read_file(train.input_files[i])
-        #             train_targets = IO_Functions()._read_file(train.target_files[i])
-        #             ## Convert list in a numpy matrix
-        #             train_batch = Dataset()
-        #             train_batch.set_data_file(train_inputs, train_targets)
-        #
-        #             train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
-        #                                 feed_dict={self.model.X: train_batch.inputs,
-        #                                             self.model.Y: train_batch.targets,
-        #                                             self.model.keep_prob: self.model.dropout})
-        #             train_pred = sess.run(self.model.projection_1hot,
-        #                                         feed_dict={self.model.X: train_batch.inputs,
-        #                                         self.model.keep_prob: self.model.dropout})
-        #             ## F1_score from Skit-learn metrics
-        #             train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
-        #                                         y_pred=train_pred.astype(np.float), average='micro')
-        #
-        #         for i in range(len(valid.input_files)):
-        #             valid_inputs = IO_Functions()._read_file(valid.input_files[i])
-        #             valid_targets = IO_Functions()._read_file(valid.target_files[i])
-        #             ## Convert list in a numpy matrix
-        #             valid_batch= Dataset()
-        #             valid_batch.set_data_file(valid_inputs, valid_targets)
-        #
-        #             valid_loss = sess.run(self.model.mlp_loss,
-        #                                 feed_dict={self.model.X: valid_batch.inputs,
-        #                                             self.model.Y: valid_batch.targets,
-        #                                             self.model.keep_prob: 1.0})
-        #             valid_pred = sess.run(self.model.projection_1hot,
-        #                                 feed_dict={self.model.X: valid_batch.inputs,
-        #                                             self.model.keep_prob: 1.0})
-        #             ## F1_score from Skit-learn metrics
-        #             valid_acc = f1_score(y_true=valid_batch.targets.astype(np.float),
-        #                                     y_pred=valid_pred.astype(np.float), average='micro')
-        #
-        #
-        #         epoch_elapsed = (time.time() - epoch_start)
-        #         logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
-        #                                                 train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-        #         self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-        #         epoch = epoch + 1
-        #
-        #         ## While Convergence conditional
-        #         if valid_loss <= self.min_loss or epoch == self.max_epochs:
-        #             epoch_convergence = 1
-        #             self.max_epochs=epoch
-        #             self.min_loss=valid_loss
-        #         else:
-        #             epoch_convergence = 0
-        #         ### end While loop
-        #     self.time_training = time.time()-training_start
-        #
-        #     ### Testing Starting
-        #     testing_start = time.time()
-        #
-        #     if len(test.input_files) != 0:
-        #         test_pred_probas: list = []
-        #         test_pred_1hot: list = []
-        #         test_true_1hot: list = []
-        #
-        #         for i in range(len(test.input_files)):
-        #             test_inputs = IO_Functions()._read_file(test.input_files[i])
-        #             test_targets = IO_Functions()._read_file(test.target_files[i])
-        #             ## Convert list in a numpy matrix
-        #             test_batch = Dataset()
-        #             test_batch.set_data_file(test_inputs, test_targets)
-        #
-        #             tt_pred_probas = sess.run(self.model.soft_projection,
-        #                             feed_dict={self.model.X: test_batch.inputs,
-        #                                         self.model.keep_prob: 1.0})
-        #             tt_pred_1hot = sess.run(self.model.projection_1hot,
-        #                             feed_dict={self.model.X: test_batch.inputs,
-        #                                         self.model.keep_prob: 1.0})
-        #
-        #             test_pred_probas.append(tt_pred_probas)
-        #             test_pred_1hot.append(tt_pred_1hot)
-        #             test_true_1hot.append(test_batch.targets.astype(np.float))
-        #
-        #         self.test_pred_probas = np.vstack(test_pred_probas)
-        #         self.test_pred_1hot = np.vstack(test_pred_1hot)
-        #         self.test_true_1hot = np.vstack(test_true_1hot)
-        #
-        #         ## Compute the F1 Score
-        #         self.test_f1_weighted = f1_score(self.test_true_1hot,
-        #                                             self.test_pred_1hot, average = "weighted")
-        #         self.test_f1_micro = f1_score(self.test_true_1hot,
-        #                                             self.test_pred_1hot, average = "micro")
-        #         logger.info("-- Test Results --")
-        #         logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
-        #         logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
-        #
-        #         ## compute_metrics by each label
-        #         self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
-        #                                                     y_true=self.test_true_1hot)
-        #         self.time_testing = time.time()-testing_start
-        #
-        #         return self.test_pred_probas
-        #
-        #     return train_pred
+        with tf.Session(graph=self.model.mlp_graph) as sess:
+            init = tf.group(tf.global_variables_initializer(),
+                                tf.local_variables_initializer())
+            sess.run(init)
+
+            epoch: int = 0
+            epoch_convergence: bin = 0
+            while (epoch_convergence == 0):
+                epoch_start = time.time()
+
+                for i in range(len(train.input_files)):
+                    train_inputs = IO_Functions()._read_file(train.input_files[i])
+                    train_targets = IO_Functions()._read_file(train.target_files[i])
+                    ## Convert list in a numpy matrix
+                    train_batch = Dataset()
+                    train_batch.set_data_file(train_inputs, train_targets)
+
+                    train_loss, _ = sess.run([self.model.mlp_loss, self.model.mlp_grad_op],
+                                        feed_dict={self.model.X: train_batch.inputs,
+                                                    self.model.Y: train_batch.targets,
+                                                    self.model.keep_prob: self.model.dropout})
+                    train_pred = sess.run(self.model.projection_1hot,
+                                                feed_dict={self.model.X: train_batch.inputs,
+                                                self.model.keep_prob: self.model.dropout})
+                    ## F1_score from Skit-learn metrics
+                    train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
+                                                y_pred=train_pred.astype(np.float), average='micro')
+
+                for i in range(len(valid.input_files)):
+                    valid_inputs = IO_Functions()._read_file(valid.input_files[i])
+                    valid_targets = IO_Functions()._read_file(valid.target_files[i])
+                    ## Convert list in a numpy matrix
+                    valid_batch= Dataset()
+                    valid_batch.set_data_file(valid_inputs, valid_targets)
+
+                    valid_loss = sess.run(self.model.mlp_loss,
+                                        feed_dict={self.model.X: valid_batch.inputs,
+                                                    self.model.Y: valid_batch.targets,
+                                                    self.model.keep_prob: 1.0})
+                    valid_pred = sess.run(self.model.projection_1hot,
+                                        feed_dict={self.model.X: valid_batch.inputs,
+                                                    self.model.keep_prob: 1.0})
+                    ## F1_score from Skit-learn metrics
+                    valid_acc = f1_score(y_true=valid_batch.targets.astype(np.float),
+                                            y_pred=valid_pred.astype(np.float), average='micro')
 
 
+                epoch_elapsed = (time.time() - epoch_start)
+                logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
+                                                        train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                epoch = epoch + 1
 
+                ## While Convergence conditional
+                if valid_loss <= self.min_loss or epoch == self.max_epochs:
+                    epoch_convergence = 1
+                    self.max_epochs=epoch
+                    self.min_loss=valid_loss
+                else:
+                    epoch_convergence = 0
+                ### end While loop
+            self.time_training = time.time()-training_start
 
+            ### Testing Starting
+            testing_start = time.time()
 
+            if len(test.input_files) != 0:
+                test_pred_probas: list = []
+                test_pred_1hot: list = []
+                test_true_1hot: list = []
 
+                for i in range(len(test.input_files)):
+                    test_inputs = IO_Functions()._read_file(test.input_files[i])
+                    test_targets = IO_Functions()._read_file(test.target_files[i])
+                    ## Convert list in a numpy matrix
+                    test_batch = Dataset()
+                    test_batch.set_data_file(test_inputs, test_targets)
 
+                    tt_pred_probas = sess.run(self.model.soft_projection,
+                                    feed_dict={self.model.X: test_batch.inputs,
+                                                self.model.keep_prob: 1.0})
+                    tt_pred_1hot = sess.run(self.model.projection_1hot,
+                                    feed_dict={self.model.X: test_batch.inputs,
+                                                self.model.keep_prob: 1.0})
+
+                    test_pred_probas.append(tt_pred_probas)
+                    test_pred_1hot.append(tt_pred_1hot)
+                    test_true_1hot.append(test_batch.targets.astype(np.float))
+
+                self.test_pred_probas = np.vstack(test_pred_probas)
+                self.test_pred_1hot = np.vstack(test_pred_1hot)
+                self.test_true_1hot = np.vstack(test_true_1hot)
+
+                ## Compute the F1 Score
+                self.test_f1_weighted = f1_score(self.test_true_1hot,
+                                                    self.test_pred_1hot, average = "weighted")
+                self.test_f1_micro = f1_score(self.test_true_1hot,
+                                                    self.test_pred_1hot, average = "micro")
+                logger.info("-- Test Results --")
+                logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
+                logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
+
+                ## compute_metrics by each label
+                self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
+                                                            y_true=self.test_true_1hot)
+                self.time_testing = time.time()-testing_start
+
+                return self.test_pred_probas
+
+            return train_pred
 
 
 
