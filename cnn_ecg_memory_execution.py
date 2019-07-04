@@ -2,11 +2,11 @@ import time
 execution_start = time.time()
 from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
-from diagnosenet.customgraph import CustomGraph
+from diagnosenet.graphs import CustomGraph
 from diagnosenet.executors import DesktopExecution
 from diagnosenet.datamanager import Batching
 from diagnosenet.monitor import enerGyPU
-from diagnosenet.layers import Relu, Linear
+from diagnosenet.layers import Linear
 import numpy as np
 import pandas as pd
 
@@ -26,7 +26,7 @@ model = CustomGraph(input_size_1=1300,input_size_2=1, output_size=4,
                         loss=CrossEntropy,
                         optimizer=Adam(lr=0.0001),layers=layer_1)
 
-projection = DesktopExecution(model,datamanager=data_config,monitor=enerGyPU(testbed_path="../../enerGyPU/testbed"), max_epochs=2, min_loss=0.5)
+projection = DesktopExecution(model,datamanager=data_config, max_epochs=2, min_loss=0.5)
 projection.training_memory(inputs, targets)
 
 print("Execution Time: {}".format((time.time()-execution_start)))
