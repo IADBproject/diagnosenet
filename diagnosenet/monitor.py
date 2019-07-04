@@ -238,10 +238,13 @@ class enerGyPU(Testbed):
     This module deploys an energy monitor to collect the energy consumption metrics
     while the DNN model is executed on the target platform.
     """
-    def __init__(self, testbed_path, write_metrics: bool = True,
+    def __init__(self, testbed_path: str = "enerGyPU/testbed", 
+                                machine_type: str = "x86",
+                                write_metrics: bool = True,
                                 power_recording: bool = True,
                                 platform_recording: bool = True) -> None:
         super().__init__(testbed_path,write_metrics)
+        self.machine_type = machine_type
         self.power_recording = power_recording
         self.platform_recording = platform_recording
         self.idgpu_available: list = []
@@ -274,21 +277,30 @@ class enerGyPU(Testbed):
         Launches a subprocess for recording the global GPU factors
         to power consumption measures.
         """
-        sp.run(["enerGyPU/dataCapture/enerGyPU_record.sh", self.testbed_exp, self.exp_id])
 
+        if self.machine_type=="x86":
+            sp.run(["enerGyPU/dataCapture/enerGyPU_record.sh", self.testbed_exp, self.exp_id])
+        else:
+            print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
     def end_power_recording(self) -> None:
         """
         Kill the subprocess enerGyPU_record.
         """
-        sp.call(["killall", "-9", "nvidia-smi"])
+        if self.machine_type=="x86":
+            sp.call(["killall", "-9", "nvidia-smi"])
+        else:
+            print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
 
     def start_platform_recording(self, pid) -> None:
         """
         Subprocess recording for memory and cpu usage while the models are training
         This function uses the library psutil-5.4.8
         """
-        self.proc_platform = sp.Popen(["python3.6", "enerGyPU/dataCapture/platform_record.py",
+        if self.machine_type=="x86":
+            self.proc_platform = sp.Popen(["python3.6", "enerGyPU/dataCapture/platform_record.py",
                                 str(pid), self.testbed_exp, self.exp_id])
+        else:
+            print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
 
     def end_platform_recording(self) -> None:
         """
