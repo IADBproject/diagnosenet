@@ -346,8 +346,8 @@ class ConvNetworks:
                 matrix = np.load('/home/jagarcia/Documents/05_dIAgnoseNET/04-stage-2019/Version1/input/xdata.npy')
                 output_l = sess.run(output, feed_dict={self.X: matrix})
                 print(output_l.shape)
-
- class CustomGraph:
+                
+class CustomGraph:
 
     def __init__(self, input_size_1: int,input_size_2: int, output_size: int,loss: Loss,
                         optimizer: Optimizer,layers:Sequence[Layer],
