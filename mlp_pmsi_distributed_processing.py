@@ -45,7 +45,7 @@ data_config_1 = Batching(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = Distibuted_GRPC(model=mlp_model,
                             datamanager=data_config_1,
-                            monitor=None,
+                            monitor=enerGyPU(machine_type="arm"),
                             max_epochs=2,
                             min_loss=2.0,
                             ip_ps="134.59.132.135:2222",

@@ -14,7 +14,7 @@ DiagnoseNET is building on Ubuntu 16.04, with CUDA 8.0 support, cuDNN v6 for Pyt
 
 The main dependencies install:
 ```bash
-pip3 install numpy==1.15.4, scipy==1.1.0, pandas==0.23.4, scikit-learn==0.20.1
+pip3 install numpy==1.15.4, scipy==1.1.0, pandas==0.23.4, scikit-learn==0.20.1, psutil==5.6.3
 pip3 install tensorflow-gpu==1.3.0
 ## Warning: When using Tensorflow-gpu in version 1.4.1,
 ## the module 'tensorflow.python.framework.fast\_tensor\_util' does not match with the runtime Python 3.6.

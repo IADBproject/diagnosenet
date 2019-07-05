@@ -45,7 +45,7 @@ data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model,
                             datamanager=data_config,
-                            monitor=enerGyPU(testbed_path="testbed"),
+                            monitor=enerGyPU(machine_type="x86"),
                             max_epochs=10,
                             min_loss=2.0)
 

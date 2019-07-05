@@ -39,16 +39,14 @@ mlp_model_1 = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
                         valid_size=0.05, test_size=0.15,
-                        batch_size=100,	#3072,	#100,
+                        batch_size=100,
                         target_name='Y11',
-                        target_start=0, target_end=14) #MT1
-                        #target_start=14, target_end=253) #MT2
-                        #target_start=239, target_end=244) #MT3
+                        target_start=0, target_end=14)
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model_1,
                             datamanager=data_config,
-                            monitor=enerGyPU(testbed_path="enerGyPU/testbed"),
+                            monitor=enerGyPU(machine_type="arm"),
                             max_epochs=10,
                             min_loss=0.02)
 
