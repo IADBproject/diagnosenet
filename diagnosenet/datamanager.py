@@ -60,9 +60,15 @@ class Dataset:
         self.dataset_path = dataset_path
         self.inputs_name = inputs_name
         self.targets_name = targets_name
-        self.sandbox = str(dataset_path+"sandbox-"+self.dataset_name)
-        self.inputs_path = glob.glob(self.sandbox+"/1_Mining-Stage/binary_representation/"+self.inputs_name+"*")
-        self.targets_path = glob.glob(self.sandbox+"/1_Mining-Stage/binary_representation/"+self.targets_name+"-*")
+
+        self.sandbox = str(self.dataset_path+"/sandbox-"+self.dataset_name)
+        self.inputs_path = glob.glob(self.dataset_path+"/"+self.inputs_name)
+        self.targets_path = glob.glob(self.dataset_path+"/"+self.targets_name)
+
+        ##OLD Setting paths
+        #self.sandbox = str(dataset_path+"sandbox-"+self.dataset_name)
+        #self.inputs_path = glob.glob(self.sandbox+"/1_Mining-Stage/binary_representation/"+self.inputs_name+"*")
+        #self.targets_path = glob.glob(self.sandbox+"/1_Mining-Stage/binary_representation/"+self.targets_name+"-*")
 
         if os.path.exists(self.inputs_path[0]):
             self.inputs = IO_Functions()._read_file(self.inputs_path[0])

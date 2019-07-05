@@ -6,6 +6,10 @@ User example for training DiagnoseNET on distributed platform
 import time
 execution_start = time.time()
 
+## Makes diagnosenet library visible in samples folder
+import sys
+sys.path.append('../../')
+
 from diagnosenet.datamanager import MultiTask, Batching
 from diagnosenet.layers import Relu, Linear
 from diagnosenet.losses import CrossEntropy
@@ -37,7 +41,7 @@ mlp_model = SequentialGraph(input_size=X_shape, output_size=y_shape,
                             dropout=0.8)
 
 ## 3) Dataset configurations for splitting, batching and target selection
-data_config_1 = Batching(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
+data_config_1 = Batching(dataset_name="MCP-PMSI",
                         valid_size=0.05, test_size=0.10,
                         devices_number=2,
                         batch_size=500)
@@ -52,10 +56,10 @@ platform = Distibuted_GRPC(model=mlp_model,
                             ip_workers="134.59.132.20:2222")	#,134.59.132.21:2222")
 
 ## 5) Uses the platform modes for training in an efficient way
-platform.synchronous_training(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
-                                dataset_path="healthData/",
-                                inputs_name="BPPR",
-                                targets_name="labels_Y1",
+platform.synchronous_training(dataset_name="MCP-PMSI",
+                                dataset_path="dataset/",
+                                inputs_name="patients_features.txt",
+                                targets_name="medical_targets.txt",
                                 num_ps=1,
                                 num_workers=1)
 

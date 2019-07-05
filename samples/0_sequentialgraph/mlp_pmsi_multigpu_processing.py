@@ -6,6 +6,10 @@ Developing example for training DiagnoseNET  on multiGPU machine
 import time
 execution_start = time.time()
 
+## Makes diagnosenet library visible in samples folder
+import sys
+sys.path.append('../../')
+
 from diagnosenet.io_functions import IO_Functions
 from diagnosenet.datamanager import MultiTask
 from diagnosenet.layers import Relu, Linear
@@ -48,10 +52,9 @@ platform = MultiGPU(model=mlp_model,
                     gpus=2,
                     max_epochs=2)
 
-## Read the PMSI-Dataset using Pickle from diagnosenet.io_functions
-path = "healthData/sandbox-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1/1_Mining-Stage/binary_representation/"
-X = IO_Functions()._read_file(path+"BPPR-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
-y = IO_Functions()._read_file(path+"labels_Y1-W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1-2008.txt")
+### Read the PMSI-Dataset using Pickle from diagnosenet.io_functions
+X = IO_Functions()._read_file("dataset/patients_features.txt")
+y = IO_Functions()._read_file("dataset/medical_targets.txt")
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.training_multigpu(X, y)
