@@ -34,6 +34,9 @@ class SequentialGraph:
         self.optimizer = optimizer
         self.dropout = dropout
 
+        self.global_step = tf.Tensor
+        self.init_op = tf.Tensor
+
         ## Graph object trainable parameters:
         self.graph = tf.Graph()
         self.X: tf.placeholder
@@ -92,29 +95,36 @@ class SequentialGraph:
             self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
 
     def distributed_grpc_graph(self, cluster, task_index) -> tf.Tensor:
-        with tf.Graph().as_default() as self.graph:
+        #with tf.Graph().as_default() as self.graph:
 
-                with tf.device(tf.train.replica_device_setter(
+        with tf.device(tf.train.replica_device_setter(
                                 worker_device="/job:worker/task:%d" % task_index,
-                                cluster=cluster)):
+                                cluster=cluster)) as self.graph:
 
-                    self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
-                    self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
-                    self.keep_prob = tf.placeholder(tf.float32)
+            self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
+            self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
+            self.keep_prob = tf.placeholder(tf.float32)
 
-                    self.projection = self.stacked(self.X, self.keep_prob)
-                    self.loss = self.loss.desktop_loss(self, self.projection, self.Y)
-                    self.grad_op = self.optimizer.desktop_Grad(self.loss)
+            self.projection = self.stacked(self.X, self.keep_prob)
 
-                    ## Accuracy
-                    ## self.accuracy = Metrics().accuracy(self.Y, self.projection)
-                    ## print("self.accuracy: {}".format(self.accuracy))
+            with tf.variable_scope("global_step", reuse=True):
+                print("++ Datamaneger+Issue: Pass batch_size ++")
+                self.global_step = tf.Variable(500)	#datamanager.batch_size
 
-                    ## # Convert prediction to one hot encoding
-                    self.soft_projection = tf.nn.softmax(self.projection)
-                    self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
-                    self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
+            self.loss = self.loss.desktop_loss(self, self.projection, self.Y)
+            self.grad_op = self.optimizer.desktop_Grad(self.loss)
 
+            ## Accuracy
+            ## self.accuracy = Metrics().accuracy(self.Y, self.projection)
+            ## print("self.accuracy: {}".format(self.accuracy))
+
+            ## # Convert prediction to one hot encoding
+            self.soft_projection = tf.nn.softmax(self.projection)
+            self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
+            self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
+
+            self.init_op = tf.group(tf.global_variables_initializer(),
+				tf.local_variables_initializer())
 
 #                    ## Uses the executor self.create_done_queues
 #                    enq_ops = []

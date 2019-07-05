@@ -46,10 +46,10 @@ data_config_1 = Batching(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
 platform = Distibuted_GRPC(model=mlp_model,
                             datamanager=data_config_1,
                             monitor=enerGyPU(machine_type="arm"),
-                            max_epochs=2,
+                            max_epochs=10,
                             min_loss=2.0,
                             ip_ps="134.59.132.135:2222",
-                            ip_workers="134.59.132.20:2222,134.59.132.21:2222")
+                            ip_workers="134.59.132.20:2222")	#,134.59.132.21:2222")
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.synchronous_training(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",

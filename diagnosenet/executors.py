@@ -476,7 +476,7 @@ class Distibuted_GRPC:
                                         "worker": self.ip_workers
                                         })
 
-        self.job_name = "ps" 	#["ps", "worker", "worker"]
+        self.job_name =	"worker" 	#["ps", "worker", "worker"]
         self.task_index = 0	#[0, 0, 1]
 
         ## Define the machine rol = input flags
@@ -586,9 +586,6 @@ class Distibuted_GRPC:
         ### Training Start
         training_start = time.time()
 
-        ## Generates a Desktop Graph
-        self.model.distributed_grpc_graph()
-
         print("cluster: {}".format(self.cluster))
         print("ps: {} || worker: {}".format(self.ip_ps, self.ip_workers))
         print("job_name: {} || tasks_inde: {}".format(self.job_name, self.task_index))
@@ -612,13 +609,65 @@ class Distibuted_GRPC:
 
         elif self.job_name == "worker":
             ## Generates a distributed graph object from graphs
-            self.model.distributed_grpc_graph(self.cluster, self.task_index)
+            with tf.Graph().as_default() as distributed_graph:
+                self.model.distributed_grpc_graph(self.cluster, self.task_index)
+
+                enq_ops = []
+                for q in self.create_done_queues():
+                    qop = q.enqueue(1)
+                    enq_ops.append(qop)
+
+                ##################################################
+                ## Create a distributed session whit training supervisor
+                #saver = tf.train.Saver()
+                sv = tf.train.Supervisor(is_chief=(self.task_index == 0),
+                                        graph=self.model.graph,#saver=saver,
+                                        #checkpoint_basename=str(),
+                                        global_step=self.model.global_step,
+                                        init_op=self.model.init_op)
+
+                with sv.managed_session(self.server.target) as sess:
+
+                    epoch = 0
+                    while not sv.should_stop() and (epoch < self.max_epochs):
+                         epoch_start = time.time()
+
+                         for i in range(len(train.input_files)):
+                             train_inputs = IO_Functions()._read_file(train.input_files[i])
+                             train_targets = IO_Functions()._read_file(train.target_files[i])
+                             ## Convert list in a numpy matrix
+                             train_batch = Dataset()
+                             train_batch.set_data_file(train_inputs, train_targets)
+
+                             train_loss, _ = sess.run([self.model.loss, self.model.grad_op],
+                                                  feed_dict={self.model.X: train_batch.inputs,
+                                                  self.model.Y: train_batch.targets,
+                                                  self.model.keep_prob: self.model.dropout})
+
+                             train_pred = sess.run(self.model.projection_1hot,
+                                                  feed_dict={self.model.X: train_batch.inputs,
+                                                  self.model.keep_prob: self.model.dropout})
+
+                             ## F1_score from Skit-learn metrics
+                             train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
+                                                  y_pred=train_pred.astype(np.float), average='micro')
 
 
-            enq_ops = []
-            for q in self.create_done_queues():
-                qop = q.enqueue(1)
-                enq_ops.append(qop)
+                         epoch_elapsed = (time.time() - epoch_start)
+                         logger.info("Epoch {} | Train loss: {} | Train Acc: {} | Epoch_Time: {}".format(epoch,
+                                                  train_loss, train_acc, np.round(epoch_elapsed, decimals=4)))
+                         epoch = epoch + 1
+
+
+
+                ## signal to ps shards that we are done
+                #for op in enq_ops:
+                #    sess.run(op)
+                #print('-- Done! --')
+            sv.stop()
+        sess.close()
+
+
 
 
 
