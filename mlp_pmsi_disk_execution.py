@@ -24,9 +24,9 @@ Y3_shape = 5
 ## 1) Define the stacked layers as the number of layers and their neurons
 layers = [Relu(X_shape, 2048),
             Relu(2048, 2048),
-            Relu(2048, 2048),
-            Relu(2048, 2048),
-            Linear(2048, Y1_shape)]
+            Relu(2048, 1024),
+            Relu(1024, 1024),
+            Linear(1024, Y1_shape)]
 
 ## 2) Select the neural network architecture and pass the hyper-parameters
 mlp_model = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
@@ -37,7 +37,7 @@ mlp_model = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
 
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
-                        batch_size=100,
+                        batch_size=500,
                         valid_size=0.05, test_size=0.10,
                         target_name='Y11',
                         target_start=0, target_end=14)
@@ -45,8 +45,8 @@ data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model,
                             datamanager=data_config,
-                            monitor=enerGyPU(machine_type="x86"),
-                            max_epochs=10,
+                            monitor=enerGyPU(machine_type="arm"),
+                            max_epochs=2,
                             min_loss=2.0)
 
 ## 5) Uses the platform modes for training in an efficient way
