@@ -110,6 +110,33 @@ class SequentialGraph:
             self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
             self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
 
+    def distributed_mpi_graph(self) -> tf.Tensor:
+        with tf.Graph().as_default() as self.graph:
+            self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
+            self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
+            self.keep_prob = tf.placeholder(tf.float32)
+
+            #for the training part
+            self.projection = self.stacked(self.X,  self.keep_prob)
+            self.loss = self.loss.desktop_loss(self,self.projection, self.Y)
+            self.adam_op = tf.train.AdamOptimizer(self.optimizer.lr)
+            self.grad_op = self.adam_op.compute_gradients(self.loss)
+            self.sub_grad_op = self.optimizer.desktop_Grad(self.loss)
+
+            self.soft_projection = tf.nn.softmax(self.projection)
+            self.max_projection = tf.argmax(self.soft_projection, 1)
+            self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
+
+            avg_grads_and_vars = []
+            self._grad_placeholders = []
+            for grad, var in self.grad_op:
+                grad_ph = tf.placeholder(grad.dtype, grad.shape)
+                self._grad_placeholders.append(grad_ph)
+                avg_grads_and_vars.append((grad_ph, var))
+            self._grad_op = [x[0] for x in self.grad_op]
+            self._train_op = self.adam_op.apply_gradients(avg_grads_and_vars)
+            self._gradients = []
+
 
 
 
@@ -447,6 +474,8 @@ class CustomGraph:
             self.projection = self.stacked(self.X,  self.keep_prob)
             self.loss = self.loss.desktop_loss(self,self.projection, self.Y)
             self.adam_op = tf.train.AdamOptimizer(self.optimizer.lr)
+            self.sub_grad_op = self.optimizer.desktop_Grad(self.loss)
+            
             self.grad_op = self.adam_op.compute_gradients(self.loss)
             self.soft_projection = tf.nn.softmax(self.projection)
             self.max_projection = tf.argmax(self.soft_projection, 1)
