@@ -30,11 +30,12 @@ class DesktopExecution:
     """
 
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                    max_epochs: int = 10, min_loss: float = 2.0) -> None:
+                    max_epochs: int = 10, min_loss: float = 2.0 ,early_stopping: int = 5) -> None:
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
-        self.min_loss = min_loss
+        self.min_loss = 99999
+        self.early_stopping = early_stopping
         self.monitor = monitor
 
         ## Time logs
@@ -135,7 +136,8 @@ class DesktopExecution:
             init = tf.group(tf.global_variables_initializer(),
                                 tf.local_variables_initializer())
             sess.run(init)
-
+            saver = tf.train.Saver()
+            not_update = 0
             epoch: int = 0
             epoch_convergence: bin = 0
             while (epoch_convergence == 0):
@@ -170,20 +172,29 @@ class DesktopExecution:
                                                         train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
-
-                ## While Convergence conditional
-                if valid_loss <= self.min_loss or epoch == self.max_epochs:
+                
+                ## record minimum valid loss and its weights 
+                if  valid_loss <= self.min_loss:
+                    self.min_loss = valid_loss
+                    saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
+                    self.convergence_time = time.time()-training_start
+                else:
+                    not_update +=1
+                    
+                ## While Stopping conditional
+                if not_update >= self.early_stopping or epoch == self.max_epochs:
                     epoch_convergence = 1
-                    self.max_epochs=epoch
-                    self.min_loss=valid_loss
+                    self.max_epochs = epoch
                 else:
                     epoch_convergence = 0
+
+
                 ### end While loop
             self.time_training = time.time()-training_start
 
             ### Testing Starting
             testing_start = time.time()
-
+            saver.restore(sess,  str(self.monitor.testbed_exp+"./"+self.monitor.exp_id+ "-model.ckpt"))
             if len(test.inputs) != 0:
                 test_pred_probas: list = []
                 test_pred_1hot: list = []
@@ -270,7 +281,8 @@ class DesktopExecution:
             init = tf.group(tf.global_variables_initializer(),
                                 tf.local_variables_initializer())
             sess.run(init)
-
+            saver = tf.train.Saver()
+            not_update = 0
             epoch: int = 0
             epoch_convergence: bin = 0
             while (epoch_convergence == 0):
@@ -319,19 +331,28 @@ class DesktopExecution:
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
-                ## While Convergence conditional
-                if valid_loss <= self.min_loss or epoch == self.max_epochs:
+                ## record minimum valid loss and its weights 
+                if  valid_loss <= self.min_loss:
+                    self.min_loss = valid_loss
+                    saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
+                    self.convergence_time = time.time()-training_start
+                    print("update")
+                else:
+                    not_update +=1
+                    
+                ## While Stopping conditional
+                if not_update >= self.early_stopping or epoch == self.max_epochs:
                     epoch_convergence = 1
-                    self.max_epochs=epoch
-                    self.min_loss=valid_loss
+                    self.max_epochs = epoch
                 else:
                     epoch_convergence = 0
+
                 ### end While loop
             self.time_training = time.time()-training_start
 
             ### Testing Starting
             testing_start = time.time()
-
+            saver.restore(sess,  str(self.monitor.testbed_exp+"./"+self.monitor.exp_id+ "-model.ckpt"))
             if len(test.input_files) != 0:
                 test_pred_probas: list = []
                 test_pred_1hot: list = []
@@ -425,6 +446,7 @@ class DesktopExecution:
         eda_json['results']['time_dataset'] = self.time_dataset
         eda_json['results']['time_training'] = self.time_training
         eda_json['results']['time_testing'] = self.time_testing
+        eda_json['results']['time_convergence'] = self.convergence_time
 
         ## End time metrics
         self.time_metrics = time.time()-metrics_start
@@ -1175,11 +1197,12 @@ from mpi4py import MPI
 class Distibuted_MPI:
 
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                    max_epochs: int = 10, min_loss: float = 2.0) -> None:
+                    max_epochs: int = 10, min_loss: float = 2.0, early_stopping: int = 5) -> None:
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
-        self.min_loss = min_loss
+        self.min_loss = 99999
+        self.early_stopping = early_stopping
         self.monitor = monitor
 
         ## Time logs
@@ -1199,36 +1222,6 @@ class Distibuted_MPI:
         self.rank = self.comm.Get_rank()
         self.myhost = MPI.Get_processor_name()
 
-
-
-    def set_dataset_memory(self, inputs: np.ndarray, targets: np.ndarray) -> Batch:
-        """
-        Uses datamanager classes for splitting, batching the dataset and target selection
-        """
-        dataset_start = time.time()
-        try:
-            self.data.set_data_file(inputs, targets)
-            if 'MultiTask' in str(type(self.data)):
-                train, valid, test = self.data.memory_one_target()
-            elif 'Batching' in str(type(self.data)):
-                train, valid, test = self.data.memory_batching()
-            else:
-                self.data = Batching(batch_size=inputs.shape[0], valid_size=0.1, test_size=0.1)
-                self.data.set_data_file(inputs, targets)
-                train, valid, test = self.data.memory_batching()
-        except AttributeError:
-            if 'numpy' in str(type(inputs)):
-                batch_size=inputs.shape[0]
-            elif 'list' in str(type(inputs)):
-                batch_size=len(inputs)
-            else:
-                raise AttributeError("set_data_file(inputs, targets) requires: numpy, pandas or list ")
-            self.data = Batching(batch_size=batch_size, valid_size=0.1, test_size=0.1)
-            self.data.set_data_file(inputs, targets)
-            train, valid, test = self.data.memory_batching()
-
-        self.time_dataset = time.time()-dataset_start
-        return train, valid, test
 
     def set_monitor_recording(self) -> None:
         """
@@ -1262,6 +1255,7 @@ class Distibuted_MPI:
 
         ## Time recording
         self.time_latency = time.time()-latency_start
+        
     def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> BatchPath:
         """
@@ -1287,14 +1281,13 @@ class Distibuted_MPI:
         return train, valid, test
 
 
-
     def synchronous_training(self,  dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> tf.Tensor:
 
         self.processing_mode = "distributed_MPI_sync_processing"
         ## Set Monitor Recording
         self.set_monitor_recording()
-        ## Set dataset on memory
+        ## Set dataset on disk
         train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
                                                     inputs_name, targets_name)
 
@@ -1308,10 +1301,13 @@ class Distibuted_MPI:
                                 tf.local_variables_initializer())
             sess.run(init)
             epoch: int = 0
+            not_update = 0
+            saver = tf.train.Saver()
             epoch_convergence: bin = 0
             while (epoch_convergence == 0):
                 epoch_start = time.time()
                 acc,loss,val_acc,val_loss=0,0,0,0
+                update_flag=False
 
                 if self.rank!=0:
                     for i in range(len(train.input_files)):
@@ -1391,11 +1387,17 @@ class Distibuted_MPI:
                     self.comm.send([val_acc,val_loss], dest=0)
                 self.training_track.append((epoch,loss, val_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
-                epoch = epoch + 1
-                ## While Convergence conditional
-                if val_loss <= self.min_loss or epoch == self.max_epochs:
+                epoch = epoch + 1                
+                if  val_loss <= self.min_loss:
+                    self.min_loss = val_loss
+                    self.convergence_time = time.time()-training_start
+                    update_flag=True
+                else:
+                    not_update +=1
+                    
+                ## While Stopping conditional
+                if not_update >= self.early_stopping or epoch == self.max_epochs:
                     self.max_epochs=epoch
-                    self.min_loss=val_loss
                     if self.rank ==0:
                         epoch_convergence = 1
                 else:
@@ -1403,9 +1405,11 @@ class Distibuted_MPI:
 
                 if self.rank ==0:
                     for i in range(1, self.size):
-                        self.comm.send(epoch_convergence, dest=i)
+                        self.comm.send([epoch_convergence,update_flag], dest=i)
                 else:
-                    epoch_convergence = self.comm.recv(source=0)
+                    epoch_convergence,update_flag = self.comm.recv(source=0)
+                    if update_flag==True:
+                        self.best_model_weights = update_weight
 
                 ### end While loop
             self.time_training = time.time()-training_start
@@ -1417,6 +1421,7 @@ class Distibuted_MPI:
                 test_pred_probas: list = []
                 test_pred_1hot: list = []
                 test_true_1hot: list = []
+                sess.run(self.model._train_op, feed_dict=self.best_model_weights)
 
                 for i in range(len(test.input_files)):
 
@@ -1522,6 +1527,7 @@ class Distibuted_MPI:
         eda_json['results']['time_latency'] = self.time_latency
         eda_json['results']['time_dataset'] = self.time_dataset
         eda_json['results']['time_training'] = self.time_training
+        eda_json['results']['time_convergence'] = self.convergence_time
                                               
         ## End time metrics
         self.time_metrics = time.time()-metrics_start
