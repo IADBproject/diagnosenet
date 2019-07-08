@@ -1171,7 +1171,7 @@ class MultiGPU:
     #
     #         # return train_loss
     
-    from mpi4py import MPI
+from mpi4py import MPI
 class Distibuted_MPI:
 
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
@@ -1394,7 +1394,6 @@ class Distibuted_MPI:
                 epoch = epoch + 1
                 ## While Convergence conditional
                 if val_loss <= self.min_loss or epoch == self.max_epochs:
-                                                                                                                                            1012,1        60%
                     self.max_epochs=epoch
                     self.min_loss=val_loss
                     if self.rank ==0:
@@ -1439,7 +1438,7 @@ class Distibuted_MPI:
                     test_true_1hot.append(test_batch.targets.astype(np.float))
 
             if self.rank==0:
-                 test_true_1hot,test_pred_probas,test_pred_1hot=[],[],[]
+                test_true_1hot,test_pred_probas,test_pred_1hot=[],[],[]
                 for i in range(1, self.size):
                     tmp1,tmp2,tmp3=self.comm.recv(source=i)
                     test_pred_probas.append(np.vstack(tmp1))
@@ -1478,7 +1477,7 @@ class Distibuted_MPI:
         """
         Uses Testbed to isolate the training metrics by experiment directory
         """
-          metrics_start = time.time()
+        metrics_start = time.time()
 
         ## Writes the training and validation track
         track_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-training_track.txt")
@@ -1523,7 +1522,7 @@ class Distibuted_MPI:
         eda_json['results']['time_latency'] = self.time_latency
         eda_json['results']['time_dataset'] = self.time_dataset
         eda_json['results']['time_training'] = self.time_training
-                                                                                                                                            1140,1        68%
+                                              
         ## End time metrics
         self.time_metrics = time.time()-metrics_start
         eda_json['results']['time_metrics'] = self.time_metrics
