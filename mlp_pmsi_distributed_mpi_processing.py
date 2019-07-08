@@ -1,6 +1,7 @@
 """
 Medical Care Purpose Classification for PMSI-ICU Dataset
 User example for training DiagnoseNET on distributed platform
+Execution command: mpirun -np #slotnumber --hostfile h-workers python3.6 mlp_pmsi_distributed_mpi_processing.py
 """
 
 import time
