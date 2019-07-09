@@ -1352,6 +1352,7 @@ class Distibuted_MPI:
                     for i, placeholder in enumerate(self.model._grad_placeholders):
                         feed_dict[placeholder] = np.stack([g[i] for g in self.model._gradients], axis=0).mean(axis=0)
                     sess.run(self.model._train_op, feed_dict=feed_dict)
+                    update_weight = feed_dict
 
                 if self.rank!=0:
                     for i in range(len(valid.input_files)):
