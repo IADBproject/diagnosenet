@@ -225,7 +225,7 @@ class Batching(Splitting):
 
         return train_batch_path, valid_batch_path, test_batch_path
 
-    def distributed_batching(self) -> BatchPath:
+    def distributed_batching(self,index) -> BatchPath:
         """
         output batch path:
         """
@@ -254,12 +254,12 @@ class Batching(Splitting):
                                                         self.batch_size, self.dataset_name)
 
             logger.info('-- Split path: {} --'.format(self.split_path))
-            train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.txt")),
-                                            sorted(glob.glob(train_path+"/y-*.txt")))
-            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-*.txt")),
-                                            sorted(glob.glob(valid_path+"/y-*.txt")))
-            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-*.txt")),
-                                            sorted(glob.glob(test_path+"/y-*.txt")))
+            train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-"+self.dataset_name+"-"+str(index)+"*.txt")),
+                                            sorted(glob.glob(train_path+"/y-"+self.dataset_name+"-"+str(index)+"*.txt")))
+            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-"+self.dataset_name+"-"+str(index)+"*.txt")),
+                                            sorted(glob.glob(valid_path+"/y-"+self.dataset_name+"-"+str(index)+"*.txt")))
+            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-"+self.dataset_name+"-"+str(index)+"*.txt")),
+                                            sorted(glob.glob(test_path+"/y-"+self.dataset_name+"-"+str(index)+"*.txt")))
         else:
             IO_Functions()._write_npy_batches_worker(train_path, self.train, self.devices_number,
                                                         self.batch_size, self.dataset_name)
@@ -269,12 +269,12 @@ class Batching(Splitting):
                                                         self.batch_size, self.dataset_name)
 
             logger.info('-- Split path: {} --'.format(self.split_path))
-            train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.npy")),
-                                            sorted(glob.glob(train_path+"/y-*.npy")))
-            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-*.npy")),
-                                            sorted(glob.glob(valid_path+"/y-*.npy")))
-            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-*.npy")),
-                                            sorted(glob.glob(test_path+"/y-*.npy")))
+            train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-"+self.dataset_name+"-"+str(index)+"*.npy")),
+                                            sorted(glob.glob(train_path+"/y-"+self.dataset_name+"-"+str(index)+"*.npy")))
+            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-"+self.dataset_name+"-"+str(index)+"*.npy")),
+                                            sorted(glob.glob(valid_path+"/y-"+self.dataset_name+"-"+str(index)+"*.npy")))
+            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-"+self.dataset_name+"-"+str(index)+"*.npy")),
+                                            sorted(glob.glob(test_path+"/y-"+self.dataset_name+"-"+str(index)+"*.npy")))
 
         return train_batch_path, valid_batch_path, test_batch_path
 
