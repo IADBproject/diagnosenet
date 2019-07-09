@@ -453,11 +453,11 @@ class Distibuted_GRPC:
     Returns:
     """
 
-
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
                     max_epochs: int = 10, min_loss: float = 2.0,
-                    ip_ps: str = "134.59.132.135:2222",
-                    ip_workers: str = "134.59.132.20:2222") -> None:
+                    ip_ps: str = "localhost:2222",
+                    ip_workers: str = "localhost:2223") -> None:
+
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
@@ -465,25 +465,22 @@ class Distibuted_GRPC:
         self.monitor = monitor
 
         ## Distributed variables
-        self.ip_ps = ip_ps.split(",")
-        self.ip_workers = ip_workers.split(",")
-        self.num_ps = 0
-        self.num_workers = 0
-
-        ## Distributed Setup
-        self.cluster = tf.train.ClusterSpec({
-                                        "ps": self.ip_ps,
-                                        "worker": self.ip_workers
-                                        })
-
-        self.job_name =	"worker" 	#["ps", "worker", "worker"]
-        self.task_index = 0	#[0, 0, 1]
+        self.tf_cluster = self.set_tf_cluster(ip_workers, ip_ps)
+        # self.ip_ps = ip_ps.split(",")
+        # self.ip_workers = ip_workers.split(",")
+        # self.num_ps = 0
+        # self.num_workers = 0
+        #
+        # ## Distributed Setup
+        # self.cluster = tf.train.ClusterSpec({})
+        # self.job_name = ""
+        # self.task_index = 0
 
         ## Define the machine rol = input flags
         ## start a server for a specific task
-        self.server = tf.train.Server(self.cluster,
-                                        job_name = self.job_name,
-                                        task_index = self.task_index)
+        # self.server = tf.train.Server(self.cluster,
+        #                                 job_name = self.job_name,
+        #                                 task_index = self.task_index)
 
 
         ## Time logs
@@ -496,6 +493,28 @@ class Distibuted_GRPC:
         ## Testbed and Metrics
         self.processing_mode: str
         self.training_track: list = []
+
+    def set_tf_cluster(self, ip_ps: str = "localhost:2222",
+                        ip_workers: str = "localhost:2223") -> tf.Tensor:
+        ## splitting the IP hosts
+        ip_ps = ip_ps.split(",")
+        ip_workers = ip_workers.split(",")
+
+        ## Build a tf_ps collection
+        tf_ps = []
+        [tf_ps.append(str(ip_ps[i]+":2222")) for i in range(len(ip_ps))]
+        # tf_ps=','.join(tf_ps)
+        print("++ tf_ps: ",tf_ps)
+
+        ## Build a tf_workers collection
+        tf_workers = []
+        [tf_workers.append(str(ip_workers[i]+":2222")) for i in range(len(ip_workers))]
+        # tf_workers=','.join(tf_workers)
+        print("++ tf_workers: ", tf_workers)
+
+        ## A collection of tf_ps nodes
+        return tf.train.ClusterSpec({"ps": tf_ps, "worker": tf_workers})
+
 
     def set_monitor_recording(self) -> None:
         """
@@ -565,16 +584,24 @@ class Distibuted_GRPC:
         print("****** def -> create_done_queues")
         return [self.create_done_queue(i) for i in range(self.num_ps)]
 
-    def synchronous_training(self, dataset_name: str, dataset_path: str,
+    def asynchronous_training(self, dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str,
-                        num_ps: int = 1, num_workers: int = 1) -> tf.Tensor:
+                        job_name: str = "ps", task_index: int = 0) -> tf.Tensor:
         """
         Training the deep neural network exploit the memory on desktop machine
         """
+        ### Training Start
+        training_start = time.time()
+
         ## Set processing_mode flat
         self.processing_mode = "distributed_processing"
-        self.num_ps = num_ps
-        self.num_workers = num_workers
+
+
+        ## Define the machine rol = input flags
+        ## start a server for a specific task
+        self.server = tf.train.Server(self.tf_cluster,
+                                        job_name = job_name,
+                                        task_index = task_index)
 
         ## Set Monitor Recording
         # self.set_monitor_recording()
@@ -583,92 +610,146 @@ class Distibuted_GRPC:
         train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
                                                     inputs_name, targets_name)
 
+        if job_name ==  "ps":
+            print("I'am ps: {} ".format(task_index))
+        #     sess = tf.Session(self.server.target)
+        #     queue =  self.create_done_queue(self.task_index)
+        #
+        #     ### Wait intil all workers are done
+        #     for i in range(self.num_workers):
+        #         sess.run(queue.dequeue())
+        #         print("ps %d recieved done %d" %(self.task_index,i))
+            # print("ps %d: quitting" %(self.task_index))
+        #
+        elif job_name == "worker":
+            print("I'am worker: {} ".format(task_index))
+        #     ## Generates a distributed graph object from graphs
+        #     with tf.Graph().as_default() as distributed_graph:
+        #         self.model.distributed_grpc_graph(self.cluster, self.task_index)
+        #
+        #         enq_ops = []
+        #         for q in self.create_done_queues():
+        #             qop = q.enqueue(1)
+        #             enq_ops.append(qop)
+        #
+        #         ##################################################
+        #         ## Create a distributed session whit training supervisor
+        #         #saver = tf.train.Saver()
+        #         sv = tf.train.Supervisor(is_chief=(self.task_index == 0),
+        #                                 graph=self.model.graph,#saver=saver,
+        #                                 #checkpoint_basename=str(),
+        #                                 global_step=self.model.global_step,
+        #                                 init_op=self.model.init_op)
+        #
+        #         with sv.managed_session(self.server.target) as sess:
+        #
+        #             epoch = 0
+        #             while not sv.should_stop() and (epoch < self.max_epochs):
+        #                  epoch_start = time.time()
+        #
+        #                  for i in range(len(train.input_files)):
+        #                      train_inputs = IO_Functions()._read_file(train.input_files[i])
+        #                      train_targets = IO_Functions()._read_file(train.target_files[i])
+        #                      ## Convert list in a numpy matrix
+        #                      train_batch = Dataset()
+        #                      train_batch.set_data_file(train_inputs, train_targets)
+        #
+        #                      train_loss, _ = sess.run([self.model.loss, self.model.grad_op],
+        #                                           feed_dict={self.model.X: train_batch.inputs,
+        #                                           self.model.Y: train_batch.targets,
+        #                                           self.model.keep_prob: self.model.dropout})
+        #
+        #                      train_pred = sess.run(self.model.projection_1hot,
+        #                                           feed_dict={self.model.X: train_batch.inputs,
+        #                                           self.model.keep_prob: self.model.dropout})
+        #
+        #                      ## F1_score from Skit-learn metrics
+        #                      train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
+        #                                           y_pred=train_pred.astype(np.float), average='micro')
+        #
+        #
+        #                  epoch_elapsed = (time.time() - epoch_start)
+        #                  logger.info("Epoch {} | Train loss: {} | Train Acc: {} | Epoch_Time: {}".format(epoch,
+        #                                           train_loss, train_acc, np.round(epoch_elapsed, decimals=4)))
+        #                  epoch = epoch + 1
+        #
+        #
+        #
+        #         ## signal to ps shards that we are done
+        #         #for op in enq_ops:
+        #         #    sess.run(op)
+        #         #print('-- Done! --')
+        #     sv.stop()
+        # sess.close()
+
+
+
+
+    def between_graph_replication(self, dataset_name: str, dataset_path: str,
+                        inputs_name: str, targets_name: str,
+                        num_ps: int = 1, num_workers: int = 1) -> tf.Tensor:
+        """
+        Training the deep neural network exploit the memory on desktop machine
+        https://github.com/tensorflow/examples/blob/master/community/en/docs/deploy/distributed.md
+        """
         ### Training Start
         training_start = time.time()
 
+        ## Set processing_mode flat
+        self.processing_mode = "distributed_processing"
+        self.num_ps = num_ps
+        self.num_workers = num_workers
+
+        #############################
+        ## Build a tf_ps collection
+        tf_ps = []
+        [tf_ps.append(str(self.ip_ps[i]+":2222")) for i in range(num_ps)]
+        # tf_ps=','.join(tf_ps)
+
+        #############################
+        ## Build a tf_workers collection
+        tf_workers = []
+        [tf_workers.append(str(self.ip_workers[i]+":2222")) for i in range(num_workers)]
+        # tf_workers=','.join(tf_workers)
+
+        ## A collection of tf_ps nodes
+        print("++ PS collection: {}".format(tf_ps))
+        print("++ Workers collection: {}".format(tf_workers))
+
+        self.cluster = tf.train.ClusterSpec({
+                                        "ps": tf_ps,
+                                        "worker": tf_workers
+                                        })
+
+
         print("cluster: {}".format(self.cluster))
         print("ps: {} || worker: {}".format(self.ip_ps, self.ip_workers))
-        print("job_name: {} || tasks_inde: {}".format(self.job_name, self.task_index))
+        # print("job_name: {} || tasks_inde: {}".format(self.job_name, self.task_index))
         print("ps num: {} || workers num: {}".format(num_ps, num_workers))
-
 
 
         ###################################################################
         ### Define role for distributed processing
-        print("Define role for distributed processing")
+        print("++ Issue: Define role for distributed processing ++")
 
-        if self.job_name ==  "ps":
-            sess = tf.Session(self.server.target)
-            queue =  self.create_done_queue(self.task_index)
+        ##############################
+        #Building ps job replicas
+        job_PS_replicas = []
+        [job_PS_replicas.append({"node": self.ip_ps[i],
+                            "tf_cluster": self.cluster,
+                            "job_name": "ps",
+                            "task_index": i}
+                            )for i in range(len(self.ip_ps))]
 
-            ### Wait intil all workers are done
-            for i in range(self.num_workers):
-                sess.run(queue.dequeue())
-                print("ps %d recieved done %d" %(self.task_index,i))
-            print("ps %d: quitting" %(self.task_index))
+        job_WORKER_replicas = []
+        [job_WORKER_replicas.append({"node": self.ip_workers[i],
+                            "tf_cluster": self.cluster,
+                            "job_name": "worker",
+                            "task_index": i}
+                            )for i in range(len(self.ip_workers))]
 
-        elif self.job_name == "worker":
-            ## Generates a distributed graph object from graphs
-            with tf.Graph().as_default() as distributed_graph:
-                self.model.distributed_grpc_graph(self.cluster, self.task_index)
-
-                enq_ops = []
-                for q in self.create_done_queues():
-                    qop = q.enqueue(1)
-                    enq_ops.append(qop)
-
-                ##################################################
-                ## Create a distributed session whit training supervisor
-                #saver = tf.train.Saver()
-                sv = tf.train.Supervisor(is_chief=(self.task_index == 0),
-                                        graph=self.model.graph,#saver=saver,
-                                        #checkpoint_basename=str(),
-                                        global_step=self.model.global_step,
-                                        init_op=self.model.init_op)
-
-                with sv.managed_session(self.server.target) as sess:
-
-                    epoch = 0
-                    while not sv.should_stop() and (epoch < self.max_epochs):
-                         epoch_start = time.time()
-
-                         for i in range(len(train.input_files)):
-                             train_inputs = IO_Functions()._read_file(train.input_files[i])
-                             train_targets = IO_Functions()._read_file(train.target_files[i])
-                             ## Convert list in a numpy matrix
-                             train_batch = Dataset()
-                             train_batch.set_data_file(train_inputs, train_targets)
-
-                             train_loss, _ = sess.run([self.model.loss, self.model.grad_op],
-                                                  feed_dict={self.model.X: train_batch.inputs,
-                                                  self.model.Y: train_batch.targets,
-                                                  self.model.keep_prob: self.model.dropout})
-
-                             train_pred = sess.run(self.model.projection_1hot,
-                                                  feed_dict={self.model.X: train_batch.inputs,
-                                                  self.model.keep_prob: self.model.dropout})
-
-                             ## F1_score from Skit-learn metrics
-                             train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
-                                                  y_pred=train_pred.astype(np.float), average='micro')
-
-
-                         epoch_elapsed = (time.time() - epoch_start)
-                         logger.info("Epoch {} | Train loss: {} | Train Acc: {} | Epoch_Time: {}".format(epoch,
-                                                  train_loss, train_acc, np.round(epoch_elapsed, decimals=4)))
-                         epoch = epoch + 1
-
-
-
-                ## signal to ps shards that we are done
-                #for op in enq_ops:
-                #    sess.run(op)
-                #print('-- Done! --')
-            sv.stop()
-        sess.close()
-
-
-
+        print(job_PS_replicas)
+        print(job_WORKER_replicas)
 
 
 

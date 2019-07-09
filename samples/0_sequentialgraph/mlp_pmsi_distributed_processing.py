@@ -16,6 +16,7 @@ from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
 from diagnosenet.graphs import SequentialGraph
 from diagnosenet.executors import Distibuted_GRPC
+from diagnosenet.resourcemanager import ResourceManager
 from diagnosenet.monitor import enerGyPU
 
 
@@ -48,19 +49,39 @@ data_config_1 = Batching(dataset_name="MCP-PMSI",
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = Distibuted_GRPC(model=mlp_model,
-                            datamanager=data_config_1,
-                            monitor=enerGyPU(machine_type="arm"),
-                            max_epochs=10,
-                            min_loss=2.0,
-                            ip_ps="134.59.132.135:2222",
-                            ip_workers="134.59.132.20:2222")	#,134.59.132.21:2222")
+                             datamanager=data_config_1,
+                             monitor=enerGyPU(machine_type="arm"),
+                             max_epochs=10,
+                             min_loss=2.0,
+                             ip_ps="134.59.132.135",
+                             ip_workers="134.59.132.20, 134.59.132.21")
 
 ## 5) Uses the platform modes for training in an efficient way
-platform.synchronous_training(dataset_name="MCP-PMSI",
-                                dataset_path="dataset/",
-                                inputs_name="patients_features.txt",
-                                targets_name="medical_targets.txt",
-                                num_ps=1,
-                                num_workers=1)
+platform.asynchronous_training(dataset_name="MCP-PMSI",
+                                 dataset_path="dataset/",
+                                 inputs_name="patients_features.txt",
+                                 targets_name="medical_targets.txt",
+                                 job_name="worker",
+                                 task_index=0)
+
+
+## 5) Using resource manager
+## Setting distributed training without resourcemanager:
+#platform = ResourceManager(model=mlp_model,
+#                            datamanager=data_config_1,
+#                            monitor=enerGyPU(machine_type="arm"),
+#                            max_epochs=10,
+#                            min_loss=2.0,
+#                            ip_ps="134.59.132.135",
+#                            ip_workers="134.59.132.20, 134.59.132.21")
+#
+#platform.between_graph_replication(dataset_name="MCP-PMSI",
+#                                    dataset_path="dataset/",
+#                                    inputs_name="patients_features.txt",
+#                                    targets_name="medical_targets.txt",
+#                                    num_ps=1, num_workers=1)
+
+
+
 
 print("Execution Time: {}".format((time.time()-execution_start)))
