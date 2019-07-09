@@ -194,20 +194,34 @@ class Batching(Splitting):
         IO_Functions()._mkdir_(train_path)
         IO_Functions()._mkdir_(valid_path)
         IO_Functions()._mkdir_(test_path)
-
+        
+        if 'list' in str(type(self.train.inputs)):
         ## Writing records in batches
-        IO_Functions()._write_batches(train_path, self.train, self.batch_size, self.dataset_name)
-        IO_Functions()._write_batches(valid_path, self.valid, self.batch_size, self.dataset_name)
-        IO_Functions()._write_batches(test_path, self.test, self.batch_size, self.dataset_name)
+            IO_Functions()._write_batches(train_path, self.train, self.batch_size, self.dataset_name)
+            IO_Functions()._write_batches(valid_path, self.valid, self.batch_size, self.dataset_name)
+            IO_Functions()._write_batches(test_path, self.test, self.batch_size, self.dataset_name)
 
-        logger.info('-- Split path: {} --'.format(self.split_path))
+            logger.info('-- Split path: {} --'.format(self.split_path))
 
-        train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.txt")),
+            train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.txt")),
                                             sorted(glob.glob(train_path+"/y-*.txt")))
-        valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-*.txt")),
+            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-*.txt")),
                                             sorted(glob.glob(valid_path+"/y-*.txt")))
-        test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-*.txt")),
+            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-*.txt")),
                                             sorted(glob.glob(test_path+"/y-*.txt")))
+        else:
+            IO_Functions()._write_npy_batches(train_path, self.train, self.batch_size, self.dataset_name)
+            IO_Functions()._write_npy_batches(valid_path, self.valid, self.batch_size, self.dataset_name)
+            IO_Functions()._write_npy_batches(test_path, self.test, self.batch_size, self.dataset_name)
+
+            logger.info('-- Split path: {} --'.format(self.split_path))
+
+            train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.npy")),
+                                            sorted(glob.glob(train_path+"/y-*.npy")))
+            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-*.npy")),
+                                            sorted(glob.glob(valid_path+"/y-*.npy")))
+            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-*.npy")),
+                                            sorted(glob.glob(test_path+"/y-*.npy")))
 
         return train_batch_path, valid_batch_path, test_batch_path
 
@@ -230,21 +244,37 @@ class Batching(Splitting):
         IO_Functions()._mkdir_(valid_path)
         IO_Functions()._mkdir_(test_path)
 
+        if 'list' in str(type(self.train.inputs)):
         ## Writing records in batches
-        IO_Functions()._write_batches_worker(train_path, self.train, self.devices_number,
+            IO_Functions()._write_batches_worker(train_path, self.train, self.devices_number,
                                                         self.batch_size, self.dataset_name)
-        IO_Functions()._write_batches_worker(valid_path, self.valid, self.devices_number,
+            IO_Functions()._write_batches_worker(valid_path, self.valid, self.devices_number,
                                                         self.batch_size, self.dataset_name)
-        IO_Functions()._write_batches_worker(test_path, self.test, self.devices_number,
+            IO_Functions()._write_batches_worker(test_path, self.test, self.devices_number,
                                                         self.batch_size, self.dataset_name)
 
-        logger.info('-- Split path: {} --'.format(self.split_path))
-        train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.txt")),
+            logger.info('-- Split path: {} --'.format(self.split_path))
+            train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.txt")),
                                             sorted(glob.glob(train_path+"/y-*.txt")))
-        valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-*.txt")),
+            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-*.txt")),
                                             sorted(glob.glob(valid_path+"/y-*.txt")))
-        test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-*.txt")),
+            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-*.txt")),
                                             sorted(glob.glob(test_path+"/y-*.txt")))
+        else:
+            IO_Functions()._write_npy_batches_worker(train_path, self.train, self.devices_number,
+                                                        self.batch_size, self.dataset_name)
+            IO_Functions()._write_npy_batches_worker(valid_path, self.valid, self.devices_number,
+                                                        self.batch_size, self.dataset_name)
+            IO_Functions()._write_npy_batches_worker(test_path, self.test, self.devices_number,
+                                                        self.batch_size, self.dataset_name)
+
+            logger.info('-- Split path: {} --'.format(self.split_path))
+            train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.npy")),
+                                            sorted(glob.glob(train_path+"/y-*.npy")))
+            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-*.npy")),
+                                            sorted(glob.glob(valid_path+"/y-*.npy")))
+            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-*.npy")),
+                                            sorted(glob.glob(test_path+"/y-*.npy")))
 
         return train_batch_path, valid_batch_path, test_batch_path
 
