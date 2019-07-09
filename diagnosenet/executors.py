@@ -564,7 +564,7 @@ class Distibuted_GRPC:
             if 'MultiTask' in str(type(self.data)):
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
-                train, valid, test = self.data.distributed_batching()
+                train, valid, test = self.data.distributed_batching(1)
             else:
                 raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
         except AttributeError:
@@ -1272,7 +1272,11 @@ class Distibuted_MPI:
             if 'MultiTask' in str(type(self.data)):
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
-                train, valid, test = self.data.distributed_batching()
+                if self.rank!=0:
+                    train, valid, test = self.data.distributed_batching(self.rank)
+                else:
+                    self.data.dataset_split()
+                    train, valid, test = None,None,None
             else:
                 raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
         except AttributeError:
