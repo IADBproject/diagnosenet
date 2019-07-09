@@ -4,14 +4,13 @@ The computational graph applieds more than one operation to the weights of the n
 """
 
 from typing import Sequence, NamedTuple
-
 import tensorflow as tf
 
 from diagnosenet.layers import Layer
 from diagnosenet.losses import Loss
 from diagnosenet.optimizers import Optimizer
-
 from diagnosenet.monitor import Metrics
+
 
 class SequentialGraph:
     """
@@ -33,6 +32,9 @@ class SequentialGraph:
         self.loss = loss
         self.optimizer = optimizer
         self.dropout = dropout
+
+        self.global_step = tf.Tensor
+        self.init_op = tf.Tensor
 
         ## Graph object trainable parameters:
         self.graph = tf.Graph()
@@ -91,25 +93,39 @@ class SequentialGraph:
             self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
             self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
 
-    def distributed_grpc_graph(self) -> tf.Tensor:
-        with tf.Graph().as_default() as self.mlp_graph:
+            
+    def distributed_grpc_graph(self, cluster, task_index) -> tf.Tensor:
+        #with tf.Graph().as_default() as self.graph:
+        with tf.device(tf.train.replica_device_setter(
+                                worker_device="/job:worker/task:%d" % task_index,
+                                cluster=cluster)) as self.graph:
+
             self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
             self.Y = tf.placeholder(tf.float32, shape=(None, self.output_size), name="Output")
             self.keep_prob = tf.placeholder(tf.float32)
 
             self.projection = self.stacked(self.X, self.keep_prob)
-            self.mlp_loss = self.loss.desktop_loss(self, self.projection, self.Y)
-            self.mlp_grad_op = self.optimizer.desktop_Grad(self.mlp_loss)
+
+            with tf.variable_scope("global_step", reuse=True):
+                print("++ Datamaneger+Issue: Pass batch_size ++")
+                self.global_step = tf.Variable(500)	#datamanager.batch_size
+
+            self.loss = self.loss.desktop_loss(self, self.projection, self.Y)
+            self.grad_op = self.optimizer.desktop_Grad(self.loss)
 
             ## Accuracy
-            # self.accuracy = Metrics().accuracy(self.Y, self.projection)
-            # print("self.accuracy: {}".format(self.accuracy))
+            ## self.accuracy = Metrics().accuracy(self.Y, self.projection)
+            ## print("self.accuracy: {}".format(self.accuracy))
 
             ## # Convert prediction to one hot encoding
             self.soft_projection = tf.nn.softmax(self.projection)
             self.max_projection = tf.argmax(tf.nn.softmax(self.projection), 1)
             self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
-
+            
+            self.init_op = tf.group(tf.global_variables_initializer(),
+				                              tf.local_variables_initializer())
+            
+            
     def distributed_mpi_graph(self) -> tf.Tensor:
         with tf.Graph().as_default() as self.graph:
             self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name="Inputs")
@@ -139,21 +155,8 @@ class SequentialGraph:
 
 
 
-
-    #########################################################################
-    ## MultiGPU-GRAPH
-    # def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
-    #     """
-    #     """
-    #     # with tf.variable_scope("BackPropagation", reuse=reuse):
-    #     for i in range(len(self.layers)):
-    #             ## Prevention to use dropout in the projection layer
-    #             if len(self.layers)-1 == i:
-    #                 input_holder = self.layers[i].activation(input_holder)
-    #             else:
-    #                 input_holder = self.layers[i].dropout_activation(input_holder, keep_prob)
-    #     return input_holder
-
+    ###################################
+    ## Warning: Building MultiGPU grpah
     def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
         """
         """
@@ -166,6 +169,18 @@ class SequentialGraph:
         b2 = tf.Variable(tf.random_normal([14]), dtype=tf.float32)
         l2 = tf.matmul(l1, w2 + b2)
         return l2
+
+    def stacked_multigpu__API__(self, input_holder, keep_prob, reuse) -> tf.Tensor:
+        """
+        """
+        # with tf.variable_scope("BackPropagation", reuse=reuse):
+        for i in range(len(self.layers)):
+                ## Prevention to use dropout in the projection layer
+                if len(self.layers)-1 == i:
+                    input_holder = self.layers[i].activation(input_holder)
+                else:
+                    input_holder = self.layers[i].dropout_activation(input_holder, keep_prob)
+        return input_holder
 
     def multiGPU_loss(self, y_pred: tf.Tensor, y_true: tf.Tensor) -> tf.Tensor:
         """
@@ -322,58 +337,6 @@ class SequentialGraph:
         ## End Graph
 
 
-import numpy as np
-class ConvNetworks:
-    """
-    Implements a fully-connected algorithm for convolutional networks.
-    Args: A convolution architecture defined by the user.
-    Returns: A graph object with trainable parameters;
-            that will be assign data in the executors class.
-    """
-    def __init__(self,  input_size: int,
-                        input_length: int,
-                        dimension: int,
-                        layers: Sequence[Layer]) -> None:
-                        # input_size: int, output_size: int,
-                        # layers: Sequence[Layer],
-                        # loss: Loss,
-                        # optimizer: Optimizer,
-                        # dropout: float = 1.0) -> None:
-
-        ## A neural network architecture:
-        self.input_size = input_size
-        self.input_length = input_length
-        self.dimension = dimension
-        self.layers = layers
-
-
-    def stacked(self, input_holder) -> tf.Tensor:
-        for i in range(len(self.layers)):
-            ## Prevention to use dropout in the projection layer
-            if len(self.layers)-1 == i:
-                input_holder = self.layers[i].activation(input_holder)
-        return input_holder
-
-
-
-    def desktop_graph(self) -> tf.Tensor:
-        with tf.Graph().as_default() as self.conv1d_graph:
-            self.X = tf.placeholder(tf.float32, shape=(None, self.input_length, self.dimension), name="Inputs")
-            output = self.stacked(self.X)
-
-            # filter=tf.zeros([1300, 1, 1])
-            # output = tf.nn.conv1d(self.X, filter, stride=2, padding='VALID')
-
-            init_op = tf.global_variables_initializer()
-            config = tf.ConfigProto()
-            config.gpu_options.per_process_gpu_memory_fraction = 0.7
-
-            with tf.Session(config=config) as sess:
-                sess.run(init_op)
-                matrix = np.load('/home/jagarcia/Documents/05_dIAgnoseNET/04-stage-2019/Version1/input/xdata.npy')
-                output_l = sess.run(output, feed_dict={self.X: matrix})
-                print(output_l.shape)
-                
 class CustomGraph:
 
     def __init__(self, input_size_1: int,input_size_2: int, output_size: int,loss: Loss,
@@ -414,6 +377,7 @@ class CustomGraph:
         pool = tf.layers.max_pooling1d(in_layer,1,strides=2)
         x = tf.add(x,pool)
         return x
+
     def stacked(self,x,keep_prob):
         # Define a scope for reusing the variables
         with tf.variable_scope('ConvNet'):
@@ -448,7 +412,6 @@ class CustomGraph:
             out = tf.layers.dense(x, 4,kernel_initializer=tf.glorot_uniform_initializer())
         return out
 
-
     def desktop_graph(self) -> tf.Tensor:
         with tf.Graph().as_default() as self.graph:
             self.X = tf.placeholder(tf.float32, shape=(None, self.input_size_1,self.input_size_2), name="Inputs")
@@ -462,7 +425,6 @@ class CustomGraph:
             self.soft_projection = tf.nn.softmax(self.projection)
             self.max_projection = tf.argmax(self.soft_projection, 1)
             self.projection_1hot = tf.one_hot(self.max_projection, depth = int(self.output_size))
-
 
     def distributed_mpi_graph(self) -> tf.Tensor:
         with tf.Graph().as_default() as self.graph:
@@ -490,3 +452,57 @@ class CustomGraph:
             self._grad_op = [x[0] for x in self.grad_op]
             self._train_op = self.adam_op.apply_gradients(avg_grads_and_vars)
             self._gradients = []
+
+
+
+##########################################
+## Warning: Adding CNNs on SequentialGraph
+import numpy as np
+class ConvNetworks:
+    """
+    Implements a fully-connected algorithm for convolutional networks.
+    Args: A convolution architecture defined by the user.
+    Returns: A graph object with trainable parameters;
+            that will be assign data in the executors class.
+    """
+    def __init__(self,  input_size: int,
+                        input_length: int,
+                        dimension: int,
+                        layers: Sequence[Layer]) -> None:
+                        # input_size: int, output_size: int,
+                        # layers: Sequence[Layer],
+                        # loss: Loss,
+                        # optimizer: Optimizer,
+                        # dropout: float = 1.0) -> None:
+
+        ## A neural network architecture:
+        self.input_size = input_size
+        self.input_length = input_length
+        self.dimension = dimension
+        self.layers = layers
+
+    def stacked(self, input_holder) -> tf.Tensor:
+        for i in range(len(self.layers)):
+            ## Prevention to use dropout in the projection layer
+            if len(self.layers)-1 == i:
+                input_holder = self.layers[i].activation(input_holder)
+        return input_holder
+
+
+    def desktop_graph(self) -> tf.Tensor:
+        with tf.Graph().as_default() as self.conv1d_graph:
+            self.X = tf.placeholder(tf.float32, shape=(None, self.input_length, self.dimension), name="Inputs")
+            output = self.stacked(self.X)
+
+            # filter=tf.zeros([1300, 1, 1])
+            # output = tf.nn.conv1d(self.X, filter, stride=2, padding='VALID')
+
+            init_op = tf.global_variables_initializer()
+            config = tf.ConfigProto()
+            config.gpu_options.per_process_gpu_memory_fraction = 0.7
+
+            with tf.Session(config=config) as sess:
+                sess.run(init_op)
+                matrix = np.load('/home/jagarcia/Documents/05_dIAgnoseNET/04-stage-2019/Version1/input/xdata.npy')
+                output_l = sess.run(output, feed_dict={self.X: matrix})
+                print(output_l.shape)

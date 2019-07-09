@@ -22,4 +22,9 @@ dashboard/.ipynb_checkpoints/
 testbed/*
 enerGyPU/testbed/*
 
+## samples
+samples/0_sequentialgraph/enerGyPU/*
+samples/0_sequentialgraph/dataset/sandbox-*
+samples/1_customgraph/enerGyPU/*
+samples/1_customgraph/dataset/sandbox-*
 
