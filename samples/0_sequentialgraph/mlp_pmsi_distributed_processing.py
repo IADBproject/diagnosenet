@@ -8,7 +8,8 @@ execution_start = time.time()
 
 ## Makes diagnosenet library visible in samples folder
 import sys
-sys.path.append('../../')
+file_path="../../"
+sys.path.append(file_path)
 
 from diagnosenet.datamanager import MultiTask, Batching
 from diagnosenet.layers import Relu, Linear
@@ -49,7 +50,7 @@ data_config_1 = Batching(dataset_name="MCP-PMSI",
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = Distibuted_GRPC(model=mlp_model,
                             datamanager=data_config_1,
-                            monitor=enerGyPU(machine_type="arm"),
+                            monitor=enerGyPU(machine_type="arm",file_path=file_path),
                             max_epochs=10,
                             min_loss=2.0,
                             ip_ps="134.59.132.135:2222",

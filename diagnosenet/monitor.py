@@ -239,7 +239,7 @@ class enerGyPU(Testbed):
     while the DNN model is executed on the target platform.
     """
     def __init__(self, testbed_path: str = "enerGyPU/testbed", 
-                                machine_type: str = "x86",
+                                machine_type: str = "x86",file_path: str = "",
                                 write_metrics: bool = True,
                                 power_recording: bool = True,
                                 platform_recording: bool = True) -> None:
@@ -248,6 +248,7 @@ class enerGyPU(Testbed):
         self.power_recording = power_recording
         self.platform_recording = platform_recording
         self.idgpu_available: list = []
+        self.file_path = file_path
 
     def _get_available_GPU(self) -> list:
         """
@@ -279,9 +280,10 @@ class enerGyPU(Testbed):
         """
 
         if self.machine_type=="x86":
-            sp.run(["enerGyPU/dataCapture/enerGyPU_record.sh", self.testbed_exp, self.exp_id])
+            sp.run([str(self.file_path+"enerGyPU/dataCapture/enerGyPU_record.sh"), self.testbed_exp, self.exp_id])
         else:
-            print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+            sp.run([str(self.file_path+"enerGyPU/dataCapture/enerGyPU_record-jetson.sh"), self.testbed_exp, self.exp_id, self.file_path])
+            #print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
     def end_power_recording(self) -> None:
         """
         Kill the subprocess enerGyPU_record.
@@ -289,18 +291,18 @@ class enerGyPU(Testbed):
         if self.machine_type=="x86":
             sp.call(["killall", "-9", "nvidia-smi"])
         else:
-            print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
-
+            #print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+            sp.call("sudo killall -9 tegrastats",shell=True)
     def start_platform_recording(self, pid) -> None:
         """
         Subprocess recording for memory and cpu usage while the models are training
         This function uses the library psutil-5.4.8
         """
         if self.machine_type=="x86":
-            self.proc_platform = sp.Popen(["python3.6", "enerGyPU/dataCapture/platform_record.py",
+            self.proc_platform = sp.Popen(["python3.6", str(self.file_path+"enerGyPU/dataCapture/platform_record.py"),
                                 str(pid), self.testbed_exp, self.exp_id])
-        else:
-            print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+        #else:
+        #    print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
 
     def end_platform_recording(self) -> None:
         """
@@ -308,6 +310,6 @@ class enerGyPU(Testbed):
         """
         if self.machine_type=="x86":
             self.proc_platform.kill()
-        else:
-            print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+        #else:
+        #    print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
 
