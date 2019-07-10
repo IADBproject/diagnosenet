@@ -2,25 +2,21 @@
 Resource Manager
 """
 
-from typing import Sequence, NamedTuple
-
 import tensorflow as tf
-import numpy as np
-
-import os, time, json
-import multiprocessing as mp
-
 from diagnosenet.datamanager import Dataset, Batching
 from diagnosenet.io_functions import IO_Functions
 from diagnosenet.monitor import enerGyPU, Metrics
 from sklearn.metrics import f1_score
-from diagnosenet.executors import Distibuted_GRPC
 
-import logging
-logger = logging.getLogger('_DiagnoseNET_')
+import os, time
+import asyncio
 
-Batch = NamedTuple("Batch", [("inputs", np.ndarray), ("targets", np.ndarray)])
-BatchPath = NamedTuple("BatchPath", [("input_files", list), ("target_files", list)])
+
+
+import subprocess as sp
+import psutil, datetime, os
+
+
 
 class ResourceManager():
     """
@@ -30,52 +26,56 @@ class ResourceManager():
         + diagnosenet_supervisedlearning
     """
 
-    def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                    max_epochs: int = 10, min_loss: float = 2.0,
-                    ip_ps: str = "localhost:2222",
-                    ip_workers: str = "localhost:2223") -> None:
+    def __init__(self) -> None:
+		#, model, monitor: enerGyPU = None, datamanager: Dataset = None,
+                #    max_epochs: int = 10, min_loss: float = 2.0,
+                #    ip_ps: str = "localhost:2222",
+                #    ip_workers: str = "localhost:2223") -> None:
 
         # super().__init__(model, monitor, datamanager, max_epochs, min_loss, ip_ps, ip_workers)
-        self.model = model
-        self.monitor = monitor
-        self.data = datamanager
-        self.max_epochs = max_epochs
-        self.min_loss = min_loss
+        #self.model = model
+        #self.monitor = monitor
+        #self.data = datamanager
+        #self.max_epochs = max_epochs
+        #self.min_loss = min_loss
 
         ## Distributed Setup
-        self.tf_cluster = self.set_tf_cluster(ip_workers, ip_ps)
-        self.ip_ps = ip_ps
-        self.ip_workers = ip_workers
+        #self.tf_cluster = self.set_tf_cluster(ip_workers, ip_ps)
+        self.ip_ps = 0	#ip_ps
+        self.ip_workers = 0	#ip_workers
+        self.num_ps = 0
+        self.num_workers = 0
 
         ## Testbed and Metrics
         self.processing_mode: str
 
-    def set_tf_cluster(self, ip_ps: str = "localhost:2222",
-                            ip_workers: str = "localhost:2223") -> tf.Tensor:
+    def set_tf_cluster(self) -> tf.Tensor:
         ## splitting the IP hosts
-        ip_ps = ip_ps.split(",")
-        ip_workers = ip_workers.split(",")
+        self.ip_ps = self.ip_ps.split(",")
+        self.ip_workers = self.ip_workers.split(",")
 
         ## Build a tf_ps collection
         tf_ps = []
-        [tf_ps.append(str(ip_ps[i]+":2222")) for i in range(len(ip_ps))]
-        # tf_ps=','.join(tf_ps)
-        print("++ tf_ps: ",tf_ps)
+        #[tf_ps.append(str(ip_ps[i]+":2222")) for i in range(self.num_ps)]
+        [tf_ps.append(str(self.ip_ps[i]+":2222")) for i in range(self.num_ps)]        
+        #tf_ps=','.join(tf_ps)
+        print("++ tf_ps: ",tf_ps, type(tf_ps))
 
         ## Build a tf_workers collection
         tf_workers = []
-        [tf_workers.append(str(ip_workers[i]+":2222")) for i in range(len(ip_workers))]
-        # tf_workers=','.join(tf_workers)
+        [tf_workers.append(str(self.ip_workers[i]+":2222")) for i in range(self.num_workers)]
+        #tf_workers=','.join(tf_workers)
         print("++ tf_workers: ", tf_workers)
 
         ## A collection of tf_ps nodes
         return tf.train.ClusterSpec({"ps": tf_ps, "worker": tf_workers})
 
 
-    def between_graph_replication(self, dataset_name: str, dataset_path: str,
-                                        inputs_name: str, targets_name: str,
+    def between_graph_replication(self, device_replica_path: str, device_replica_name: str,
+                                        ip_ps: str = "localhost:2222",
+                                        ip_workers: str = "localhost:2223",
                                         num_ps: int = 1,
-                                        num_workers: int = 1) -> tf.Tensor:
+                                        num_workers: int = 1) -> None:
         """
         Training the deep neural network exploit the memory on desktop machine
         https://github.com/tensorflow/examples/blob/master/community/en/docs/deploy/distributed.md
@@ -85,13 +85,17 @@ class ResourceManager():
 
         ## Set processing_mode flat
         self.processing_mode = "distributed_processing"
+        self.device_replica_path = device_replica_path
+        self.device_replica_name = device_replica_name
+        self.ip_ps = ip_ps
+        self.ip_workers = ip_workers
         self.num_ps = num_ps
         self.num_workers = num_workers
+        self.tf_cluster = self.set_tf_cluster()
 
-
-        print("cluster: {}".format(self.tf_cluster))
-        print("ps num: {} || workers num: {}".format(num_ps, num_workers))
-        print("ps: {} || worker: {}".format(self.ip_ps, self.ip_workers))
+        #print("cluster: {}".format(self.tf_cluster))
+        #print("ps num: {} || workers num: {}".format(num_ps, num_workers))
+        #print("ps: {} || worker: {}".format(self.ip_ps, self.ip_workers))
 
 
         ###################################################################
@@ -107,296 +111,48 @@ class ResourceManager():
         ##############################
         #Building ps job replicas
         job_PS_replicas = []
-        [job_PS_replicas.append({"node": self.ip_ps[i],
-                            "tf_cluster": self.tf_cluster,
-                            "job_name": "ps",
-                            "task_index": i
-                            }
-                            )for i in range(num_ps)]
+#        [job_PS_replicas.append({"node": self.ip_ps[i],
+#                            #"tf_cluster": self.tf_cluster,
+#                            "job_name": "ps",
+#                            "task_index": i
+#                            }
+#                            )for i in range(num_ps)]
+
+        [job_PS_replicas.append([self.ip_ps, self.ip_workers,  "ps", i]
+                                                        )for i in range(num_ps)]
+
+
+
 
         job_WORKER_replicas = []
-        [job_WORKER_replicas.append({"node": self.ip_workers[i],
-                            "tf_cluster": self.tf_cluster,
-                            "job_name": "worker",
-                            "task_index": i}
-                            )for i in range(num_workers)]
+        [job_WORKER_replicas.append([self.ip_ps, self.ip_workers, "worker", i]
+                                                        )for i in range(num_workers)]                            
+
+
+#        [job_WORKER_replicas.append({ #"node": self.ip_workers[i],
+#                            #"tf_cluster": self.tf_cluster,
+#                            "job_name": "worker",
+#                            "task_index": i}
+#                            )for i in range(num_workers)]
 
         print("++ Job PS replicas: ", job_PS_replicas)
         print("++ Job WORKERS replicas: ", job_WORKER_replicas)
 
 
 
+        print("----> sp run:")
+        device_replica_ = str(self.device_replica_path + self.device_replica_name)
 
-#
-#
-# def main(argv):
-#     if len(argv) == 3:
-#         print("!! Unfinished routines !!")
-#     else:
-#         print("++ Using default settings ++")
-#         ###########################
-#         ## Local Variables
-#         # platform='multiGPU'
-#         platform='distributed'
-#         gateway_user='gw_user'
-# 		gateway_host='gw_host'
-#         node_username='node_user'
-#
-#         #########################################################
-#         ## Distributed Requirements
-#         num_ps = 1
-#         num_workers = 2
-#
-#         #########################################################
-#         gateway = SshNode(
-#                         gateway_host,
-#                         username=gateway_user
-#                         )
-#
-# 		##########################################################
-#         elif platform == 'distributed':
-#
-#             ## Jetson-TX2 Cluster
-#             hosts = [cluster_ip_host]
-#
-#             #########################################################
-#             ## Use the Server node for processing the first satge Data-mining
-#             server = ResourceManager._set_Node(master_host, master_user, gateway,)
-#
-#             ############################
-#             # Push the launch file (run_splitpoint)
-#             # With the Parameters Connfiguration on the server
-#             # To execute the First Satege in this host
-#             job_launch_S1 = SshJob(
-#                         node = server,
-#                         commands = [
-#                                 ## Run the script locate in the laptop
-#                                 RunScript("run_dataspworkers_mlp.sh", platform, num_ps, num_workers),
-#                                 Run("echo Split Data DONE"),
-#                                 ],
-#                         )
-#
-#             #############################
-#             ## A collection of the PS node
-#             ps = []
-#             [ps.append(ResourceManager._set_Node(hosts[i],
-#                                                 node_username, gateway,))
-#                                                 for i in range(num_ps)]
-#
-#             #############################
-#             ## A collection of the workers node
-#             workers = []
-#             [workers.append(ResourceManager._set_Node(hosts[num_ps+i],
-#                                                     node_username, gateway,))
-#                                                     for i in range(num_workers)]
-#
-#             #########################################################
-#             ## Setting Parameters for the First Stage
-#             FEATURES_NAME = "FULL-W1_x1_x2_x3_x4_x5_x7_x8_Y1"
-#             SANDBOX=str("/data_B/datasets/drg-PACA/healthData/sandbox-"+FEATURES_NAME)
-#             YEAR=str(2008)
-#
-#             ## Stage 1
-#             # localdir = "/1_Mining-Stage/"
-#             # SP_Dir_X = str(SANDBOX+localdir+"BPPR-"+FEATURES_NAME+"-"YEAR)
-#
-#             #############################
-#             ## Setting parameters for the Second Stage
-#             S_PLOINT = str(3072)    #1536)
-#             #SP_ARGV = str(S_PLOINT+"-"+platform)
-#             SP_ARGV = platform+"-"+str(num_workers)
-#             SP2=str(SANDBOX+"/2_Split-Point-"+SP_ARGV+"/")
-#
-#             #############################
-#             ## BPPR Directories
-#             dir_train = "/data_training/"
-#             dir_valid = "/data_valid/"
-#             dir_test = "/data_test/"
-#
-#             ############################
-#             ## Worker data management
-#             worker_healthData = "/opt/diagnosenet/healthData/"
-#             worker_sandbox = str(worker_healthData+"/sandbox-"+FEATURES_NAME)
-#             worker_splitpoint = str(worker_sandbox+"/2_Split-Point-"+SP_ARGV+"/")
-#             worker_train = str(worker_splitpoint+dir_train)
-#             worker_valid = str(worker_splitpoint+dir_valid)
-#             worker_test = str(worker_splitpoint+dir_test)
-#
-#             ############################
-#             ## Worker commands
-#             mkd_worker_sandbox = str("mkdir"+" "+worker_sandbox)
-#             mkd_worker_splitpoint = str("mkdir"+" "+worker_splitpoint)
-#             mkd_worker_train = str("mkdir"+" "+worker_train)
-#             mkd_worker_valid = str("mkdir"+" "+worker_valid)
-#             mkd_worker_test = str("mkdir"+" "+worker_test)
-#
-#             #############################
-#             ## Create a JOB to build the sandbox for each Worker
-#             job_build_sandbox = []
-#
-#             [ job_build_sandbox.append(SshJob(
-#                             node = workers[i],
-#                             commands = [
-#                                 RunString(mkd_worker_sandbox),
-#                                 RunString(mkd_worker_splitpoint),
-#                                 RunString(mkd_worker_train),
-#                                 RunString(mkd_worker_valid),
-#                                 RunString(mkd_worker_test),
-#                                 Run("echo SANDBOX ON WORKER DONE"), ],
-#                                 )) for i in range(len(workers)) ]
-#
-#
-#             #############################
-#             ## Create a command for transfer data
-#             scp = "scp"
-#             cmd_X_train_transfer = []
-#             cmd_y_train_transfer = []
-#             cmd_X_valid_transfer = []
-#             cmd_y_valid_transfer = []
-#             cmd_X_test_transfer = []
-#             cmd_y_test_transfer = []
-#
-#             for i in range(num_workers):
-#                 worker_host = str(node_user+"@"+ hosts[num_ps+i] +":")
-#                 num_file = str(i+1)
-#                 ## Commands to transfer Training dataset
-#                 X_train_splitted = str(SP2+dir_train+"X_training-"+FEATURES_NAME+"-"+YEAR+"-"+num_file+".txt")
-#                 cmd_X_train_transfer.append(str(scp+" "+X_train_splitted+" "+worker_host+worker_train))
-#                 y_train_splitted = str(SP2+dir_train+"y_training-"+FEATURES_NAME+"-"+YEAR+"-"+num_file+".txt")
-#                 cmd_y_train_transfer.append(str(scp+" "+y_train_splitted+" "+worker_host+worker_train))
-#
-#                 ## Commands to transfer Validation dataset
-#                 X_valid_splitted = str(SP2+dir_valid+"X_valid-"+FEATURES_NAME+"-"+YEAR+"-"+num_file+".txt")
-#                 cmd_X_valid_transfer.append(str(scp+" "+X_valid_splitted+" "+worker_host+worker_valid))
-#                 y_valid_splitted = str(SP2+dir_valid+"y_valid-"+FEATURES_NAME+"-"+YEAR+"-"+num_file+".txt")
-#                 cmd_y_valid_transfer.append(str(scp+" "+y_valid_splitted+" "+worker_host+worker_valid))
-#
-#                 ## Commands to transfer Test dataset
-#                 X_test_splitted = str(SP2+dir_test+"X_test-"+FEATURES_NAME+"-"+YEAR+"-"+num_file+".txt")
-#                 cmd_X_test_transfer.append(str(scp+" "+X_test_splitted+" "+worker_host+worker_test))
-#                 y_test_splitted = str(SP2+dir_test+"y_test-"+FEATURES_NAME+"-"+YEAR+"-"+num_file+".txt")
-#                 cmd_y_test_transfer.append(str(scp+" "+y_test_splitted+" "+worker_host+worker_test))
-#
-#
-#             ############################
-#             ## Build a JOB for transfering data to each worker sandbox
-#             job_data_transfer = []
-#             [job_data_transfer.append(SshJob(
-#                         node = server,
-#                         commands = [
-#                                     RunString(cmd_X_train_transfer[i]),
-#                                     RunString(cmd_y_train_transfer[i]),
-#                                     Run("echo SENDER TRAINING DATA DONE"),
-#                                     RunString(cmd_X_valid_transfer[i]),
-#                                     RunString(cmd_y_valid_transfer[i]),
-#                                     Run("echo SENDER VALID DATA DONE"),
-#                                     RunString(cmd_X_test_transfer[i]),
-#                                     RunString(cmd_y_test_transfer[i]),
-#                                     Run("echo SENDER TEST DATA DONE"),
-#                                     ],)
-#                                     ) for i in range(len(workers))]
-#
-#             #########################################################
-#             ## Create a sequence orchestration scheduler instance upfront
-#             worker_seq = []
-#
-#             ## Add the Stage-1 JOB into Scheduler
-#             worker_seq.append(Scheduler(Sequence(
-#                                 job_launch_S1)))
-#
-#             ## Add the worker JOBs into Scheduler
-#             [worker_seq.append(Scheduler(Sequence(
-#                                 job_build_sandbox[i],
-#                                 job_data_transfer[i], ))
-#                                 ) for i in range(len(workers))]
-#
-#             #############################
-#             ## Old method
-#             ## Add the JOB PS Replicas into Scheduler
-#             # worker_seq.append(Scheduler(Sequence(
-#             #                     job_PS_replicas)))
-#             #
-#             # ## Add the JOB WORKER Replicas into Scheduler
-#             # worker_seq.append(Scheduler(Sequence(
-#             #                     job_WORKER_replicas)))
-#
-#
-#             #############################
-#             ## Run the Sequence JOBS
-#             # [seq.orchestrate() for seq in worker_seq]
-#
-#
-#             #########################################################
-#             #########################################################
-#             ## Push the launch file (run_secondstage_distributed)
-#             ## With the Distributed Parameters for each worker replicas
-#             ## To distributed training of Unsupervised Embedding
-#
-#             #############################
-#             ## Build a collection of TensorFlow Hosts for PS
-#             tf_ps = []
-#             [tf_ps.append(str(hosts[i]+":2222")) for i in range(num_ps)]
-#             # print("+++ tf_ps: {}".format(tf_ps))
-#             tf_ps=','.join(tf_ps)
-#
-#             #############################
-#             ## Build a collection of TensorFlow Hosts for workers
-#             tf_workers = []
-#             [tf_workers.append(str(hosts[num_ps+i]+":2222")) for i in range(num_workers)]
-#             # print("+++ tf_workers: {}".format(tf_workers))
-#             tf_workers=','.join(tf_workers)
-#
-#             job_PS_replicas = []
-#             [job_PS_replicas.append(SshJob(
-#                         node = ps[i],
-#                         commands = [
-#                                 ## Launches local script to execute on cluster
-#                                 # RunScript("run_secondstage_distributed.sh",
-#                                 #             platform, tf_ps, tf_workers,
-#                                 #             num_ps, num_workers, "ps", i),
-#                                 RunScript("run_thirdstage_distributed_mlp.sh",
-#                                             platform, tf_ps, tf_workers,
-#                                             num_ps, num_workers, "ps", i),
-#                                 Run("echo PS REPLICA DONE"),
-#                                 ],)
-#                                 ) for i in range(len(ps))]
-#
-#
-#             job_WORKER_replicas = []
-#             [job_WORKER_replicas.append(SshJob(
-#                         node = workers[i],
-#                         commands = [
-#                                 ## Launches local script to execute on cluster
-#                                 # RunScript("run_secondstage_distributed.sh",
-#                                 #             platform, tf_ps, tf_workers,
-#                                 #             num_ps, num_workers, "worker", i),
-#                                 RunScript("run_thirdstage_distributed_mlp.sh",
-#                                             platform, tf_ps, tf_workers,
-#                                             num_ps, num_workers, "worker", i),
-#                                 Run("echo WORKER REPLICA DONE"),
-#                                 ], )
-#                                 ) for i in range(len(workers))]
-#
-#             #############################
-#             ### Simultaneous jobs
-#             s_distraining = Scheduler()
-#             [s_distraining.add(job_PS_replicas[i]) for i in range(len(ps))]
-#             [s_distraining.add(job_WORKER_replicas[i]) for i in range(len(workers))]
-#
-#             s_distraining.run(jobs_window = int(num_ps+num_workers+1))
-#
-#             ## run the scheduler
-#             # ok = scheduler.orchestrate()
-#
-#             ## give details if it failed
-#             # ok or scheduler.debrief()
-#
-#             ## return something useful to your OS
-#             # exit(0 if ok else 1)
-#
-#         else:
-#             print("!! Platform don't selected !!")
-#
-#
-# if __name__ == '__main__':
-#     main(sys.argv[1:])
+        print("----> Dv_replica: {}".format(device_replica_))
+        sp.call(["ssh", "mpiuser@134.59.132.135", "python3.6", device_replica_, "{}".format(job_PS_replicas[0])])
+
+
+        sp.call(["ssh", "mpiuser@134.59.132.20", "python3.6", device_replica_, "{}".format(job_WORKER_replicas[0])])
+
+        #print(a.srdout.decode('utf-8')
+
+
+# stdin=sp.PIPE,  stdout = sp.PIPE, universal_newlines=True, bufsize=0)
+        #print("worker_prog: {}".format(worker_prog))
+
+
