@@ -80,7 +80,6 @@ class ResourceManager():
 
         ###################################################################
         ### Define role for distributed processing
-        print("++ Issue: Define role for distributed processing ++")
 
         ##############################
         #Building ps job replicas
@@ -100,6 +99,7 @@ class ResourceManager():
 
         ##############################
         # Device Replication
+        print("Issue Launch the device replica with asyncio")
         device_replica_ = str(self.device_replica_path + self.device_replica_name)
         for i in range(num_ps):
             print("----> PS_IP: {}".format(self.ip_ps[i]))

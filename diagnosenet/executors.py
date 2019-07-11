@@ -500,6 +500,9 @@ class Distibuted_GRPC:
         ip_ps = ip_ps.split(",")
         ip_workers = ip_workers.split(",")
 
+        self.num_ps = len(ip_ps)
+        self.num_workers = len(ip_workers)
+
         ## Build a tf_ps collection
         tf_ps = []
         [tf_ps.append(str(ip_ps[i]+":2222")) for i in range(len(ip_ps))]
@@ -599,9 +602,11 @@ class Distibuted_GRPC:
 
         ## Define the machine rol = input flags
         ## start a server for a specific task
+        self.job_name = job_name
+        self.task_index = task_index
         self.server = tf.train.Server(self.tf_cluster,
-                                        job_name = job_name,
-                                        task_index = task_index)
+                                        job_name = self.job_name,
+                                        task_index = self.task_index)
 
         ## Set Monitor Recording
         # self.set_monitor_recording()
@@ -612,74 +617,74 @@ class Distibuted_GRPC:
 
         if job_name ==  "ps":
             print("I'am ps: {} ".format(task_index))
-        #     sess = tf.Session(self.server.target)
-        #     queue =  self.create_done_queue(self.task_index)
-        #
-        #     ### Wait intil all workers are done
-        #     for i in range(self.num_workers):
-        #         sess.run(queue.dequeue())
-        #         print("ps %d recieved done %d" %(self.task_index,i))
-            # print("ps %d: quitting" %(self.task_index))
-        #
+            sess = tf.Session(self.server.target)
+            queue =  self.create_done_queue(self.task_index)
+        
+            ### Wait intil all workers are done
+            for i in range(self.num_workers):
+                 sess.run(queue.dequeue())
+                 print("ps %d recieved done %d" %(self.task_index,i))
+           # print("ps %d: quitting" %(self.task_index))
+        
         elif job_name == "worker":
             print("I'am worker: {} ".format(task_index))
-        #     ## Generates a distributed graph object from graphs
-        #     with tf.Graph().as_default() as distributed_graph:
-        #         self.model.distributed_grpc_graph(self.cluster, self.task_index)
-        #
-        #         enq_ops = []
-        #         for q in self.create_done_queues():
-        #             qop = q.enqueue(1)
-        #             enq_ops.append(qop)
-        #
-        #         ##################################################
-        #         ## Create a distributed session whit training supervisor
-        #         #saver = tf.train.Saver()
-        #         sv = tf.train.Supervisor(is_chief=(self.task_index == 0),
-        #                                 graph=self.model.graph,#saver=saver,
-        #                                 #checkpoint_basename=str(),
-        #                                 global_step=self.model.global_step,
-        #                                 init_op=self.model.init_op)
-        #
-        #         with sv.managed_session(self.server.target) as sess:
-        #
-        #             epoch = 0
-        #             while not sv.should_stop() and (epoch < self.max_epochs):
-        #                  epoch_start = time.time()
-        #
-        #                  for i in range(len(train.input_files)):
-        #                      train_inputs = IO_Functions()._read_file(train.input_files[i])
-        #                      train_targets = IO_Functions()._read_file(train.target_files[i])
-        #                      ## Convert list in a numpy matrix
-        #                      train_batch = Dataset()
-        #                      train_batch.set_data_file(train_inputs, train_targets)
-        #
-        #                      train_loss, _ = sess.run([self.model.loss, self.model.grad_op],
-        #                                           feed_dict={self.model.X: train_batch.inputs,
-        #                                           self.model.Y: train_batch.targets,
-        #                                           self.model.keep_prob: self.model.dropout})
-        #
-        #                      train_pred = sess.run(self.model.projection_1hot,
-        #                                           feed_dict={self.model.X: train_batch.inputs,
-        #                                           self.model.keep_prob: self.model.dropout})
-        #
-        #                      ## F1_score from Skit-learn metrics
-        #                      train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
-        #                                           y_pred=train_pred.astype(np.float), average='micro')
-        #
-        #
-        #                  epoch_elapsed = (time.time() - epoch_start)
-        #                  logger.info("Epoch {} | Train loss: {} | Train Acc: {} | Epoch_Time: {}".format(epoch,
-        #                                           train_loss, train_acc, np.round(epoch_elapsed, decimals=4)))
-        #                  epoch = epoch + 1
-        #
-        #
-        #
-        #         ## signal to ps shards that we are done
-        #         #for op in enq_ops:
-        #         #    sess.run(op)
-        #         #print('-- Done! --')
-        #     sv.stop()
+            ## Generates a distributed graph object from graphs
+            with tf.Graph().as_default() as distributed_graph:
+                 self.model.distributed_grpc_graph(self.cluster, self.task_index)
+        
+                 enq_ops = []
+                 for q in self.create_done_queues():
+                     qop = q.enqueue(1)
+                     enq_ops.append(qop)
+        
+                 ##################################################
+                 ## Create a distributed session whit training supervisor
+                 #saver = tf.train.Saver()
+                 sv = tf.train.Supervisor(is_chief=(self.task_index == 0),
+                                         graph=self.model.graph,#saver=saver,
+                                         #checkpoint_basename=str(),
+                                         global_step=self.model.global_step,
+                                         init_op=self.model.init_op)
+        
+                 with sv.managed_session(self.server.target) as sess:
+        
+                     epoch = 0
+                     while not sv.should_stop() and (epoch < self.max_epochs):
+                          epoch_start = time.time()
+        
+                          for i in range(len(train.input_files)):
+                              train_inputs = IO_Functions()._read_file(train.input_files[i])
+                              train_targets = IO_Functions()._read_file(train.target_files[i])
+                              ## Convert list in a numpy matrix
+                              train_batch = Dataset()
+                              train_batch.set_data_file(train_inputs, train_targets)
+        
+                              train_loss, _ = sess.run([self.model.loss, self.model.grad_op],
+                                                   feed_dict={self.model.X: train_batch.inputs,
+                                                   self.model.Y: train_batch.targets,
+                                                   self.model.keep_prob: self.model.dropout})
+        
+                              train_pred = sess.run(self.model.projection_1hot,
+                                                   feed_dict={self.model.X: train_batch.inputs,
+                                                   self.model.keep_prob: self.model.dropout})
+        
+                              ## F1_score from Skit-learn metrics
+                              train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
+                                                   y_pred=train_pred.astype(np.float), average='micro')
+        
+        
+                          epoch_elapsed = (time.time() - epoch_start)
+                          logger.info("Epoch {} | Train loss: {} | Train Acc: {} | Epoch_Time: {}".format(epoch,
+                                                   train_loss, train_acc, np.round(epoch_elapsed, decimals=4)))
+                          epoch = epoch + 1
+        
+        
+        
+                 ## signal to ps shards that we are done
+                 #for op in enq_ops:
+                 #    sess.run(op)
+                 #print('-- Done! --')
+            sv.stop()
         # sess.close()
 
 
