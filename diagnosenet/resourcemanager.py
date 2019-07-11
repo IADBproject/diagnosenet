@@ -27,27 +27,8 @@ class ResourceManager():
     """
 
     def __init__(self) -> None:
-		#, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                #    max_epochs: int = 10, min_loss: float = 2.0,
-                #    ip_ps: str = "localhost:2222",
-                #    ip_workers: str = "localhost:2223") -> None:
+        pass
 
-        # super().__init__(model, monitor, datamanager, max_epochs, min_loss, ip_ps, ip_workers)
-        #self.model = model
-        #self.monitor = monitor
-        #self.data = datamanager
-        #self.max_epochs = max_epochs
-        #self.min_loss = min_loss
-
-        ## Distributed Setup
-        #self.tf_cluster = self.set_tf_cluster(ip_workers, ip_ps)
-        self.ip_ps = 0	#ip_ps
-        self.ip_workers = 0	#ip_workers
-        self.num_ps = 0
-        self.num_workers = 0
-
-        ## Testbed and Metrics
-        self.processing_mode: str
 
     def set_tf_cluster(self) -> tf.Tensor:
         ## splitting the IP hosts
@@ -77,9 +58,12 @@ class ResourceManager():
                                         num_ps: int = 1,
                                         num_workers: int = 1) -> None:
         """
-        Training the deep neural network exploit the memory on desktop machine
+        The training configuration, which involves multiple task in a `worker`,
+        training the same model on different mini-batches of data, updating shared parameters hosted 
+        in one or more task in a parameter server job.
         https://github.com/tensorflow/examples/blob/master/community/en/docs/deploy/distributed.md
         """
+
         ### Training Start
         training_start = time.time()
 
@@ -87,72 +71,42 @@ class ResourceManager():
         self.processing_mode = "distributed_processing"
         self.device_replica_path = device_replica_path
         self.device_replica_name = device_replica_name
-        self.ip_ps = ip_ps
-        self.ip_workers = ip_workers
+        self.ip_ps = ip_ps.split(",")
+        self.ip_workers = ip_workers.split(",")
         self.num_ps = num_ps
         self.num_workers = num_workers
-        self.tf_cluster = self.set_tf_cluster()
-
-        #print("cluster: {}".format(self.tf_cluster))
-        #print("ps num: {} || workers num: {}".format(num_ps, num_workers))
-        #print("ps: {} || worker: {}".format(self.ip_ps, self.ip_workers))
+        #self.tf_cluster = self.set_tf_cluster()
 
 
         ###################################################################
         ### Define role for distributed processing
         print("++ Issue: Define role for distributed processing ++")
 
-        # "model": self.model,
-        # "monitor": self.monitor,
-        # "datamanager": self.datamanager,
-        # "max_epochs": self.max_epochs,
-        # "min_loss": self.min_loss,
-
         ##############################
         #Building ps job replicas
         job_PS_replicas = []
-#        [job_PS_replicas.append({"node": self.ip_ps[i],
-#                            #"tf_cluster": self.tf_cluster,
-#                            "job_name": "ps",
-#                            "task_index": i
-#                            }
-#                            )for i in range(num_ps)]
-
-        [job_PS_replicas.append([self.ip_ps, self.ip_workers,  "ps", i]
+        [job_PS_replicas.append([ip_ps, ip_workers, "ps", i]
                                                         )for i in range(num_ps)]
 
 
-
-
         job_WORKER_replicas = []
-        [job_WORKER_replicas.append([self.ip_ps, self.ip_workers, "worker", i]
+        [job_WORKER_replicas.append([ip_ps, ip_workers, "worker", i]
                                                         )for i in range(num_workers)]                            
 
-
-#        [job_WORKER_replicas.append({ #"node": self.ip_workers[i],
-#                            #"tf_cluster": self.tf_cluster,
-#                            "job_name": "worker",
-#                            "task_index": i}
-#                            )for i in range(num_workers)]
 
         print("++ Job PS replicas: ", job_PS_replicas)
         print("++ Job WORKERS replicas: ", job_WORKER_replicas)
 
 
-
-        print("----> sp run:")
+        ##############################
+        # Device Replication
         device_replica_ = str(self.device_replica_path + self.device_replica_name)
+        for i in range(num_ps):
+            print("----> PS_IP: {}".format(self.ip_ps[i]))
+            sp.call(["ssh", str("mpiuser@"+self.ip_ps[i]), "python3.6", device_replica_, "{}".format(job_PS_replicas[0])])
 
-        print("----> Dv_replica: {}".format(device_replica_))
-        sp.call(["ssh", "mpiuser@134.59.132.135", "python3.6", device_replica_, "{}".format(job_PS_replicas[0])])
-
-
-        sp.call(["ssh", "mpiuser@134.59.132.20", "python3.6", device_replica_, "{}".format(job_WORKER_replicas[0])])
-
-        #print(a.srdout.decode('utf-8')
-
-
-# stdin=sp.PIPE,  stdout = sp.PIPE, universal_newlines=True, bufsize=0)
-        #print("worker_prog: {}".format(worker_prog))
+        for i in range(num_workers):
+            print("----> WORKERS_IP: {}".format(self.ip_workers[i]))
+            sp.call(["ssh", str("mpiuser@"+self.ip_workers[i]), "python3.6", device_replica_, "{}".format(job_WORKER_replicas[0])])
 
 
