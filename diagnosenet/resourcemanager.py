@@ -11,8 +11,6 @@ from sklearn.metrics import f1_score
 import os, time
 import asyncio
 
-
-
 import subprocess as sp
 import psutil, datetime, os
 
@@ -51,6 +49,15 @@ class ResourceManager():
         ## A collection of tf_ps nodes
         return tf.train.ClusterSpec({"ps": tf_ps, "worker": tf_workers})
 
+    async def run_device_replica(self, user_name, host_name, device_replica, job_replica):
+        """
+        subprocess 
+        """
+        print("subproces: {}".format(host_name)) 
+        sp.call(["ssh", str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
+
+
+
 
     def between_graph_replication(self, device_replica_path: str, device_replica_name: str,
                                         ip_ps: str = "localhost:2222",
@@ -82,7 +89,7 @@ class ResourceManager():
         ### Define role for distributed processing
 
         ##############################
-        #Building ps job replicas
+        ## Building ps job replicas
         job_PS_replicas = []
         [job_PS_replicas.append([ip_ps, ip_workers, "ps", i]
                                                         )for i in range(num_ps)]
@@ -98,15 +105,28 @@ class ResourceManager():
 
 
         ##############################
-        # Device Replication
-        print("Issue Launch the device replica with asyncio")
+        ## Gathering the Jobs replicas 
         device_replica_ = str(self.device_replica_path + self.device_replica_name)
+
+
+        loop = asyncio.get_event_loop()
         for i in range(num_ps):
-            print("----> PS_IP: {}".format(self.ip_ps[i]))
-            sp.call(["ssh", str("mpiuser@"+self.ip_ps[i]), "python3.6", device_replica_, "{}".format(job_PS_replicas[0])])
+            https://pymotw.com/3/asyncio/
+            #print("----> PS_IP: {}".format(self.ip_ps[i]))
+            asyncio.ensure_future(self.run_device_replica("mpiuser", self.ip_ps[i], device_replica_, job_PS_replicas[i]))
+
+#            asyncio.gather(self.run_device_replica("mpiuser", self.ip_ps[i], device_replica_, job_PS_replicas[i]))
+           
+ #sp.call(["ssh", str("mpiuser@"+self.ip_ps[i]), "python3.6", device_replica_, "{}".format(job_PS_replicas[i])])
 
         for i in range(num_workers):
             print("----> WORKERS_IP: {}".format(self.ip_workers[i]))
-            sp.call(["ssh", str("mpiuser@"+self.ip_workers[i]), "python3.6", device_replica_, "{}".format(job_WORKER_replicas[0])])
+            asyncio.ensure_future(self.run_device_replica("mpiuser", self.ip_workers[i], device_replica_, job_WORKER_replicas[i]))
+            #sp.call(["ssh", str("mpiuser@"+self.ip_workers[i]), "python3.6", device_replica_, "{}".format(job_WORKER_replicas[i])])
 
 
+        ##############################
+        ## Schedule the Jobs replicas
+        #loop = asyncio.get_event_loop()
+        #loop.run_until_complete(asyncio.gather())	#jobs)
+        loop.run_forever()

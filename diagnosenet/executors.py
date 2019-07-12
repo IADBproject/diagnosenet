@@ -465,9 +465,9 @@ class Distibuted_GRPC:
         self.monitor = monitor
 
         ## Distributed variables
-        self.tf_cluster = self.set_tf_cluster(ip_workers, ip_ps)
-        # self.ip_ps = ip_ps.split(",")
-        # self.ip_workers = ip_workers.split(",")
+        self.set_tf_cluster(ip_ps, ip_workers)
+        #self.ip_ps = ip_ps.split(" ")
+        #self.ip_workers = ip_workers.split(" ")
         # self.num_ps = 0
         # self.num_workers = 0
         #
@@ -494,11 +494,12 @@ class Distibuted_GRPC:
         self.processing_mode: str
         self.training_track: list = []
 
-    def set_tf_cluster(self, ip_ps: str = "localhost:2222",
-                        ip_workers: str = "localhost:2223") -> tf.Tensor:
+    def set_tf_cluster(self, ip_ps, ip_workers) -> tf.Tensor:
         ## splitting the IP hosts
-        ip_ps = ip_ps.split(",")
-        ip_workers = ip_workers.split(",")
+        ip_ps = ip_ps.split(" ")		## Before *.split(",")
+        ip_workers = ip_workers.split(" ")	## Before *.split(",")
+
+        print("++++ ip_ workers: {}".format(ip_workers))
 
         self.num_ps = len(ip_ps)
         self.num_workers = len(ip_workers)
@@ -515,8 +516,10 @@ class Distibuted_GRPC:
         # tf_workers=','.join(tf_workers)
         print("++ tf_workers: ", tf_workers)
 
+        self.tf_cluster = tf.train.ClusterSpec({"ps": tf_ps,		# ["134.59.132.135:2222"], 
+                                                "worker": tf_workers}) 		# ["134.59.132.20:2222"]})
         ## A collection of tf_ps nodes
-        return tf.train.ClusterSpec({"ps": tf_ps, "worker": tf_workers})
+        #return tf.train.ClusterSpec({"ps": tf_ps, "worker": tf_workers})
 
 
     def set_monitor_recording(self) -> None:
@@ -545,9 +548,9 @@ class Distibuted_GRPC:
 
         ## Get GPU availeble and set for processing
         #self.idgpu = self.monitor._get_available_GPU()
-        self.idgpu = "0"
-        os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
+        #self.idgpu = "0"
+        #os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+        #os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
 
         ## Time recording
         self.time_latency = time.time()-latency_start
@@ -602,8 +605,12 @@ class Distibuted_GRPC:
 
         ## Define the machine rol = input flags
         ## start a server for a specific task
+        #self.tf_cluster = self.set_tf_cluster(self.ip_workers, self.ip_ps)
         self.job_name = job_name
         self.task_index = task_index
+        print("+++ self.job_name: {} || self.task_index: {} +++".format(self.job_name, type(self.task_index)))
+
+
         self.server = tf.train.Server(self.tf_cluster,
                                         job_name = self.job_name,
                                         task_index = self.task_index)
@@ -630,7 +637,7 @@ class Distibuted_GRPC:
             print("I'am worker: {} ".format(task_index))
             ## Generates a distributed graph object from graphs
             with tf.Graph().as_default() as distributed_graph:
-                 self.model.distributed_grpc_graph(self.cluster, self.task_index)
+                 self.model.distributed_grpc_graph(self.tf_cluster, self.task_index)
         
                  enq_ops = []
                  for q in self.create_done_queues():
@@ -684,8 +691,8 @@ class Distibuted_GRPC:
                  #for op in enq_ops:
                  #    sess.run(op)
                  #print('-- Done! --')
-            sv.stop()
-        # sess.close()
+#            sv.stop()
+        sess.close()
 
 
 

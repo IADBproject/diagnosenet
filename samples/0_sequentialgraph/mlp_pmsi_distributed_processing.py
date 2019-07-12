@@ -20,8 +20,8 @@ distributed_training = ResourceManager()
 
 distributed_training.between_graph_replication(device_replica_path="/home/mpiuser/cloud/diagnosenet/samples/0_sequentialgraph/",
                                     device_replica_name="mlp_pmsi_device_replica.py",
-                                    ip_ps="134.59.132.135", ip_workers="134.59.132.20, 134.59.132.21",
-                                    num_ps=1, num_workers=2)
+                                    ip_ps="134.59.132.135", ip_workers="134.59.132.20", #134.59.132.20",
+                                    num_ps=1, num_workers=1)
 
 
 

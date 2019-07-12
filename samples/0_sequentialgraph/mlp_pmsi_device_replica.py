@@ -26,6 +26,8 @@ from diagnosenet.monitor import enerGyPU
 def main(argv):
     print("+++ Execution Starting on {} +++".format(socket.gethostname()))
 
+
+    print("+++ Argv: {}".format(argv))
     ## Formating the argv from reseource manager
     for i in range(len(argv)):
         argv[i]=str(argv[i]).replace('[','').replace(']','').replace(',','')
