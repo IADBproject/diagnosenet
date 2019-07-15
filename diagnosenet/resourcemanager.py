@@ -10,6 +10,7 @@ from sklearn.metrics import f1_score
 
 import os, time
 import asyncio
+from concurrent import futures
 
 import subprocess as sp
 import psutil, datetime, os
@@ -49,12 +50,30 @@ class ResourceManager():
         ## A collection of tf_ps nodes
         return tf.train.ClusterSpec({"ps": tf_ps, "worker": tf_workers})
 
-    async def run_device_replica(self, user_name, host_name, device_replica, job_replica):
+
+
+    def run_device_replica(self, user_name, host_name, device_replica, job_replica):
         """
-        subprocess 
+        Subprocess by device job replica
         """
-        print("subproces: {}".format(host_name)) 
+        #print("Subproces: {}  || job_replica: {}".format(str(user_name+"@"+host_name), job_replica))
         sp.call(["ssh", str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
+
+
+
+    async def queue_device_tasks(self, executor):
+        """
+        Asyncio create queue device tasks 
+        """
+
+        ## Event loop run asynchronous tasks
+        loop = asyncio.get_event_loop()
+  
+        ## Creating a queue executor tasks
+        tasks = [loop.run_in_executor(executor, self.run_device_replica, "mpiuser", self.IP_HOSTS[i],
+				 self.device_replica_, self.job_DEVICE_replicas[i]) for i in range(self.devices_num)]
+
+        completed, peding = await asyncio.wait(tasks)
 
 
 
@@ -71,62 +90,35 @@ class ResourceManager():
         https://github.com/tensorflow/examples/blob/master/community/en/docs/deploy/distributed.md
         """
 
-        ### Training Start
+        ## Resource manager start
         training_start = time.time()
 
         ## Set processing_mode flat
         self.processing_mode = "distributed_processing"
-        self.device_replica_path = device_replica_path
-        self.device_replica_name = device_replica_name
-        self.ip_ps = ip_ps.split(",")
-        self.ip_workers = ip_workers.split(",")
-        self.num_ps = num_ps
-        self.num_workers = num_workers
-        #self.tf_cluster = self.set_tf_cluster()
+        self.device_replica_ = str(device_replica_path + device_replica_name)
+
+        ip_ps = ip_ps.split(",")
+        ip_workers = ip_workers.split(",")
+        self.IP_HOSTS = ip_ps + ip_workers
 
 
-        ###################################################################
-        ### Define role for distributed processing
+        ## Assigning the job role for a device replication
+        self.job_DEVICE_replicas = []
+        [self.job_DEVICE_replicas.append([ip_ps, ip_workers, "ps", i])for i in range(num_ps)]
+        [self.job_DEVICE_replicas.append([ip_ps, ip_workers, "worker", i])for i in range(num_workers)]
+        self.devices_num = len(self.job_DEVICE_replicas)
 
-        ##############################
-        ## Building ps job replicas
-        job_PS_replicas = []
-        [job_PS_replicas.append([ip_ps, ip_workers, "ps", i]
-                                                        )for i in range(num_ps)]
-
-
-        job_WORKER_replicas = []
-        [job_WORKER_replicas.append([ip_ps, ip_workers, "worker", i]
-                                                        )for i in range(num_workers)]                            
+        print("++ Job DEVICE replicas: ", self.job_DEVICE_replicas)
+        print("++ Devices: ", self.devices_num)
+        print("++ Hosts: ", self.IP_HOSTS)
 
 
-        print("++ Job PS replicas: ", job_PS_replicas)
-        print("++ Job WORKERS replicas: ", job_WORKER_replicas)
+
+        ## Execute a device replicate in a separate process
+        executor = futures.ProcessPoolExecutor(max_workers=self.devices_num,)
+        event_loop = asyncio.get_event_loop()
+        event_loop.run_until_complete(self.queue_device_tasks(executor))
 
 
-        ##############################
-        ## Gathering the Jobs replicas 
-        device_replica_ = str(self.device_replica_path + self.device_replica_name)
 
 
-        loop = asyncio.get_event_loop()
-        for i in range(num_ps):
-            https://pymotw.com/3/asyncio/
-            #print("----> PS_IP: {}".format(self.ip_ps[i]))
-            asyncio.ensure_future(self.run_device_replica("mpiuser", self.ip_ps[i], device_replica_, job_PS_replicas[i]))
-
-#            asyncio.gather(self.run_device_replica("mpiuser", self.ip_ps[i], device_replica_, job_PS_replicas[i]))
-           
- #sp.call(["ssh", str("mpiuser@"+self.ip_ps[i]), "python3.6", device_replica_, "{}".format(job_PS_replicas[i])])
-
-        for i in range(num_workers):
-            print("----> WORKERS_IP: {}".format(self.ip_workers[i]))
-            asyncio.ensure_future(self.run_device_replica("mpiuser", self.ip_workers[i], device_replica_, job_WORKER_replicas[i]))
-            #sp.call(["ssh", str("mpiuser@"+self.ip_workers[i]), "python3.6", device_replica_, "{}".format(job_WORKER_replicas[i])])
-
-
-        ##############################
-        ## Schedule the Jobs replicas
-        #loop = asyncio.get_event_loop()
-        #loop.run_until_complete(asyncio.gather())	#jobs)
-        loop.run_forever()
