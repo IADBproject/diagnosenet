@@ -571,7 +571,7 @@ class Distibuted_GRPC:
             if 'MultiTask' in str(type(self.data)):
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
-                train, valid, test = self.data.distributed_batching()
+                train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index)
             else:
                 raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
         except AttributeError:

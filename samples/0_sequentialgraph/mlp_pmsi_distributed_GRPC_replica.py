@@ -71,7 +71,7 @@ def main(argv):
     platform = Distibuted_GRPC(model=mlp_model,
                              datamanager=data_config_1,
                              monitor=enerGyPU(machine_type="arm"),
-                             max_epochs=10,
+                             max_epochs=2,
                              min_loss=2.0,
                              ip_ps=argv[2],
                              ip_workers=temp_workers)	#argv[1])

@@ -217,12 +217,12 @@ class Batching(Splitting):
 
         return train_batch_path, valid_batch_path, test_batch_path
 
-    def distributed_batching(self) -> BatchPath:
+    def distributed_batching(self, dataset_name, job_name, task_index) -> BatchPath:
         """
         output batch path:
         """
-        ## Splittting the Dataset
-        self.dataset_split()
+#        ## Splittting the Dataset
+#        self.dataset_split()
 
         ## Defining split directories
         self.split_path = str(self.sandbox+"/2_Split_Point-"+str(self.devices_number)+"-"+str(self.batch_size))
@@ -230,27 +230,45 @@ class Batching(Splitting):
         valid_path = str(self.split_path+"/data_valid/")
         test_path = str(self.split_path+"/data_test/")
 
-        ## Build split directories
-        IO_Functions()._mkdir_(self.split_path)
-        IO_Functions()._mkdir_(train_path)
-        IO_Functions()._mkdir_(valid_path)
-        IO_Functions()._mkdir_(test_path)
 
-        ## Writing records in batches
-        IO_Functions()._write_batches_worker(train_path, self.train, self.devices_number,
-                                                        self.batch_size, self.dataset_name)
-        IO_Functions()._write_batches_worker(valid_path, self.valid, self.devices_number,
-                                                        self.batch_size, self.dataset_name)
-        IO_Functions()._write_batches_worker(test_path, self.test, self.devices_number,
-                                                        self.batch_size, self.dataset_name)
+        if job_name == 'ps':
 
-        logger.info('-- Split path: {} --'.format(self.split_path))
-        train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.txt")),
+            ## Splittting the Dataset
+            self.dataset_split()
+
+            ## Build split directories
+            IO_Functions()._mkdir_(self.split_path)
+            IO_Functions()._mkdir_(train_path)
+            IO_Functions()._mkdir_(valid_path)
+            IO_Functions()._mkdir_(test_path)
+
+            ## Writing records in batches
+            IO_Functions()._write_batches_worker(train_path, self.train, self.devices_number,
+                                                        self.batch_size, self.dataset_name)
+            IO_Functions()._write_batches_worker(valid_path, self.valid, self.devices_number,
+                                                        self.batch_size, self.dataset_name)
+            IO_Functions()._write_batches_worker(test_path, self.test, self.devices_number,
+                                                        self.batch_size, self.dataset_name)
+            logger.info('-- Split path: {} --'.format(self.split_path))
+
+
+
+            train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-*.txt")),
                                             sorted(glob.glob(train_path+"/y-*.txt")))
-        valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-*.txt")),
+            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-*.txt")),
                                             sorted(glob.glob(valid_path+"/y-*.txt")))
-        test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-*.txt")),
+            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-*.txt")),
                                             sorted(glob.glob(test_path+"/y-*.txt")))
+
+
+        else:
+            ## Get the dataset paths by each worker
+            train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"-*.txt")),
+                                    sorted(glob.glob(train_path+"/y-"+dataset_name+"-"+str(int(task_index)+1)+"-*.txt")))
+            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"-*.txt")),
+                                    sorted(glob.glob(valid_path+"/y-"+dataset_name+"-"+str(int(task_index)+1)+"-*.txt")))
+            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"*.txt")),
+                                    sorted(glob.glob(test_path+"/y-"+dataset_name+"-"+str(int(task_index)+1)+"-*.txt")))
 
         return train_batch_path, valid_batch_path, test_batch_path
 
