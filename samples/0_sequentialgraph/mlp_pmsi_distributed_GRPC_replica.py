@@ -24,15 +24,20 @@ from diagnosenet.monitor import enerGyPU
 
 
 def main(argv):
+    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     print("+++ Execution Starting on {} +++".format(socket.gethostname()))
 
-
-    print("+++ Argv: {}".format(argv))
     ## Formating the argv from reseource manager
     for i in range(len(argv)):
         argv[i]=str(argv[i]).replace('[','').replace(']','').replace(',','')
-        print("argv[{}]: {}".format(i, argv[i]))
 
+
+    ## Formatiing the workers IP to build
+    ## a tensorflow cluster in executor class
+    temp_workers = []
+    for i in range(len(argv)-3):
+        temp_workers.append(argv[i+3])
+    temp_workers = ','.join(temp_workers)
 
 
     ## PMSI-ICU Dataset shapes
@@ -60,7 +65,7 @@ def main(argv):
     data_config_1 = Batching(dataset_name="MCP-PMSI",
                         valid_size=0.05, test_size=0.10,
                         devices_number=2,
-                        batch_size=500)
+                        batch_size=100)
 
     ## 4) Select the computational platform and pass the DNN and Dataset configurations
     platform = Distibuted_GRPC(model=mlp_model,
@@ -68,16 +73,16 @@ def main(argv):
                              monitor=enerGyPU(machine_type="arm"),
                              max_epochs=10,
                              min_loss=2.0,
-                             ip_ps=argv[0],
-                             ip_workers=argv[1])
+                             ip_ps=argv[2],
+                             ip_workers=temp_workers)	#argv[1])
 
     ## 5) Uses the platform modes for training in an efficient way
     platform.asynchronous_training(dataset_name="MCP-PMSI",
                                  dataset_path="/home/mpiuser/cloud/diagnosenet/samples/0_sequentialgraph/dataset/",
                                  inputs_name="patients_features.txt",
                                  targets_name="medical_targets.txt",
-                                 job_name=argv[2],
-                                 task_index=int(argv[3]))
+                                 job_name=argv[0],
+                                 task_index=int(argv[1]))
 
 
 if __name__ == '__main__':

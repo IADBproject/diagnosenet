@@ -496,8 +496,8 @@ class Distibuted_GRPC:
 
     def set_tf_cluster(self, ip_ps, ip_workers) -> tf.Tensor:
         ## splitting the IP hosts
-        ip_ps = ip_ps.split(" ")		## Before *.split(",")
-        ip_workers = ip_workers.split(" ")	## Before *.split(",")
+        ip_ps = ip_ps.split(",")		## Before *.split(",")
+        ip_workers = ip_workers.split(",")	## Before *.split(",")
 
         print("++++ ip_ workers: {}".format(ip_workers))
 
@@ -691,9 +691,9 @@ class Distibuted_GRPC:
                  #for op in enq_ops:
                  #    sess.run(op)
                  #print('-- Done! --')
-#            sv.stop()
-        sess.close()
-
+                 sv.stop()
+            sess.close()
+            print("-- session finish --")
 
 
 

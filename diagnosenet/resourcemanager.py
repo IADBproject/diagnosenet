@@ -39,13 +39,13 @@ class ResourceManager():
         #[tf_ps.append(str(ip_ps[i]+":2222")) for i in range(self.num_ps)]
         [tf_ps.append(str(self.ip_ps[i]+":2222")) for i in range(self.num_ps)]        
         #tf_ps=','.join(tf_ps)
-        print("++ tf_ps: ",tf_ps, type(tf_ps))
+        #print("++ tf_ps: ",tf_ps, type(tf_ps))
 
         ## Build a tf_workers collection
         tf_workers = []
         [tf_workers.append(str(self.ip_workers[i]+":2222")) for i in range(self.num_workers)]
         #tf_workers=','.join(tf_workers)
-        print("++ tf_workers: ", tf_workers)
+        #print("++ tf_workers: ", tf_workers)
 
         ## A collection of tf_ps nodes
         return tf.train.ClusterSpec({"ps": tf_ps, "worker": tf_workers})
@@ -56,7 +56,7 @@ class ResourceManager():
         """
         Subprocess by device job replica
         """
-        #print("Subproces: {}  || job_replica: {}".format(str(user_name+"@"+host_name), job_replica))
+        #print("++ ssh: {}  || job_replica: {}".format(str(user_name+"@"+host_name), job_replica))
         sp.call(["ssh", str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
 
 
@@ -101,24 +101,23 @@ class ResourceManager():
         ip_workers = ip_workers.split(",")
         self.IP_HOSTS = ip_ps + ip_workers
 
+        #print("+++ new ip_ps: {} +++".format(ip_ps))
+        #print("+++ new ip_worker: {} +++".format(ip_workers))
 
         ## Assigning the job role for a device replication
         self.job_DEVICE_replicas = []
-        [self.job_DEVICE_replicas.append([ip_ps, ip_workers, "ps", i])for i in range(num_ps)]
-        [self.job_DEVICE_replicas.append([ip_ps, ip_workers, "worker", i])for i in range(num_workers)]
+        [self.job_DEVICE_replicas.append(["ps", i, ip_ps, ip_workers])for i in range(num_ps)]
+        [self.job_DEVICE_replicas.append(["worker", i, ip_ps, ip_workers])for i in range(num_workers)]
         self.devices_num = len(self.job_DEVICE_replicas)
 
-        print("++ Job DEVICE replicas: ", self.job_DEVICE_replicas)
-        print("++ Devices: ", self.devices_num)
-        print("++ Hosts: ", self.IP_HOSTS)
-
+        #print("++ Job DEVICE replicas: ", self.job_DEVICE_replicas)
+        #print("++ Devices: ", self.devices_num)
+        #print("++ Hosts: ", self.IP_HOSTS)
 
 
         ## Execute a device replicate in a separate process
         executor = futures.ProcessPoolExecutor(max_workers=self.devices_num,)
         event_loop = asyncio.get_event_loop()
         event_loop.run_until_complete(self.queue_device_tasks(executor))
-
-
 
 
