@@ -1,5 +1,10 @@
 import time
 execution_start = time.time()
+
+## Makes diagnosenet library visible in samples folder
+import sys
+sys.path.append('../../')
+
 from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
 from diagnosenet.graphs import CustomGraph
@@ -11,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 #load data 
-file_dir = "./../ECG/input/"
+file_dir = "dataset/"
 inputs = np.load(file_dir+'xdata.npy')
 targets = np.load(file_dir+'ydata.npy')
 targets=pd.get_dummies(targets).values
