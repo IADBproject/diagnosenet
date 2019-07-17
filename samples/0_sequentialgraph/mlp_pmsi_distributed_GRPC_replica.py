@@ -24,9 +24,6 @@ from diagnosenet.monitor import enerGyPU
 
 
 def main(argv):
-    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    print("+++ Execution Starting on {} +++".format(socket.gethostname()))
-
     ## Formating the argv from reseource manager
     for i in range(len(argv)):
         argv[i]=str(argv[i]).replace('[','').replace(']','').replace(',','')
@@ -64,15 +61,15 @@ def main(argv):
     ## 3) Dataset configurations for splitting, batching and target selection
     data_config_1 = Batching(dataset_name="MCP-PMSI",
                         valid_size=0.05, test_size=0.10,
-                        devices_number=2,
+                        devices_number=3,
                         batch_size=100)
 
     ## 4) Select the computational platform and pass the DNN and Dataset configurations
     platform = Distibuted_GRPC(model=mlp_model,
                              datamanager=data_config_1,
                              monitor=enerGyPU(machine_type="arm"),
-                             max_epochs=2,
-                             min_loss=2.0,
+                             max_epochs=10,
+                             min_loss=0.2,
                              ip_ps=argv[2],
                              ip_workers=temp_workers)	#argv[1])
 

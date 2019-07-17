@@ -562,7 +562,7 @@ class Distibuted_GRPC:
         """
         dataset_start = time.time()
 
-        print("+++ Type: {}".format(type(self.data)))
+        #print("+++ Type: {}".format(type(self.data)))
         try:
             self.data.set_data_path(dataset_name=dataset_name,
                                dataset_path=dataset_path,
@@ -578,6 +578,7 @@ class Distibuted_GRPC:
                 raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
         self.time_dataset = time.time()-dataset_start
         return train, valid, test
+
 
     def create_done_queue(self, i):
         '''Queue used to signal death for i'th ps shard. Intended to have
@@ -623,7 +624,7 @@ class Distibuted_GRPC:
                                                     inputs_name, targets_name)
 
         if job_name ==  "ps":
-            print("I'am ps: {} ".format(task_index))
+            #print("I'am ps: {} ".format(task_index))
             sess = tf.Session(self.server.target)
             queue =  self.create_done_queue(self.task_index)
         
@@ -631,10 +632,10 @@ class Distibuted_GRPC:
             for i in range(self.num_workers):
                  sess.run(queue.dequeue())
                  print("ps %d recieved done %d" %(self.task_index,i))
-           # print("ps %d: quitting" %(self.task_index))
+            print("ps %d: quitting" %(self.task_index))
         
         elif job_name == "worker":
-            print("I'am worker: {} ".format(task_index))
+            #print("I'am worker: {} ".format(task_index))
             ## Generates a distributed graph object from graphs
             with tf.Graph().as_default() as distributed_graph:
                  self.model.distributed_grpc_graph(self.tf_cluster, self.task_index)
@@ -694,6 +695,11 @@ class Distibuted_GRPC:
                  sv.stop()
             sess.close()
             print("-- session finish --")
+
+
+
+
+
 
 
 
