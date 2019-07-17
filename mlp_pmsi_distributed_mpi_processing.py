@@ -7,7 +7,7 @@ Execution command: mpirun -np #slotnumber --hostfile h-workers python3.6 mlp_pms
 import time
 execution_start = time.time()
 
-from diagnosenet.datamanager import MultiTask, Batching
+from diagnosenet.datamanager import Batching
 from diagnosenet.layers import Relu, Linear
 from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
@@ -51,9 +51,9 @@ platform = Distibuted_MPI(model=mlp_model,
                             min_loss=2.0)
 
 ## 5) Uses the platform modes for training in an efficient way
-platform.synchronous_training(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
-                                dataset_path="healthData/",
-                                inputs_name="BPPR",
-                                targets_name="labels_Y1")
+platform.asynchronous_training(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
+                               dataset_path="healthData/",
+                               inputs_name="BPPR",
+                               targets_name="labels_Y1")
 
 print("Execution Time: {}".format((time.time()-execution_start)))
