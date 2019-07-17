@@ -238,7 +238,7 @@ class enerGyPU(Testbed):
     This module deploys an energy monitor to collect the energy consumption metrics
     while the DNN model is executed on the target platform.
     """
-    def __init__(self, testbed_path: str = "enerGyPU/testbed", 
+    def __init__(self, testbed_path: str = "testbed",	#"enerGyPU/testbed", 
                                 machine_type: str = "x86",file_path: str = "",
                                 write_metrics: bool = True,
                                 power_recording: bool = True,
@@ -249,6 +249,7 @@ class enerGyPU(Testbed):
         self.platform_recording = platform_recording
         self.idgpu_available: list = []
         self.file_path = file_path
+
 
     def _get_available_GPU(self) -> list:
         """
