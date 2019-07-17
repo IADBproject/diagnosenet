@@ -464,24 +464,8 @@ class Distibuted_GRPC:
         self.min_loss = min_loss
         self.monitor = monitor
 
-        ## Distributed variables
+        ## Use Hosts IPs to set a tensorflow cluster object
         self.set_tf_cluster(ip_ps, ip_workers)
-        #self.ip_ps = ip_ps.split(" ")
-        #self.ip_workers = ip_workers.split(" ")
-        # self.num_ps = 0
-        # self.num_workers = 0
-        #
-        # ## Distributed Setup
-        # self.cluster = tf.train.ClusterSpec({})
-        # self.job_name = ""
-        # self.task_index = 0
-
-        ## Define the machine rol = input flags
-        ## start a server for a specific task
-        # self.server = tf.train.Server(self.cluster,
-        #                                 job_name = self.job_name,
-        #                                 task_index = self.task_index)
-
 
         ## Time logs
         self.time_latency: time()
@@ -498,7 +482,6 @@ class Distibuted_GRPC:
         ## splitting the IP hosts
         ip_ps = ip_ps.split(",")		## Before *.split(",")
         ip_workers = ip_workers.split(",")	## Before *.split(",")
-
         print("++++ ip_ workers: {}".format(ip_workers))
 
         self.num_ps = len(ip_ps)
@@ -546,14 +529,9 @@ class Distibuted_GRPC:
         ## Start platform recording
         if self.monitor.platform_recording == True: self.monitor.start_platform_recording(os.getpid())
 
-        ## Get GPU availeble and set for processing
-        #self.idgpu = self.monitor._get_available_GPU()
-        #self.idgpu = "0"
-        #os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-        #os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
-
         ## Time recording
         self.time_latency = time.time()-latency_start
+
 
     def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> BatchPath:
@@ -562,7 +540,6 @@ class Distibuted_GRPC:
         """
         dataset_start = time.time()
 
-        #print("+++ Type: {}".format(type(self.data)))
         try:
             self.data.set_data_path(dataset_name=dataset_name,
                                dataset_path=dataset_path,
@@ -606,7 +583,6 @@ class Distibuted_GRPC:
 
         ## Define the machine rol = input flags
         ## start a server for a specific task
-        #self.tf_cluster = self.set_tf_cluster(self.ip_workers, self.ip_ps)
         self.job_name = job_name
         self.task_index = task_index
         print("+++ self.job_name: {} || self.task_index: {} +++".format(self.job_name, type(self.task_index)))
@@ -624,7 +600,6 @@ class Distibuted_GRPC:
                                                     inputs_name, targets_name)
 
         if job_name ==  "ps":
-            #print("I'am ps: {} ".format(task_index))
             sess = tf.Session(self.server.target)
             queue =  self.create_done_queue(self.task_index)
         
@@ -635,7 +610,6 @@ class Distibuted_GRPC:
             print("ps %d: quitting" %(self.task_index))
         
         elif job_name == "worker":
-            #print("I'am worker: {} ".format(task_index))
             ## Generates a distributed graph object from graphs
             with tf.Graph().as_default() as distributed_graph:
                  self.model.distributed_grpc_graph(self.tf_cluster, self.task_index)
@@ -681,12 +655,82 @@ class Distibuted_GRPC:
                                                    y_pred=train_pred.astype(np.float), average='micro')
         
         
+
+                          for i in range(len(valid.input_files)):
+                              valid_inputs = IO_Functions()._read_file(valid.input_files[i])
+                              valid_targets = IO_Functions()._read_file(valid.target_files[i])
+                              ## Convert list in a numpy matrix
+                              valid_batch= Dataset()
+                              valid_batch.set_data_file(valid_inputs, valid_targets)
+
+                              valid_loss = sess.run(self.model.loss,
+                                        feed_dict={self.model.X: valid_batch.inputs,
+                                                    self.model.Y: valid_batch.targets,
+                                                    self.model.keep_prob: 1.0})
+                              valid_pred = sess.run(self.model.projection_1hot,
+                                        feed_dict={self.model.X: valid_batch.inputs,
+                                                    self.model.keep_prob: 1.0})
+                              ## F1_score from Skit-learn metrics
+                              valid_acc = f1_score(y_true=valid_batch.targets.astype(np.float),
+                                                   y_pred=valid_pred.astype(np.float), average='micro')
+
                           epoch_elapsed = (time.time() - epoch_start)
-                          logger.info("Epoch {} | Train loss: {} | Train Acc: {} | Epoch_Time: {}".format(epoch,
-                                                   train_loss, train_acc, np.round(epoch_elapsed, decimals=4)))
+                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
+                                                    train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                          self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                           epoch = epoch + 1
+
+                          ### end While loop
+
+                     self.time_training = time.time()-training_start
         
-        
+                     ### Testing Starting
+                     testing_start = time.time()
+                     #saver.restore(sess,  str(self.monitor.testbed_exp+"./"+self.monitor.exp_id+ "-model.ckpt"))
+                     if len(test.input_files) != 0:
+                          test_pred_probas: list = []
+                          test_pred_1hot: list = []
+                          test_true_1hot: list = []
+
+                     for i in range(len(test.input_files)):
+                          test_inputs = IO_Functions()._read_file(test.input_files[i])
+                          test_targets = IO_Functions()._read_file(test.target_files[i])
+                          ## Convert list in a numpy matrix
+                          test_batch = Dataset()
+                          test_batch.set_data_file(test_inputs, test_targets)
+
+                          tt_pred_probas = sess.run(self.model.soft_projection,
+                                                    feed_dict={self.model.X: test_batch.inputs, self.model.keep_prob: 1.0})
+                          tt_pred_1hot = sess.run(self.model.projection_1hot,
+                                                    feed_dict={self.model.X: test_batch.inputs, self.model.keep_prob: 1.0})
+
+                          test_pred_probas.append(tt_pred_probas)
+                          test_pred_1hot.append(tt_pred_1hot)
+                          test_true_1hot.append(test_batch.targets.astype(np.float))
+
+                     self.test_pred_probas = np.vstack(test_pred_probas)
+                     self.test_pred_1hot = np.vstack(test_pred_1hot)
+                     self.test_true_1hot = np.vstack(test_true_1hot)
+ 
+                     ## Compute the F1 Score
+                     self.test_f1_weighted = f1_score(self.test_true_1hot,
+                                                               self.test_pred_1hot, average = "weighted")
+                     self.test_f1_micro = f1_score(self.test_true_1hot,
+                                                               self.test_pred_1hot, average = "micro")
+                     logger.info("-- Test Results --")
+                     logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
+                     logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
+
+
+
+                     ## compute_metrics by each label
+                     self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
+                                                               y_true=self.test_true_1hot)
+                     self.time_testing = time.time()-testing_start
+                     
+                     ## Write metrics on testbet directory = self.monitor.testbed_exp
+                     #if self.monitor.write_metrics == True: self.write_metrics()
+
         
                  ## signal to ps shards that we are done
                  #for op in enq_ops:
