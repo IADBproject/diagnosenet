@@ -1444,7 +1444,7 @@ class Distibuted_MPI:
                     average_weights = [np.stack([g[0][i] for g in weight_collection], axis=0).mean(axis=0) for i in
                                        range(len(weight_collection[0][0]))]
                     # send it to the source of the last reception
-                    source = status.Get_source()
+                    source = self.status.Get_source()
                     comm.send(average_weights, dest=source)
                 else:
                     self.comm.send([grads, acc, loss], dest=0)
@@ -1482,7 +1482,7 @@ class Distibuted_MPI:
                     val_acc, val_loss = self.comm.recv(source=MPI.ANY_SOURCE, status=self.status)
                     logger.info(
                         "From {} | Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                            status.Get_source(), epoch,
+                            self.status.Get_source(), epoch,
                             loss, val_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
                 else:
                     self.comm.send([val_acc, val_loss], dest=0)
