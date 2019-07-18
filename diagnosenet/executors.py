@@ -1441,7 +1441,7 @@ class Distibuted_MPI:
                     acc = acc_recv
                     loss = loss_recv
                     # compute the average of the gradients
-                    average_weights = [np.stack([g[0][i] for g in w], axis=0).mean(axis=0) for i in
+                    average_weights = [np.stack([g[0][i] for g in weight_collection], axis=0).mean(axis=0) for i in
                                        range(len(weight_collection[0][0]))]
                     # send it to the source of the last reception
                     source = status.Get_source()
