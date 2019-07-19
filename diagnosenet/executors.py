@@ -1445,7 +1445,7 @@ class Distibuted_MPI:
                                        range(len(weight_collection[0][0]))]
                     # send it to the source of the last reception
                     source = self.status.Get_source()
-                    comm.send(average_weights, dest=source)
+                    self.comm.send(average_weights, dest=source)
                 else:
                     self.comm.send([grads, acc, loss], dest=0)
                     _weights = self.comm.recv(source=0)
