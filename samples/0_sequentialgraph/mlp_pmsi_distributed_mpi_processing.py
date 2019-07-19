@@ -11,7 +11,7 @@ execution_start = time.time()
 import sys
 sys.path.append('../../')
 
-from diagnosenet.datamanager import MultiTask, Batching
+from diagnosenet.datamanager import Batching
 from diagnosenet.layers import Relu, Linear
 from diagnosenet.losses import CrossEntropy
 from diagnosenet.optimizers import Adam
@@ -49,16 +49,16 @@ data_config_1 = Batching(dataset_name="MCP-PMSI",
                         
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = Distibuted_MPI(model=mlp_model,
-                            datamanager=data_config_1,
-                            monitor=enerGyPU(machine_type="arm"),
-                            max_epochs=2,
-                            min_loss=2.0)
+                          datamanager=data_config_1,
+                          monitor=enerGyPU(machine_type="arm"),
+                          max_epochs=30,
+                          min_loss=2.0)
 
 ## 5) Uses the platform modes for training in an efficient way
-platform.synchronous_training(dataset_name="MCP-PMSI",
-                                dataset_path="dataset/",
-                                inputs_name="patients_features.txt",
-                                targets_name="medical_targets.txt")
+platform.asynchronous_training(dataset_name="MCP-PMSI",
+                               dataset_path="dataset/",
+                               inputs_name="patients_features.txt",
+                               targets_name="medical_targets.txt")
 
 print("Execution Time: {}".format((time.time()-execution_start)))
 
