@@ -1431,7 +1431,7 @@ class Distibuted_MPI:
                         loss += train_loss / len(train.input_files)
                 if self.rank == 0:
                     weight_collection = []
-                    weight_recv, acc_recv, loss_recv = self.comm.recv(source=MPI.ANY_SOURCE, status=self.status)
+                    weight_recv, acc_recv, loss_recv = self.comm.recv(source=MPI.ANY_SOURCE, status=self.status, tag=0)
                     # if this is the first epoch, we don't have previous weights
                     if epoch == 0:
                         model_weights = weight_recv
@@ -1445,10 +1445,10 @@ class Distibuted_MPI:
                                        range(len(weight_collection[0]))]
                     # send it to the source of the last reception
                     source = self.status.Get_source()
-                    self.comm.send(average_weights, dest=source)
+                    self.comm.send(average_weights, dest=source, tag=1)
                 else:
-                    self.comm.send([grads, acc, loss], dest=0)
-                    _weights = self.comm.recv(source=0)
+                    self.comm.send([grads, acc, loss], dest=0, tag=0)
+                    _weights = self.comm.recv(source=0, tag=1)
                     feed_dict = {}
                     self.model._gradients = _weights
                     for i, placeholder in enumerate(self.model._grad_placeholders):
@@ -1480,13 +1480,13 @@ class Distibuted_MPI:
 
                 epoch_elapsed = (time.time() - epoch_start)
                 if self.rank == 0:
-                    val_acc, val_loss = self.comm.recv(source=MPI.ANY_SOURCE, status=self.status)
+                    val_acc, val_loss = self.comm.recv(source=MPI.ANY_SOURCE, status=self.status, tag=2)
                     logger.info(
                         "From {} | Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
                             self.status.Get_source(), epoch,
                             loss, val_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
                 else:
-                    self.comm.send([val_acc, val_loss], dest=0)
+                    self.comm.send([val_acc, val_loss], dest=0, tag=2)
                 self.training_track.append((epoch, loss, val_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
                 epoch = epoch + 1
@@ -1507,9 +1507,9 @@ class Distibuted_MPI:
 
                 if self.rank == 0:
                     for i in range(1, self.size):
-                        self.comm.send([epoch_convergence, update_flag], dest=i)
+                        self.comm.send([epoch_convergence, update_flag], dest=i, tag=3)
                 else:
-                    epoch_convergence, update_flag = self.comm.recv(source=0)
+                    epoch_convergence, update_flag = self.comm.recv(source=0, tag=3)
                     if update_flag == True:
                         self.best_model_weights = model_weights
 
@@ -1546,12 +1546,12 @@ class Distibuted_MPI:
             if self.rank == 0:
                 test_true_1hot, test_pred_probas, test_pred_1hot = [], [], []
                 for i in range(1, self.size):
-                    tmp1, tmp2, tmp3 = self.comm.recv(source=i)
+                    tmp1, tmp2, tmp3 = self.comm.recv(source=i, tag=4)
                     test_pred_probas.append(np.vstack(tmp1))
                     test_pred_1hot.append(np.vstack(tmp2))
                     test_true_1hot.append(np.vstack(tmp3))
             else:
-                self.comm.send([test_pred_probas, test_pred_1hot, test_true_1hot], dest=0)
+                self.comm.send([test_pred_probas, test_pred_1hot, test_true_1hot], dest=0, tag=4)
 
             self.test_pred_probas = np.vstack(test_pred_probas)
             self.test_pred_1hot = np.vstack(test_pred_1hot)
