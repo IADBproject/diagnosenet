@@ -46,14 +46,12 @@ class Dataset:
             if 'numpy' in str(type(inputs)):
                 self.inputs = inputs
                 self.targets = targets
-                self.targets = np.eye(len(self.targets))[self.targets]
             elif 'list' in str(type(inputs)):
                 ## Convert a list to a numpy ndarray
                 self.inputs = pd.DataFrame(inputs)
                 self.inputs = np.asarray(self.inputs[0].str.split(',').tolist())
                 self.targets = pd.DataFrame(targets)
                 self.targets = np.asarray(self.targets[0].str.split(',').tolist())
-                self.targets = np.eye(len(self.targets))[self.targets]
             else:
                 raise AttributeError("set_data_file(inputs, targets) requires: numpy, pandas or list ")
 
