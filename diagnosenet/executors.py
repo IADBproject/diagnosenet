@@ -1455,7 +1455,7 @@ class Distibuted_MPI:
                         feed_dict[placeholder] = self.model._gradients[i]
 
                     sess.run(self.model._train_op, feed_dict=feed_dict)
-                    update_weight = feed_dict
+                    model_weights = feed_dict
 
                 if self.rank != 0:
                     for i in range(len(valid.input_files)):
@@ -1511,7 +1511,7 @@ class Distibuted_MPI:
                 else:
                     epoch_convergence, update_flag = self.comm.recv(source=0)
                     if update_flag == True:
-                        self.best_model_weights = update_weight
+                        self.best_model_weights = model_weights
 
                 ### end While loop
             self.time_training = time.time() - training_start
