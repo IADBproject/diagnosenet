@@ -4,16 +4,17 @@ It provides an isolation to fine-tuning different neural network hyper-parameter
 """
 
 import collections
-from typing import Iterator, NamedTuple, List
+import glob
+import logging
+import os.path
+from typing import NamedTuple, List
 
-import glob, os.path
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from diagnosenet.io_functions import IO_Functions
 
-import logging
 logger = logging.getLogger('_DiagnoseNET_')
 
 DataSplit = collections.namedtuple('DataSplit', 'name inputs targets')
@@ -45,12 +46,14 @@ class Dataset:
             if 'numpy' in str(type(inputs)):
                 self.inputs = inputs
                 self.targets = targets
+                self.targets = np.eye(len(self.targets))[self.targets]
             elif 'list' in str(type(inputs)):
                 ## Convert a list to a numpy ndarray
                 self.inputs = pd.DataFrame(inputs)
                 self.inputs = np.asarray(self.inputs[0].str.split(',').tolist())
                 self.targets = pd.DataFrame(targets)
                 self.targets = np.asarray(self.targets[0].str.split(',').tolist())
+                self.targets = np.eye(len(self.targets))[self.targets]
             else:
                 raise AttributeError("set_data_file(inputs, targets) requires: numpy, pandas or list ")
 
