@@ -1453,6 +1453,7 @@ class Distibuted_MPI:
                     self.model._gradients = _weights
                     for i, placeholder in enumerate(self.model._grad_placeholders):
                         feed_dict[placeholder] = self.model._gradients[i]
+
                     sess.run(self.model._train_op, feed_dict=feed_dict)
                     update_weight = feed_dict
 
@@ -1638,15 +1639,17 @@ class Distibuted_MPI:
                         weight_collection.append(weight_recv)
                         acc+=acc_recv/(self.size-1)
                         loss+=loss_recv/(self.size-1)
+                    average_weights = [np.stack([g[0][i] for g in weight_collection], axis=0).mean(axis=0) for i in
+                                       range(len(weight_collection[0][0]))]
                     for i in range(1, self.size):
-                        self.comm.send(weight_collection, dest=i)
+                        self.comm.send(average_weights, dest=i)
                 else:
                     self.comm.send([grads,acc,loss], dest=0)
                     _weights = self.comm.recv(source=0)
                     feed_dict = {}
                     self.model._gradients=_weights
                     for i, placeholder in enumerate(self.model._grad_placeholders):
-                        feed_dict[placeholder] = np.stack([g[i] for g in self.model._gradients], axis=0).mean(axis=0)
+                        feed_dict[placeholder] = self.model._gradients[i]
                     sess.run(self.model._train_op, feed_dict=feed_dict)
                     update_weight = feed_dict
 

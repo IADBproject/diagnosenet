@@ -55,10 +55,10 @@ platform = Distibuted_MPI(model=mlp_model,
                           min_loss=2.0)
 
 ## 5) Uses the platform modes for training in an efficient way
-platform.asynchronous_training(dataset_name="MCP-PMSI",
-                               dataset_path="dataset/",
-                               inputs_name="patients_features.txt",
-                               targets_name="medical_targets.txt")
+platform.synchronous_training(dataset_name="MCP-PMSI",
+                              dataset_path="dataset/",
+                              inputs_name="patients_features.txt",
+                              targets_name="medical_targets.txt")
 
 print("Execution Time: {}".format((time.time()-execution_start)))
 
