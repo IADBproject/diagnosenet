@@ -32,7 +32,11 @@ model = CustomGraph(input_size_1=1300,input_size_2=1, output_size=4,
                         loss=CrossEntropy,
                         optimizer=Adam(lr=0.0001),layers=layer_1)
 
-projection = DesktopExecution(model,datamanager=data_config,monitor=enerGyPU(machine_type="arm",file_path=file_path), max_epochs=2, min_loss=0.5)
+projection = DesktopExecution(model,
+                        datamanager=data_config,
+                        monitor=enerGyPU(machine_type="arm",file_path=file_path), 
+                        max_epochs=2, min_loss=0.5)
+
 projection.training_memory(inputs, targets)
 
 print("Execution Time: {}".format((time.time()-execution_start)))

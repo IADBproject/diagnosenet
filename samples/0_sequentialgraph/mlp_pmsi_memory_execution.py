@@ -51,8 +51,8 @@ data_config = MultiTask(dataset_name="MCP-PMSI",
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model_1,
                             datamanager=data_config,
-                            monitor=enerGyPU(machine_type="arm",file_path=file_path),
-                            max_epochs=1,
+                            monitor=enerGyPU(machine_type="arm", file_path=file_path),
+                            max_epochs=2,
                             min_loss=0.02)
 
 ### Read the PMSI-Dataset using Pickle from diagnosenet.io_functions

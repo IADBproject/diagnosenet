@@ -53,7 +53,7 @@ data_config = MultiTask(dataset_name="MCP-PMSI",
 platform = DesktopExecution(model=mlp_model,
                             datamanager=data_config,
                             monitor=enerGyPU(machine_type="arm",file_path=file_path),
-                            max_epochs=2,
+                            max_epochs=1,
                             min_loss=2.0)
 
 ## 5) Uses the platform modes for training in an efficient way
