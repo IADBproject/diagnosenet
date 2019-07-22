@@ -476,7 +476,7 @@ class Distibuted_GRPC:
     """
 
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                    max_epochs: int = 10, min_loss: float = 2.0,
+                    max_epochs: int = 10, min_loss: float = 99999, early_stopping: int = 5,
                     ip_ps: str = "localhost:2222",
                     ip_workers: str = "localhost:2223") -> None:
 
@@ -484,6 +484,7 @@ class Distibuted_GRPC:
         self.data = datamanager
         self.max_epochs = max_epochs
         self.min_loss = min_loss
+        self.early_stopping = early_stopping
         self.monitor = monitor
 
         ## Use Hosts IPs to set a tensorflow cluster object
@@ -551,6 +552,12 @@ class Distibuted_GRPC:
         ## Start platform recording
         if self.monitor.platform_recording == True: self.monitor.start_platform_recording(os.getpid())
 
+        ## Get GPU availeble and set for processing
+        #self.idgpu = self.monitor._get_available_GPU()
+        self.idgpu = "0"
+        #os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+        #os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
+
         ## Time recording
         self.time_latency = time.time()-latency_start
 
@@ -599,30 +606,27 @@ class Distibuted_GRPC:
         """
         Training the deep neural network exploit the memory on desktop machine
         """
-        ### Training Start
-        training_start = time.time()
-
         ## Set processing_mode flat
-        self.processing_mode = "distributed_processing"
-
+        self.processing_mode = "distributed_GRPC_async_processing"
 
         ## Define the machine rol = input flags
         ## start a server for a specific task
         self.job_name = job_name
         self.task_index = task_index
-        print("+++ self.job_name: {} || self.task_index: {} +++".format(self.job_name, type(self.task_index)))
-
-
+        #print("+++ self.job_name: {} || self.task_index: {} +++".format(self.job_name, type(self.task_index)))
         self.server = tf.train.Server(self.tf_cluster,
                                         job_name = self.job_name,
                                         task_index = self.task_index)
 
         ## Set Monitor Recording
-        # self.set_monitor_recording()
+        self.set_monitor_recording()
 
         ## Set dataset on memory
         train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
                                                     inputs_name, targets_name)
+
+        ### Training Start
+        training_start = time.time()
 
         if job_name ==  "ps":
             sess = tf.Session(self.server.target)
@@ -655,8 +659,13 @@ class Distibuted_GRPC:
         
                  with sv.managed_session(self.server.target) as sess:
         
-                     epoch = 0
-                     while not sv.should_stop() and (epoch < self.max_epochs):
+                     #epoch = 0
+                     epoch: int = 0
+                     not_update = 0
+                     #saver = tf.train.Saver()
+                     epoch_convergence: bin = 0
+                     print("**** epoch_convergence: {}".format(epoch_convergence))
+                     while epoch_convergence == 0:	#(epoch < self.max_epochs):
                           epoch_start = time.time()
         
                           for i in range(len(train.input_files)):
@@ -703,7 +712,24 @@ class Distibuted_GRPC:
                           logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
                                                     train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                           self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-                          epoch = epoch + 1
+
+#############
+                          epoch = epoch + 1                
+                          if  valid_loss <= self.min_loss:
+                              self.min_loss = valid_loss
+                              self.convergence_time = time.time()-training_start
+                              update_flag=True
+                          else:
+                              not_update +=1
+
+                          ## While Stopping conditional
+                          if not_update >= self.early_stopping or epoch == self.max_epochs:
+                              self.max_epochs=epoch
+                              if self.job_name == 'worker':
+                                  epoch_convergence = 1
+                              else:
+                                  epoch_convergence = 0
+#############
 
                           ### end While loop
 
@@ -754,204 +780,75 @@ class Distibuted_GRPC:
                      self.time_testing = time.time()-testing_start
                      
                      ## Write metrics on testbet directory = self.monitor.testbed_exp
-                     #if self.monitor.write_metrics == True: self.write_metrics()
+                     if self.monitor.write_metrics == True: self.write_metrics()
 
         
-                 ## signal to ps shards that we are done
-                 #for op in enq_ops:
-                 #    sess.run(op)
-                 #print('-- Done! --')
+                     ## signal to ps shards that we are done
+                     for op in enq_ops:
+                          sess.run(op)
+                     print('-- Done! --')
                  sv.stop()
             sess.close()
             print("-- session finish --")
 
 
-
-
-
-
-
-
-    def between_graph_replication(self, dataset_name: str, dataset_path: str,
-                        inputs_name: str, targets_name: str,
-                        num_ps: int = 1, num_workers: int = 1) -> tf.Tensor:
+    def write_metrics(self) -> None:
         """
-        Training the deep neural network exploit the memory on desktop machine
-        https://github.com/tensorflow/examples/blob/master/community/en/docs/deploy/distributed.md
+        Uses Testbed to isolate the training metrics by experiment directory
         """
-        ### Training Start
-        training_start = time.time()
+        metrics_start = time.time()
 
-        ## Set processing_mode flat
-        self.processing_mode = "distributed_processing"
-        self.num_ps = num_ps
-        self.num_workers = num_workers
+        ## Writes the training and validation track
+        track_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-training_track.txt")
+        IO_Functions()._write_list(self.training_track, track_path)
 
-        #############################
-        ## Build a tf_ps collection
-        tf_ps = []
-        [tf_ps.append(str(self.ip_ps[i]+":2222")) for i in range(num_ps)]
-        # tf_ps=','.join(tf_ps)
+        ## Writes the Test labels
+        true_1h_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-true_1hot.txt")
+        np.savetxt(true_1h_path, self.test_true_1hot, delimiter=',', fmt='%d')
 
-        #############################
-        ## Build a tf_workers collection
-        tf_workers = []
-        [tf_workers.append(str(self.ip_workers[i]+":2222")) for i in range(num_workers)]
-        # tf_workers=','.join(tf_workers)
+        pred_1h_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-pred_1hot.txt")
+        np.savetxt(pred_1h_path, self.test_pred_1hot, delimiter=',', fmt='%d')
 
-        ## A collection of tf_ps nodes
-        print("++ PS collection: {}".format(tf_ps))
-        print("++ Workers collection: {}".format(tf_workers))
+        pred_probas_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-pred_probas.txt")
+        np.savetxt(pred_probas_path, self.test_pred_probas, delimiter=',', fmt='%f')
 
-        self.cluster = tf.train.ClusterSpec({
-                                        "ps": tf_ps,
-                                        "worker": tf_workers
-                                        })
+        ## Writes Summarize Metrics
+        metrics_values_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-metrics_values.txt")
+        np.savetxt(metrics_values_path, self.metrics_values, delimiter=',', fmt='%d')
 
+        ### Add elements to json experiment Description architecture
+        eda_json = self.monitor.read_eda_json(self.monitor.testbed_exp, self.monitor.exp_id)
 
-        print("cluster: {}".format(self.cluster))
-        print("ps: {} || worker: {}".format(self.ip_ps, self.ip_workers))
-        # print("job_name: {} || tasks_inde: {}".format(self.job_name, self.task_index))
-        print("ps num: {} || workers num: {}".format(num_ps, num_workers))
+        ## Add values to platform_parameters
+        eda_json['model_hyperparameters']['max_epochs'] = self.max_epochs
 
+        ## Add dataset shape as number of records (inputs, targets)
+        eda_json['dataset_config']['train_records'] = str(self.data.train_shape)
+        eda_json['dataset_config']['valid_records'] = str(self.data.valid_shape)
+        eda_json['dataset_config']['test_records'] = str(self.data.test_shape)
 
-        ###################################################################
-        ### Define role for distributed processing
-        print("++ Issue: Define role for distributed processing ++")
+        ## Add values to platform_parameters
+        eda_json['platform_parameters']['processing_mode'] = self.processing_mode
+        eda_json['platform_parameters']['gpu_id'] = self.idgpu[0]
+        eda_json['platform_parameters']['processing_job_name'] = self.job_name
+        eda_json['platform_parameters']['processing_task_index'] = self.task_index
+        #eda_json['platform_parameters']['processing_host_name'] = self.myhost
 
-        ##############################
-        #Building ps job replicas
-        job_PS_replicas = []
-        [job_PS_replicas.append({"node": self.ip_ps[i],
-                            "tf_cluster": self.cluster,
-                            "job_name": "ps",
-                            "task_index": i}
-                            )for i in range(len(self.ip_ps))]
+        ## Add values to results
+        eda_json['results']['f1_score_weigted'] = self.test_f1_weighted
+        eda_json['results']['f1_score_micro'] = self.test_f1_micro
+        eda_json['results']['loss_validation'] = str(self.min_loss)
+        eda_json['results']['time_latency'] = self.time_latency
+        eda_json['results']['time_dataset'] = self.time_dataset
+        eda_json['results']['time_training'] = self.time_training
+        eda_json['results']['time_convergence'] = self.convergence_time
 
-        job_WORKER_replicas = []
-        [job_WORKER_replicas.append({"node": self.ip_workers[i],
-                            "tf_cluster": self.cluster,
-                            "job_name": "worker",
-                            "task_index": i}
-                            )for i in range(len(self.ip_workers))]
-
-        print(job_PS_replicas)
-        print(job_WORKER_replicas)
+        ## End time metrics
 
 
 
-	####################################################
-        ## Add model training
-#        with tf.Session(graph=self.model.graph) as sess:
-#            init = tf.group(tf.global_variables_initializer(),
-#                                tf.local_variables_initializer())
-#            sess.run(init)
-#
-#            epoch: int = 0
-#            epoch_convergence: bin = 0
-#            while (epoch_convergence == 0):
-#                epoch_start = time.time()
-#
-#                for i in range(len(train.input_files)):
-#                    train_inputs = IO_Functions()._read_file(train.input_files[i])
-#                    train_targets = IO_Functions()._read_file(train.target_files[i])
-#                    ## Convert list in a numpy matrix
-#                    train_batch = Dataset()
-#                    train_batch.set_data_file(train_inputs, train_targets)
-#
-#                    train_loss, _ = sess.run([self.model.loss, self.model.grad_op],
-#                                        feed_dict={self.model.X: train_batch.inputs,
-#                                                    self.model.Y: train_batch.targets,
-#                                                    self.model.keep_prob: self.model.dropout})
-#                    train_pred = sess.run(self.model.projection_1hot,
-#                                                feed_dict={self.model.X: train_batch.inputs,
-#                                                self.model.keep_prob: self.model.dropout})
-#                    ## F1_score from Skit-learn metrics
-#                    train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
-#                                                y_pred=train_pred.astype(np.float), average='micro')
-#
-#                for i in range(len(valid.input_files)):
-#                    valid_inputs = IO_Functions()._read_file(valid.input_files[i])
-#                    valid_targets = IO_Functions()._read_file(valid.target_files[i])
-#                    ## Convert list in a numpy matrix
-#                    valid_batch= Dataset()
-#                    valid_batch.set_data_file(valid_inputs, valid_targets)
-#
-#                    valid_loss = sess.run(self.model.loss,
-#                                        feed_dict={self.model.X: valid_batch.inputs,
-#                                                    self.model.Y: valid_batch.targets,
-#                                                    self.model.keep_prob: 1.0})
-#                    valid_pred = sess.run(self.model.projection_1hot,
-#                                        feed_dict={self.model.X: valid_batch.inputs,
-#                                                    self.model.keep_prob: 1.0})
-#                    ## F1_score from Skit-learn metrics
-#                    valid_acc = f1_score(y_true=valid_batch.targets.astype(np.float),
-#                                            y_pred=valid_pred.astype(np.float), average='micro')
-#
-#
-#                epoch_elapsed = (time.time() - epoch_start)
-#                logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
-#                                                        train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-#                self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-#                epoch = epoch + 1
-#
-#                ## While Convergence conditional
-#                if valid_loss <= self.min_loss or epoch == self.max_epochs:
-#                    epoch_convergence = 1
-#                    self.max_epochs=epoch
-#                    self.min_loss=valid_loss
-#                else:
-#                    epoch_convergence = 0
-#                ### end While loop
-#            self.time_training = time.time()-training_start
-#
-#            ### Testing Starting
-#            testing_start = time.time()
-#
-#            if len(test.input_files) != 0:
-#                test_pred_probas: list = []
-#                test_pred_1hot: list = []
-#                test_true_1hot: list = []
-#
-#                for i in range(len(test.input_files)):
-#                    test_inputs = IO_Functions()._read_file(test.input_files[i])
-#                    test_targets = IO_Functions()._read_file(test.target_files[i])
-#                    ## Convert list in a numpy matrix
-#                    test_batch = Dataset()
-#                    test_batch.set_data_file(test_inputs, test_targets)
-#
-#                    tt_pred_probas = sess.run(self.model.soft_projection,
-#                                    feed_dict={self.model.X: test_batch.inputs,
-#                                                self.model.keep_prob: 1.0})
-#                    tt_pred_1hot = sess.run(self.model.projection_1hot,
-#                                    feed_dict={self.model.X: test_batch.inputs,
-#                                                self.model.keep_prob: 1.0})
-#
-#                    test_pred_probas.append(tt_pred_probas)
-#                    test_pred_1hot.append(tt_pred_1hot)
-#                    test_true_1hot.append(test_batch.targets.astype(np.float))
-#
-#                self.test_pred_probas = np.vstack(test_pred_probas)
-#                self.test_pred_1hot = np.vstack(test_pred_1hot)
-#                self.test_true_1hot = np.vstack(test_true_1hot)
-#
-#                ## Compute the F1 Score
-#                self.test_f1_weighted = f1_score(self.test_true_1hot,
-#                                                    self.test_pred_1hot, average = "weighted")
-#                self.test_f1_micro = f1_score(self.test_true_1hot,
-#                                                    self.test_pred_1hot, average = "micro")
-#                logger.info("-- Test Results --")
-#                logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
-#                logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
-#
-#                ## compute_metrics by each label
-#                self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
-#                                                            y_true=self.test_true_1hot)
-#                self.time_testing = time.time()-testing_start
-#
-#                return self.test_pred_probas
-#
-#            return train_pred
+
+
 
 
 
