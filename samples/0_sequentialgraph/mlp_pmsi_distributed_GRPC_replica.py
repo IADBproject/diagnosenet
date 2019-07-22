@@ -7,7 +7,9 @@ import os, sys, socket, time
 
 ## Makes diagnosenet library visible in samples folder
 import sys
-sys.path.append('/home/mpiuser/cloud/diagnosenet/')
+file_path = "/home/mpiuser/cloud/diagnosenet/"
+sys.path.append(file_path)
+#sys.path.append('/home/mpiuser/cloud/diagnosenet/')
 
 from diagnosenet.io_functions import IO_Functions
 
@@ -61,15 +63,14 @@ def main(argv):
     ## 3) Dataset configurations for splitting, batching and target selection
     data_config_1 = Batching(dataset_name="MCP-PMSI",
                         valid_size=0.05, test_size=0.10,
-                        devices_number=3,
+                        devices_number=2,	#3,
                         batch_size=100)
 
     ## 4) Select the computational platform and pass the DNN and Dataset configurations
     platform = Distibuted_GRPC(model=mlp_model,
                              datamanager=data_config_1,
-                             monitor=enerGyPU(machine_type="arm"),
-                             max_epochs=10,
-                             min_loss=0.2,
+                             monitor=enerGyPU(machine_type="arm",file_path=file_path),
+                             max_epochs=4,
                              ip_ps=argv[2],
                              ip_workers=temp_workers)	#argv[1])
 

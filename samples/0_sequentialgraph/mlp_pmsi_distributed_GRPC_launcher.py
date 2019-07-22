@@ -20,9 +20,8 @@ distributed_training = ResourceManager()
 
 distributed_training.between_graph_replication(device_replica_path="/home/mpiuser/cloud/diagnosenet/samples/0_sequentialgraph/",
                                     device_replica_name="mlp_pmsi_distributed_GRPC_replica.py",
-                                    ip_ps="134.59.132.135", ip_workers="134.59.132.20,134.59.132.21,134.59.132.22",
-                                    num_ps=1, num_workers=3)
-
+                                    ip_ps="134.59.132.135", ip_workers="134.59.132.20,134.59.132.21",	#,134.59.132.22",
+                                    num_ps=1, num_workers=2)
 
 
 print("Execution Time: {}".format((time.time()-execution_start)))
