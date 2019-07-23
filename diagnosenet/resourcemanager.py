@@ -51,14 +51,12 @@ class ResourceManager():
         return tf.train.ClusterSpec({"ps": tf_ps, "worker": tf_workers})
 
 
-
     def run_device_replica(self, user_name, host_name, device_replica, job_replica):
         """
         Subprocess by device job replica
         """
         #print("++ ssh: {}  || job_replica: {}".format(str(user_name+"@"+host_name), job_replica))
         sp.call(["ssh", str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
-
 
 
     async def queue_device_tasks(self, executor):
@@ -74,8 +72,6 @@ class ResourceManager():
 				 self.device_replica_, self.job_DEVICE_replicas[i]) for i in range(self.devices_num)]
 
         completed, peding = await asyncio.wait(tasks)
-
-
 
 
     def between_graph_replication(self, device_replica_path: str, device_replica_name: str,

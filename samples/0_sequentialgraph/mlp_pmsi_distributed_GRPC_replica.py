@@ -8,12 +8,10 @@ import os, sys, socket, time
 ## Makes diagnosenet library visible in samples folder
 import sys
 file_path = "/home/mpiuser/cloud/diagnosenet/"
+#file_path = "../../"
 sys.path.append(file_path)
-#sys.path.append('/home/mpiuser/cloud/diagnosenet/')
 
 from diagnosenet.io_functions import IO_Functions
-
-
 from diagnosenet.datamanager import MultiTask, Batching
 from diagnosenet.layers import Relu, Linear
 from diagnosenet.losses import CrossEntropy
@@ -69,8 +67,9 @@ def main(argv):
     ## 4) Select the computational platform and pass the DNN and Dataset configurations
     platform = Distibuted_GRPC(model=mlp_model,
                              datamanager=data_config_1,
-                             monitor=enerGyPU(machine_type="arm",file_path=file_path),
-                             max_epochs=4,
+                             monitor=enerGyPU(testbed_path="/home/mpiuser/cloud/diagnosenet/samples/0_sequentialgraph/testbed",
+                                              machine_type="arm", file_path=file_path),
+                             max_epochs=2,
                              ip_ps=argv[2],
                              ip_workers=temp_workers)	#argv[1])
 

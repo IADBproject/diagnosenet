@@ -239,7 +239,8 @@ class enerGyPU(Testbed):
     while the DNN model is executed on the target platform.
     """
     def __init__(self, testbed_path: str = "testbed",	#"enerGyPU/testbed", 
-                                machine_type: str = "x86",file_path: str = "",
+                                machine_type: str = "x86",
+                                file_path: str = "",
                                 write_metrics: bool = True,
                                 power_recording: bool = True,
                                 platform_recording: bool = True) -> None:
@@ -249,6 +250,7 @@ class enerGyPU(Testbed):
         self.platform_recording = platform_recording
         self.idgpu_available: list = []
         self.file_path = file_path
+        #print("*** self.file_path: {} ***".format(self.file_path))
 
 
     def _get_available_GPU(self) -> list:
@@ -283,8 +285,8 @@ class enerGyPU(Testbed):
         if self.machine_type=="x86":
             sp.run([str(self.file_path+"enerGyPU/dataCapture/enerGyPU_record.sh"), self.testbed_exp, self.exp_id])
         else:
-            sp.run([str(self.file_path+"enerGyPU/dataCapture/enerGyPU_record-jetson.sh"), self.testbed_exp, self.exp_id, self.file_path])
-            #print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+            sp.run(["sudo", str(self.file_path+"enerGyPU/dataCapture/enerGyPU_record-jetson.sh"), self.testbed_exp, self.exp_id, self.file_path])
+
     def end_power_recording(self) -> None:
         """
         Kill the subprocess enerGyPU_record.
@@ -294,6 +296,7 @@ class enerGyPU(Testbed):
         else:
             #print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
             sp.call("sudo killall -9 tegrastats",shell=True)
+
     def start_platform_recording(self, pid) -> None:
         """
         Subprocess recording for memory and cpu usage while the models are training

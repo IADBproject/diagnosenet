@@ -505,7 +505,7 @@ class Distibuted_GRPC:
         ## splitting the IP hosts
         ip_ps = ip_ps.split(",")		## Before *.split(",")
         ip_workers = ip_workers.split(",")	## Before *.split(",")
-        print("++++ ip_ workers: {}".format(ip_workers))
+        #print("++++ ip_ workers: {}".format(ip_workers))
 
         self.num_ps = len(ip_ps)
         self.num_workers = len(ip_workers)
@@ -514,13 +514,13 @@ class Distibuted_GRPC:
         tf_ps = []
         [tf_ps.append(str(ip_ps[i]+":2222")) for i in range(len(ip_ps))]
         # tf_ps=','.join(tf_ps)
-        print("++ tf_ps: ",tf_ps)
+        #print("++ tf_ps: ",tf_ps)
 
         ## Build a tf_workers collection
         tf_workers = []
         [tf_workers.append(str(ip_workers[i]+":2222")) for i in range(len(ip_workers))]
         # tf_workers=','.join(tf_workers)
-        print("++ tf_workers: ", tf_workers)
+        #print("++ tf_workers: ", tf_workers)
 
         self.tf_cluster = tf.train.ClusterSpec({"ps": tf_ps,		# ["134.59.132.135:2222"], 
                                                 "worker": tf_workers}) 		# ["134.59.132.20:2222"]})
@@ -533,6 +533,7 @@ class Distibuted_GRPC:
         Power and performance monitoring launcher for workload characterization
         """
         latency_start = time.time()
+
         if self.monitor == None:
             self.monitor = enerGyPU(testbed_path="testbed",
                                 machine_type="x86",
@@ -613,7 +614,6 @@ class Distibuted_GRPC:
         ## start a server for a specific task
         self.job_name = job_name
         self.task_index = task_index
-        #print("+++ self.job_name: {} || self.task_index: {} +++".format(self.job_name, type(self.task_index)))
         self.server = tf.train.Server(self.tf_cluster,
                                         job_name = self.job_name,
                                         task_index = self.task_index)
@@ -664,7 +664,7 @@ class Distibuted_GRPC:
                      not_update = 0
                      #saver = tf.train.Saver()
                      epoch_convergence: bin = 0
-                     print("**** epoch_convergence: {}".format(epoch_convergence))
+                     #print("**** epoch_convergence: {}".format(epoch_convergence))
                      while epoch_convergence == 0:	#(epoch < self.max_epochs):
                           epoch_start = time.time()
         
@@ -772,8 +772,6 @@ class Distibuted_GRPC:
                      logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
                      logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
 
-
-
                      ## compute_metrics by each label
                      self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
                                                                y_true=self.test_true_1hot)
@@ -781,7 +779,6 @@ class Distibuted_GRPC:
                      
                      ## Write metrics on testbet directory = self.monitor.testbed_exp
                      if self.monitor.write_metrics == True: self.write_metrics()
-
         
                      ## signal to ps shards that we are done
                      for op in enq_ops:
@@ -789,7 +786,7 @@ class Distibuted_GRPC:
                      print('-- Done! --')
                  sv.stop()
             sess.close()
-            print("-- session finish --")
+            #print("-- session finish --")
 
 
     def write_metrics(self) -> None:
@@ -844,7 +841,22 @@ class Distibuted_GRPC:
         eda_json['results']['time_convergence'] = self.convergence_time
 
         ## End time metrics
+        self.time_metrics = time.time()-metrics_start
+        eda_json['results']['time_metrics'] = self.time_metrics
 
+        ## Serialize the eda json and rewrite the file
+        eda_json = json.dumps(eda_json, separators=(',', ': '), indent=2)
+        file_path = str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-exp_description.json")
+        IO_Functions()._write_file(eda_json, file_path)
+
+
+        ## End computational recording
+        self.monitor.end_platform_recording()
+
+        ## End power recording
+        self.monitor.end_power_recording()
+
+        logger.info("Tesbed directory: {}".format(self.monitor.testbed_exp))
 
 
 
