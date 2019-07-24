@@ -1289,7 +1289,7 @@ class Distibuted_MPI:
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
-        self.min_loss = 99999
+        self.min_loss = min_loss
         self.early_stopping = early_stopping
         self.monitor = monitor
 
@@ -1506,8 +1506,7 @@ class Distibuted_MPI:
                     epoch_convergence = 0
 
                 if self.rank == 0:
-                    for i in range(1, self.size):
-                        self.comm.send([epoch_convergence, update_flag], dest=i, tag=3)
+                    self.comm.send([epoch_convergence, update_flag], dest=self.status.Get_source(), tag=3)
                 else:
                     epoch_convergence, update_flag = self.comm.recv(source=0, tag=3)
                     if update_flag == True:
