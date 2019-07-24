@@ -61,7 +61,7 @@ def main(argv):
     ## 3) Dataset configurations for splitting, batching and target selection
     data_config_1 = Batching(dataset_name="MCP-PMSI",
                         valid_size=0.05, test_size=0.10,
-                        devices_number=2,	#3,
+                        devices_number=4,
                         batch_size=100)
 
     ## 4) Select the computational platform and pass the DNN and Dataset configurations
@@ -69,7 +69,7 @@ def main(argv):
                              datamanager=data_config_1,
                              monitor=enerGyPU(testbed_path="/home/mpiuser/cloud/diagnosenet/samples/0_sequentialgraph/testbed",
                                               machine_type="arm", file_path=file_path),
-                             max_epochs=2,
+                             max_epochs=10,
                              ip_ps=argv[2],
                              ip_workers=temp_workers)	#argv[1])
 

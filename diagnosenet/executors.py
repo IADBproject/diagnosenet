@@ -559,7 +559,7 @@ class Distibuted_GRPC:
 #        else:
 #            ip_host = self.ip_workers[self.task_index]
 #        print("**** IP-host for bandwidth: {} ****".format(ip_host))
-        if self.job_name == "worker":
+        if self.job_name == "worker":	#"worker":
             #print("**** IP-host for bandwidth: {} ****".format(self.ip_workers[self.task_index])) 
             self.monitor.start_bandwidth_recording(self.ip_ps[0])
         else:
