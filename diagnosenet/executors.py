@@ -505,6 +505,8 @@ class Distibuted_GRPC:
         ## splitting the IP hosts
         ip_ps = ip_ps.split(",")		## Before *.split(",")
         ip_workers = ip_workers.split(",")	## Before *.split(",")
+        self.ip_ps = ip_ps
+        self.ip_workers = ip_workers
         #print("++++ ip_ workers: {}".format(ip_workers))
 
         self.num_ps = len(ip_ps)
@@ -549,6 +551,19 @@ class Distibuted_GRPC:
 
         ## Start power recording
         if self.monitor.power_recording == True: self.monitor.start_power_recording()
+
+
+        ## Start bandwith recording
+#        if self.job_name == "ps":
+#            ip_host = self.ip_ps[self.task_index]
+#        else:
+#            ip_host = self.ip_workers[self.task_index]
+#        print("**** IP-host for bandwidth: {} ****".format(ip_host))
+        if self.job_name == "worker":
+            #print("**** IP-host for bandwidth: {} ****".format(self.ip_workers[self.task_index])) 
+            self.monitor.start_bandwidth_recording(self.ip_ps[0])
+        else:
+            pass
 
         ## Start platform recording
         if self.monitor.platform_recording == True: self.monitor.start_platform_recording(os.getpid())
@@ -619,7 +634,10 @@ class Distibuted_GRPC:
                                         task_index = self.task_index)
 
         ## Set Monitor Recording
-        self.set_monitor_recording()
+        if self.job_name == "worker":
+            self.set_monitor_recording()
+        else:
+            pass
 
         ## Set dataset on memory
         train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
@@ -788,6 +806,19 @@ class Distibuted_GRPC:
             sess.close()
             #print("-- session finish --")
 
+        if self.job_name == "ps":
+            ## End computational recording
+            self.monitor.end_platform_recording()
+                 
+            ## End power recording
+            self.monitor.end_power_recording()
+                 
+            ## End bandwidth recording
+            self.monitor.end_bandwidth_recording()
+        else:
+            pass
+
+
 
     def write_metrics(self) -> None:
         """
@@ -855,6 +886,9 @@ class Distibuted_GRPC:
 
         ## End power recording
         self.monitor.end_power_recording()
+
+        ## End bandwidth recording
+        self.monitor.end_bandwidth_recording()
 
         logger.info("Tesbed directory: {}".format(self.monitor.testbed_exp))
 

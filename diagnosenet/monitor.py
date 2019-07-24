@@ -317,3 +317,20 @@ class enerGyPU(Testbed):
         #else:
         #    print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
 
+
+    def start_bandwidth_recording(self, ip_host) -> None:
+        """
+        Launches a subprocess for recording the bandwidth measures with respect to parameter server.
+        """
+        #print("***** Monitor - IP_host: {} *****".format(ip_host))
+        #print("***** Monitor - self.file_path: {} *****".format(str(self.file_path+"enerGyPU/dataCapture/enerGyPU_bandwidth.sh")))
+        sp.run([str(self.file_path+"enerGyPU/dataCapture/enerGyPU_bandwidth.sh"), self.testbed_exp, self.exp_id, ip_host])
+        #sp.run(["sudo", str(self.file_path+"enerGyPU/dataCapture/enerGyPU_record-jetson.sh"), self.testbed_exp, self.exp_id, self.file_path])
+
+    def end_bandwidth_recording(self) -> None:
+        """
+        Kill the enerGyPU_bandwidth subprocess.
+        """
+        sp.call("pkill -f 'grep'", shell=True)
+        sp.call("pkill -f 'bash -s'", shell=True)
+
