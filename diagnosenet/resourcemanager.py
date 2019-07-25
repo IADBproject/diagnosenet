@@ -56,7 +56,7 @@ class ResourceManager():
         Subprocess by device job replica
         """
         #print("++ ssh: {}  || job_replica: {}".format(str(user_name+"@"+host_name), job_replica))
-        sp.call(["ssh", str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
+        sp.call(["ssh", "-i", "/home/{}/.ssh/id_rsa".format(user_name), str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
 
 
     async def queue_device_tasks(self, executor):
