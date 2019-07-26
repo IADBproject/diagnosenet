@@ -11,6 +11,7 @@ from sklearn.metrics import f1_score
 import os, time
 import asyncio
 from concurrent import futures
+import platform
 
 import subprocess as sp
 import psutil, datetime, os
@@ -55,8 +56,12 @@ class ResourceManager():
         """
         Subprocess by device job replica
         """
-        #print("++ ssh: {}  || job_replica: {}".format(str(user_name+"@"+host_name), job_replica))
-        sp.call(["ssh", "-i", "/home/{}/.ssh/id_rsa".format(user_name), str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
+        ## If running on the array, force SSH to use mpiuser's SSH key
+        if platform.node().startswith("astro"):
+            print("Detected that we are running on the Astro array")
+            sp.call(["ssh", "-i", "/home/{}/.ssh/id_rsa".format(user_name), str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
+        else:
+            sp.call(["ssh", str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
 
 
     async def queue_device_tasks(self, executor):

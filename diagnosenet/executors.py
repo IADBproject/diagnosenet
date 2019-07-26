@@ -727,8 +727,7 @@ class Distibuted_GRPC:
                                                    y_pred=valid_pred.astype(np.float), average='micro')
 
                           epoch_elapsed = (time.time() - epoch_start)
-                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
-                                                    train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                           self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
 #############
