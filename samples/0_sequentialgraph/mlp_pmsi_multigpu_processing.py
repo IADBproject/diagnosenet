@@ -8,7 +8,8 @@ execution_start = time.time()
 
 ## Makes diagnosenet library visible in samples folder
 import sys
-sys.path.append('../../')
+file_path="../../"
+sys.path.append(file_path)
 
 from diagnosenet.io_functions import IO_Functions
 from diagnosenet.datamanager import MultiTask
@@ -49,6 +50,7 @@ data_config = MultiTask(dataset_name="W1-TEST_x1_x2_x3_x4_x5_x7_x8_Y1",
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = MultiGPU(model=mlp_model,
                     datamanager=data_config,
+                    monitor=enerGyPU(file_path=file_path),
                     gpus=2,
                     max_epochs=2)
 

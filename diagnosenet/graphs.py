@@ -53,8 +53,6 @@ class SequentialGraph:
         # self.reuse_vars: bool = False
         self.PS_OPS = ['Variable', 'VariableV2', 'AutoReloadVariable']
 
-
-
     def stacked(self, input_holder, keep_prob) -> tf.Tensor:
         for i in range(len(self.layers)):
             ## Prevention to use dropout in the projection layer
@@ -156,7 +154,7 @@ class SequentialGraph:
 
 
     ###################################
-    ## Warning: Building MultiGPU grpah
+    ## Warning: Developing MultiGPU grpah
     def stacked_multigpu(self, input_holder, keep_prob, reuse) -> tf.Tensor:
         """
         """

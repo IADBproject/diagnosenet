@@ -238,8 +238,9 @@ class enerGyPU(Testbed):
     This module deploys an energy monitor to collect the energy consumption metrics
     while the DNN model is executed on the target platform.
     """
-    def __init__(self, testbed_path: str = "enerGyPU/testbed", 
+    def __init__(self, testbed_path: str = "testbed",	#"enerGyPU/testbed", 
                                 machine_type: str = "x86",
+                                file_path: str = "",
                                 write_metrics: bool = True,
                                 power_recording: bool = True,
                                 platform_recording: bool = True) -> None:
@@ -248,6 +249,9 @@ class enerGyPU(Testbed):
         self.power_recording = power_recording
         self.platform_recording = platform_recording
         self.idgpu_available: list = []
+        self.file_path = file_path
+        #print("*** self.file_path: {} ***".format(self.file_path))
+
 
     def _get_available_GPU(self) -> list:
         """
@@ -279,9 +283,10 @@ class enerGyPU(Testbed):
         """
 
         if self.machine_type=="x86":
-            sp.run(["enerGyPU/dataCapture/enerGyPU_record.sh", self.testbed_exp, self.exp_id])
+            sp.run([str(self.file_path+"enerGyPU/dataCapture/enerGyPU_record.sh"), self.testbed_exp, self.exp_id])
         else:
-            print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+            sp.run(["sudo", str(self.file_path+"enerGyPU/dataCapture/enerGyPU_record-jetson.sh"), self.testbed_exp, self.exp_id, self.file_path])
+
     def end_power_recording(self) -> None:
         """
         Kill the subprocess enerGyPU_record.
@@ -289,7 +294,8 @@ class enerGyPU(Testbed):
         if self.machine_type=="x86":
             sp.call(["killall", "-9", "nvidia-smi"])
         else:
-            print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+            #print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+            sp.call("sudo killall -9 tegrastats",shell=True)
 
     def start_platform_recording(self, pid) -> None:
         """
@@ -297,10 +303,10 @@ class enerGyPU(Testbed):
         This function uses the library psutil-5.4.8
         """
         if self.machine_type=="x86":
-            self.proc_platform = sp.Popen(["python3.6", "enerGyPU/dataCapture/platform_record.py",
+            self.proc_platform = sp.Popen(["python3.6", str(self.file_path+"enerGyPU/dataCapture/platform_record.py"),
                                 str(pid), self.testbed_exp, self.exp_id])
-        else:
-            print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+        #else:
+        #    print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
 
     def end_platform_recording(self) -> None:
         """
@@ -308,6 +314,23 @@ class enerGyPU(Testbed):
         """
         if self.machine_type=="x86":
             self.proc_platform.kill()
-        else:
-            print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+        #else:
+        #    print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+
+
+    def start_bandwidth_recording(self, ip_host) -> None:
+        """
+        Launches a subprocess for recording the bandwidth measures with respect to parameter server.
+        """
+        #print("***** Monitor - IP_host: {} *****".format(ip_host))
+        #print("***** Monitor - self.file_path: {} *****".format(str(self.file_path+"enerGyPU/dataCapture/enerGyPU_bandwidth.sh")))
+        sp.run([str(self.file_path+"enerGyPU/dataCapture/enerGyPU_bandwidth.sh"), self.testbed_exp, self.exp_id, ip_host])
+        #sp.run(["sudo", str(self.file_path+"enerGyPU/dataCapture/enerGyPU_record-jetson.sh"), self.testbed_exp, self.exp_id, self.file_path])
+
+    def end_bandwidth_recording(self) -> None:
+        """
+        Kill the enerGyPU_bandwidth subprocess.
+        """
+        sp.call("pkill -f 'grep'", shell=True)
+        sp.call("pkill -f 'bash -s'", shell=True)
 

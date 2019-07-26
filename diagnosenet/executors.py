@@ -475,38 +475,20 @@ class Distibuted_GRPC:
     Returns:
     """
 
-
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                    max_epochs: int = 10, min_loss: float = 2.0,
-                    ip_ps: str = "134.59.132.135:2222",
-                    ip_workers: str = "134.59.132.20:2222") -> None:
+                    max_epochs: int = 10, min_loss: float = 99999, early_stopping: int = 5,
+                    ip_ps: str = "localhost:2222",
+                    ip_workers: str = "localhost:2223") -> None:
+
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
         self.min_loss = min_loss
+        self.early_stopping = early_stopping
         self.monitor = monitor
 
-        ## Distributed variables
-        self.ip_ps = ip_ps.split(",")
-        self.ip_workers = ip_workers.split(",")
-        self.num_ps = 0
-        self.num_workers = 0
-
-        ## Distributed Setup
-        self.cluster = tf.train.ClusterSpec({
-                                        "ps": self.ip_ps,
-                                        "worker": self.ip_workers
-                                        })
-
-        self.job_name =	"worker" 	#["ps", "worker", "worker"]
-        self.task_index = 0	#[0, 0, 1]
-
-        ## Define the machine rol = input flags
-        ## start a server for a specific task
-        self.server = tf.train.Server(self.cluster,
-                                        job_name = self.job_name,
-                                        task_index = self.task_index)
-
+        ## Use Hosts IPs to set a tensorflow cluster object
+        self.set_tf_cluster(ip_ps, ip_workers)
 
         ## Time logs
         self.time_latency: time()
@@ -519,11 +501,41 @@ class Distibuted_GRPC:
         self.processing_mode: str
         self.training_track: list = []
 
+    def set_tf_cluster(self, ip_ps, ip_workers) -> tf.Tensor:
+        ## splitting the IP hosts
+        ip_ps = ip_ps.split(",")		## Before *.split(",")
+        ip_workers = ip_workers.split(",")	## Before *.split(",")
+        self.ip_ps = ip_ps
+        self.ip_workers = ip_workers
+        #print("++++ ip_ workers: {}".format(ip_workers))
+
+        self.num_ps = len(ip_ps)
+        self.num_workers = len(ip_workers)
+
+        ## Build a tf_ps collection
+        tf_ps = []
+        [tf_ps.append(str(ip_ps[i]+":2222")) for i in range(len(ip_ps))]
+        # tf_ps=','.join(tf_ps)
+        #print("++ tf_ps: ",tf_ps)
+
+        ## Build a tf_workers collection
+        tf_workers = []
+        [tf_workers.append(str(ip_workers[i]+":2222")) for i in range(len(ip_workers))]
+        # tf_workers=','.join(tf_workers)
+        #print("++ tf_workers: ", tf_workers)
+
+        self.tf_cluster = tf.train.ClusterSpec({"ps": tf_ps,		# ["134.59.132.135:2222"], 
+                                                "worker": tf_workers}) 		# ["134.59.132.20:2222"]})
+        ## A collection of tf_ps nodes
+        #return tf.train.ClusterSpec({"ps": tf_ps, "worker": tf_workers})
+
+
     def set_monitor_recording(self) -> None:
         """
         Power and performance monitoring launcher for workload characterization
         """
         latency_start = time.time()
+
         if self.monitor == None:
             self.monitor = enerGyPU(testbed_path="testbed",
                                 machine_type="x86",
@@ -540,17 +552,21 @@ class Distibuted_GRPC:
         ## Start power recording
         if self.monitor.power_recording == True: self.monitor.start_power_recording()
 
+        ## Start bandwith recording
+        if self.job_name == "worker": self.monitor.start_bandwidth_recording(self.ip_ps[0])
+
         ## Start platform recording
         if self.monitor.platform_recording == True: self.monitor.start_platform_recording(os.getpid())
 
         ## Get GPU availeble and set for processing
         #self.idgpu = self.monitor._get_available_GPU()
         self.idgpu = "0"
-        os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
+        #os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+        #os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0] #"3,4"
 
         ## Time recording
         self.time_latency = time.time()-latency_start
+
 
     def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> BatchPath:
@@ -559,7 +575,6 @@ class Distibuted_GRPC:
         """
         dataset_start = time.time()
 
-        print("+++ Type: {}".format(type(self.data)))
         try:
             self.data.set_data_path(dataset_name=dataset_name,
                                dataset_path=dataset_path,
@@ -568,13 +583,17 @@ class Distibuted_GRPC:
             if 'MultiTask' in str(type(self.data)):
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
-                train, valid, test = self.data.distributed_batching(1)
+
+                train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index)
+                #train, valid, test = self.data.distributed_batching(1)
+
             else:
                 raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
         except AttributeError:
                 raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
         self.time_dataset = time.time()-dataset_start
         return train, valid, test
+
 
     def create_done_queue(self, i):
         '''Queue used to signal death for i'th ps shard. Intended to have
@@ -587,19 +606,28 @@ class Distibuted_GRPC:
         print("****** def -> create_done_queues")
         return [self.create_done_queue(i) for i in range(self.num_ps)]
 
-    def synchronous_training(self, dataset_name: str, dataset_path: str,
+    def asynchronous_training(self, dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str,
-                        num_ps: int = 1, num_workers: int = 1) -> tf.Tensor:
+                        job_name: str = "ps", task_index: int = 0) -> tf.Tensor:
         """
         Training the deep neural network exploit the memory on desktop machine
         """
         ## Set processing_mode flat
-        self.processing_mode = "distributed_processing"
-        self.num_ps = num_ps
-        self.num_workers = num_workers
+        self.processing_mode = "distributed_GRPC_async_processing"
+
+        ## Define the machine rol = input flags
+        ## start a server for a specific task
+        self.job_name = job_name
+        self.task_index = task_index
+        self.server = tf.train.Server(self.tf_cluster,
+                                        job_name = self.job_name,
+                                        task_index = self.task_index)
 
         ## Set Monitor Recording
-        # self.set_monitor_recording()
+        if self.job_name == "worker":
+            self.set_monitor_recording()
+        else:
+            pass
 
         ## Set dataset on memory
         train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
@@ -608,204 +636,252 @@ class Distibuted_GRPC:
         ### Training Start
         training_start = time.time()
 
-        print("cluster: {}".format(self.cluster))
-        print("ps: {} || worker: {}".format(self.ip_ps, self.ip_workers))
-        print("job_name: {} || tasks_inde: {}".format(self.job_name, self.task_index))
-        print("ps num: {} || workers num: {}".format(num_ps, num_workers))
-
-
-
-        ###################################################################
-        ### Define role for distributed processing
-        print("Define role for distributed processing")
-
-        if self.job_name ==  "ps":
+        if job_name ==  "ps":
             sess = tf.Session(self.server.target)
             queue =  self.create_done_queue(self.task_index)
-
+        
             ### Wait intil all workers are done
             for i in range(self.num_workers):
-                sess.run(queue.dequeue())
-                print("ps %d recieved done %d" %(self.task_index,i))
+                 sess.run(queue.dequeue())
+                 print("ps %d recieved done %d" %(self.task_index,i))
             print("ps %d: quitting" %(self.task_index))
 
-        elif self.job_name == "worker":
+            ## End computational recording
+            self.monitor.end_platform_recording()
+            ## End power recording
+            self.monitor.end_power_recording()
+            ## End bandwidth recording
+            #self.monitor.end_bandwidth_recording()
+        
+        elif job_name == "worker":
             ## Generates a distributed graph object from graphs
             with tf.Graph().as_default() as distributed_graph:
-                self.model.distributed_grpc_graph(self.cluster, self.task_index)
+                 self.model.distributed_grpc_graph(self.tf_cluster, self.task_index)
+        
+                 enq_ops = []
+                 for q in self.create_done_queues():
+                     qop = q.enqueue(1)
+                     enq_ops.append(qop)
+        
+                 ##################################################
+                 ## Create a distributed session whit training supervisor
+                 #saver = tf.train.Saver()
+                 sv = tf.train.Supervisor(is_chief=(self.task_index == 0),
+                                         graph=self.model.graph,#saver=saver,
+                                         #checkpoint_basename=str(),
+                                         global_step=self.model.global_step,
+                                         init_op=self.model.init_op)
+        
+                 with sv.managed_session(self.server.target) as sess:
+        
+                     #epoch = 0
+                     epoch: int = 0
+                     not_update = 0
+                     #saver = tf.train.Saver()
+                     epoch_convergence: bin = 0
+                     #print("**** epoch_convergence: {}".format(epoch_convergence))
+                     while epoch_convergence == 0:	#(epoch < self.max_epochs):
+                          epoch_start = time.time()
+        
+                          for i in range(len(train.input_files)):
+                              train_inputs = IO_Functions()._read_file(train.input_files[i])
+                              train_targets = IO_Functions()._read_file(train.target_files[i])
+                              ## Convert list in a numpy matrix
+                              train_batch = Dataset()
+                              train_batch.set_data_file(train_inputs, train_targets)
+        
+                              train_loss, _ = sess.run([self.model.loss, self.model.grad_op],
+                                                   feed_dict={self.model.X: train_batch.inputs,
+                                                   self.model.Y: train_batch.targets,
+                                                   self.model.keep_prob: self.model.dropout})
+        
+                              train_pred = sess.run(self.model.projection_1hot,
+                                                   feed_dict={self.model.X: train_batch.inputs,
+                                                   self.model.keep_prob: self.model.dropout})
+        
+                              ## F1_score from Skit-learn metrics
+                              train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
+                                                   y_pred=train_pred.astype(np.float), average='micro')
+        
 
-                enq_ops = []
-                for q in self.create_done_queues():
-                    qop = q.enqueue(1)
-                    enq_ops.append(qop)
+                          for i in range(len(valid.input_files)):
+                              valid_inputs = IO_Functions()._read_file(valid.input_files[i])
+                              valid_targets = IO_Functions()._read_file(valid.target_files[i])
+                              ## Convert list in a numpy matrix
+                              valid_batch= Dataset()
+                              valid_batch.set_data_file(valid_inputs, valid_targets)
 
-                ##################################################
-                ## Create a distributed session whit training supervisor
-                #saver = tf.train.Saver()
-                sv = tf.train.Supervisor(is_chief=(self.task_index == 0),
-                                        graph=self.model.graph,#saver=saver,
-                                        #checkpoint_basename=str(),
-                                        global_step=self.model.global_step,
-                                        init_op=self.model.init_op)
+                              valid_loss = sess.run(self.model.loss,
+                                        feed_dict={self.model.X: valid_batch.inputs,
+                                                    self.model.Y: valid_batch.targets,
+                                                    self.model.keep_prob: 1.0})
+                              valid_pred = sess.run(self.model.projection_1hot,
+                                        feed_dict={self.model.X: valid_batch.inputs,
+                                                    self.model.keep_prob: 1.0})
+                              ## F1_score from Skit-learn metrics
+                              valid_acc = f1_score(y_true=valid_batch.targets.astype(np.float),
+                                                   y_pred=valid_pred.astype(np.float), average='micro')
 
-                with sv.managed_session(self.server.target) as sess:
+                          epoch_elapsed = (time.time() - epoch_start)
+                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
+                                                    train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                          self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
-                    epoch = 0
-                    while not sv.should_stop() and (epoch < self.max_epochs):
-                         epoch_start = time.time()
+#############
+                          epoch = epoch + 1                
+                          if  valid_loss <= self.min_loss:
+                              self.min_loss = valid_loss
+                              self.convergence_time = time.time()-training_start
+                              update_flag=True
+                          else:
+                              not_update +=1
 
-                         for i in range(len(train.input_files)):
-                             train_inputs = IO_Functions()._read_file(train.input_files[i])
-                             train_targets = IO_Functions()._read_file(train.target_files[i])
-                             ## Convert list in a numpy matrix
-                             train_batch = Dataset()
-                             train_batch.set_data_file(train_inputs, train_targets)
+                          ## While Stopping conditional
+                          if not_update >= self.early_stopping or epoch == self.max_epochs:
+                              self.max_epochs=epoch
+                              if self.job_name == 'worker':
+                                  epoch_convergence = 1
+                              else:
+                                  epoch_convergence = 0
+#############
 
-                             train_loss, _ = sess.run([self.model.loss, self.model.grad_op],
-                                                  feed_dict={self.model.X: train_batch.inputs,
-                                                  self.model.Y: train_batch.targets,
-                                                  self.model.keep_prob: self.model.dropout})
+                          ### end While loop
 
-                             train_pred = sess.run(self.model.projection_1hot,
-                                                  feed_dict={self.model.X: train_batch.inputs,
-                                                  self.model.keep_prob: self.model.dropout})
+                     self.time_training = time.time()-training_start
+        
+                     ### Testing Starting
+                     testing_start = time.time()
+                     #saver.restore(sess,  str(self.monitor.testbed_exp+"./"+self.monitor.exp_id+ "-model.ckpt"))
+                     if len(test.input_files) != 0:
+                          test_pred_probas: list = []
+                          test_pred_1hot: list = []
+                          test_true_1hot: list = []
 
-                             ## F1_score from Skit-learn metrics
-                             train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
-                                                  y_pred=train_pred.astype(np.float), average='micro')
+                     for i in range(len(test.input_files)):
+                          test_inputs = IO_Functions()._read_file(test.input_files[i])
+                          test_targets = IO_Functions()._read_file(test.target_files[i])
+                          ## Convert list in a numpy matrix
+                          test_batch = Dataset()
+                          test_batch.set_data_file(test_inputs, test_targets)
+
+                          tt_pred_probas = sess.run(self.model.soft_projection,
+                                                    feed_dict={self.model.X: test_batch.inputs, self.model.keep_prob: 1.0})
+                          tt_pred_1hot = sess.run(self.model.projection_1hot,
+                                                    feed_dict={self.model.X: test_batch.inputs, self.model.keep_prob: 1.0})
+
+                          test_pred_probas.append(tt_pred_probas)
+                          test_pred_1hot.append(tt_pred_1hot)
+                          test_true_1hot.append(test_batch.targets.astype(np.float))
+
+                     self.test_pred_probas = np.vstack(test_pred_probas)
+                     self.test_pred_1hot = np.vstack(test_pred_1hot)
+                     self.test_true_1hot = np.vstack(test_true_1hot)
+ 
+                     ## Compute the F1 Score
+                     self.test_f1_weighted = f1_score(self.test_true_1hot,
+                                                               self.test_pred_1hot, average = "weighted")
+                     self.test_f1_micro = f1_score(self.test_true_1hot,
+                                                               self.test_pred_1hot, average = "micro")
+                     logger.info("-- Test Results --")
+                     logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
+                     logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
+
+                     ## compute_metrics by each label
+                     self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
+                                                               y_true=self.test_true_1hot)
+                     self.time_testing = time.time()-testing_start
+                     
+                     ## Write metrics on testbet directory = self.monitor.testbed_exp
+                     if self.monitor.write_metrics == True: self.write_metrics()
+        
+                     ## signal to ps shards that we are done
+                     for op in enq_ops:
+                          sess.run(op)
+                     print('-- Done! --')
+                 sv.stop()
+            sess.close()
+            #print("-- session finish --")
 
 
-                         epoch_elapsed = (time.time() - epoch_start)
-                         logger.info("Epoch {} | Train loss: {} | Train Acc: {} | Epoch_Time: {}".format(epoch,
-                                                  train_loss, train_acc, np.round(epoch_elapsed, decimals=4)))
-                         epoch = epoch + 1
+
+    def write_metrics(self) -> None:
+        """
+        Uses Testbed to isolate the training metrics by experiment directory
+        """
+        metrics_start = time.time()
+
+
+        exp_id = str(os.uname()[1]+"-"+self.monitor.exp_id)
+
+        ## Writes the training and validation track
+        track_path=str(self.monitor.testbed_exp+"/"+exp_id+"-training_track.txt")
+        IO_Functions()._write_list(self.training_track, track_path)
+
+        ## Writes the Test labels
+        true_1h_path=str(self.monitor.testbed_exp+"/"+exp_id+"-true_1hot.txt")
+        np.savetxt(true_1h_path, self.test_true_1hot, delimiter=',', fmt='%d')
+
+        pred_1h_path=str(self.monitor.testbed_exp+"/"+exp_id+"-pred_1hot.txt")
+        np.savetxt(pred_1h_path, self.test_pred_1hot, delimiter=',', fmt='%d')
+
+        pred_probas_path=str(self.monitor.testbed_exp+"/"+exp_id+"-pred_probas.txt")
+        np.savetxt(pred_probas_path, self.test_pred_probas, delimiter=',', fmt='%f')
+
+        ## Writes Summarize Metrics
+        metrics_values_path=str(self.monitor.testbed_exp+"/"+exp_id+"-metrics_values.txt")
+        np.savetxt(metrics_values_path, self.metrics_values, delimiter=',', fmt='%d')
+
+        ### Add elements to json experiment Description architecture
+        eda_json = self.monitor.read_eda_json(self.monitor.testbed_exp, self.monitor.exp_id)
+
+        ## Add values to platform_parameters
+        eda_json['model_hyperparameters']['max_epochs'] = self.max_epochs
+
+        ## Add dataset shape as number of records (inputs, targets)
+        eda_json['dataset_config']['train_records'] = str(self.data.train_shape)
+        eda_json['dataset_config']['valid_records'] = str(self.data.valid_shape)
+        eda_json['dataset_config']['test_records'] = str(self.data.test_shape)
+
+        ## Add values to platform_parameters
+        eda_json['platform_parameters']['processing_mode'] = self.processing_mode
+        eda_json['platform_parameters']['gpu_id'] = self.idgpu[0]
+        eda_json['platform_parameters']['processing_job_name'] = self.job_name
+        eda_json['platform_parameters']['processing_task_index'] = self.task_index
+        #eda_json['platform_parameters']['processing_host_name'] = self.myhost
+
+        ## Add values to results
+        eda_json['results']['f1_score_weigted'] = self.test_f1_weighted
+        eda_json['results']['f1_score_micro'] = self.test_f1_micro
+        eda_json['results']['loss_validation'] = str(self.min_loss)
+        eda_json['results']['time_latency'] = self.time_latency
+        eda_json['results']['time_dataset'] = self.time_dataset
+        eda_json['results']['time_training'] = self.time_training
+        eda_json['results']['time_convergence'] = self.convergence_time
+
+        ## End time metrics
+        self.time_metrics = time.time()-metrics_start
+        eda_json['results']['time_metrics'] = self.time_metrics
+
+        ## Serialize the eda json and rewrite the file
+        eda_json = json.dumps(eda_json, separators=(',', ': '), indent=2)
+        file_path = str(self.monitor.testbed_exp+"/"+exp_id+"-exp_description.json")
+        IO_Functions()._write_file(eda_json, file_path)
+
+
+        ## End computational recording
+        self.monitor.end_platform_recording()
+
+        ## End power recording
+        self.monitor.end_power_recording()
+
+        ## End bandwidth recording
+        self.monitor.end_bandwidth_recording()
+
+        logger.info("Tesbed directory: {}".format(self.monitor.testbed_exp))
 
 
 
-                ## signal to ps shards that we are done
-                #for op in enq_ops:
-                #    sess.run(op)
-                #print('-- Done! --')
-            sv.stop()
-        sess.close()
 
-
-
-
-
-
-	####################################################
-        ## Add model training
-#        with tf.Session(graph=self.model.graph) as sess:
-#            init = tf.group(tf.global_variables_initializer(),
-#                                tf.local_variables_initializer())
-#            sess.run(init)
-#
-#            epoch: int = 0
-#            epoch_convergence: bin = 0
-#            while (epoch_convergence == 0):
-#                epoch_start = time.time()
-#
-#                for i in range(len(train.input_files)):
-#                    train_inputs = IO_Functions()._read_file(train.input_files[i])
-#                    train_targets = IO_Functions()._read_file(train.target_files[i])
-#                    ## Convert list in a numpy matrix
-#                    train_batch = Dataset()
-#                    train_batch.set_data_file(train_inputs, train_targets)
-#
-#                    train_loss, _ = sess.run([self.model.loss, self.model.grad_op],
-#                                        feed_dict={self.model.X: train_batch.inputs,
-#                                                    self.model.Y: train_batch.targets,
-#                                                    self.model.keep_prob: self.model.dropout})
-#                    train_pred = sess.run(self.model.projection_1hot,
-#                                                feed_dict={self.model.X: train_batch.inputs,
-#                                                self.model.keep_prob: self.model.dropout})
-#                    ## F1_score from Skit-learn metrics
-#                    train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
-#                                                y_pred=train_pred.astype(np.float), average='micro')
-#
-#                for i in range(len(valid.input_files)):
-#                    valid_inputs = IO_Functions()._read_file(valid.input_files[i])
-#                    valid_targets = IO_Functions()._read_file(valid.target_files[i])
-#                    ## Convert list in a numpy matrix
-#                    valid_batch= Dataset()
-#                    valid_batch.set_data_file(valid_inputs, valid_targets)
-#
-#                    valid_loss = sess.run(self.model.loss,
-#                                        feed_dict={self.model.X: valid_batch.inputs,
-#                                                    self.model.Y: valid_batch.targets,
-#                                                    self.model.keep_prob: 1.0})
-#                    valid_pred = sess.run(self.model.projection_1hot,
-#                                        feed_dict={self.model.X: valid_batch.inputs,
-#                                                    self.model.keep_prob: 1.0})
-#                    ## F1_score from Skit-learn metrics
-#                    valid_acc = f1_score(y_true=valid_batch.targets.astype(np.float),
-#                                            y_pred=valid_pred.astype(np.float), average='micro')
-#
-#
-#                epoch_elapsed = (time.time() - epoch_start)
-#                logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
-#                                                        train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-#                self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-#                epoch = epoch + 1
-#
-#                ## While Convergence conditional
-#                if valid_loss <= self.min_loss or epoch == self.max_epochs:
-#                    epoch_convergence = 1
-#                    self.max_epochs=epoch
-#                    self.min_loss=valid_loss
-#                else:
-#                    epoch_convergence = 0
-#                ### end While loop
-#            self.time_training = time.time()-training_start
-#
-#            ### Testing Starting
-#            testing_start = time.time()
-#
-#            if len(test.input_files) != 0:
-#                test_pred_probas: list = []
-#                test_pred_1hot: list = []
-#                test_true_1hot: list = []
-#
-#                for i in range(len(test.input_files)):
-#                    test_inputs = IO_Functions()._read_file(test.input_files[i])
-#                    test_targets = IO_Functions()._read_file(test.target_files[i])
-#                    ## Convert list in a numpy matrix
-#                    test_batch = Dataset()
-#                    test_batch.set_data_file(test_inputs, test_targets)
-#
-#                    tt_pred_probas = sess.run(self.model.soft_projection,
-#                                    feed_dict={self.model.X: test_batch.inputs,
-#                                                self.model.keep_prob: 1.0})
-#                    tt_pred_1hot = sess.run(self.model.projection_1hot,
-#                                    feed_dict={self.model.X: test_batch.inputs,
-#                                                self.model.keep_prob: 1.0})
-#
-#                    test_pred_probas.append(tt_pred_probas)
-#                    test_pred_1hot.append(tt_pred_1hot)
-#                    test_true_1hot.append(test_batch.targets.astype(np.float))
-#
-#                self.test_pred_probas = np.vstack(test_pred_probas)
-#                self.test_pred_1hot = np.vstack(test_pred_1hot)
-#                self.test_true_1hot = np.vstack(test_true_1hot)
-#
-#                ## Compute the F1 Score
-#                self.test_f1_weighted = f1_score(self.test_true_1hot,
-#                                                    self.test_pred_1hot, average = "weighted")
-#                self.test_f1_micro = f1_score(self.test_true_1hot,
-#                                                    self.test_pred_1hot, average = "micro")
-#                logger.info("-- Test Results --")
-#                logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
-#                logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
-#
-#                ## compute_metrics by each label
-#                self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
-#                                                            y_true=self.test_true_1hot)
-#                self.time_testing = time.time()-testing_start
-#
-#                return self.test_pred_probas
-#
-#            return train_pred
 
 
 
@@ -1850,5 +1926,3 @@ class Distibuted_MPI:
 
         logger.info("Tesbed directory: {}".format(self.monitor.testbed_exp))
 
-
-   

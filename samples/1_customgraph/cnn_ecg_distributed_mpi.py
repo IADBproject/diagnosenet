@@ -3,7 +3,8 @@ execution_start = time.time()
 
 ## Makes diagnosenet library visible in samples folder
 import sys
-sys.path.append('../../')
+file_path="../../"
+sys.path.append(file_path)
 
 from diagnosenet.datamanager import MultiTask, Batching
 from diagnosenet.layers import Relu, Linear
@@ -24,7 +25,7 @@ model = CustomGraph(input_size_1=1300,input_size_2=1, output_size=4,
                         loss=CrossEntropy,
                         optimizer=Adam(lr=0.0001),layers=layer_1)
 
-projection = Distibuted_MPI(model,datamanager=data_config,monitor=enerGyPU(machine_type="arm"), max_epochs=2, min_loss=0.5)
+projection = Distibuted_MPI(model,datamanager=data_config,monitor=enerGyPU(machine_type="arm",file_path=file_path), max_epochs=2, min_loss=0.5)
 
 projection.synchronous_training(dataset_name="ECG",
                         dataset_path="dataset/",
