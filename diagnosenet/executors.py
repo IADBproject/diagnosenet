@@ -1379,6 +1379,7 @@ class Distibuted_MPI:
         self.processing_mode = "distributed_MPI_async_processing"
         ## Set Monitor Recording
         self.set_monitor_recording()
+        self.best_model_weights = None
         ## Set dataset on disk
         train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
                                                    inputs_name, targets_name)
@@ -1508,7 +1509,7 @@ class Distibuted_MPI:
                     self.comm.send(update_flag, dest=self.status.Get_source(), tag=3)
                 else:
                     update_flag = self.comm.recv(source=0, tag=3)
-                    if update_flag == True:
+                    if update_flag == True or (epoch_convergence == 1 and self.best_model_weights == None):
                         print("best weights set on worker", self.rank)
                         self.best_model_weights = model_weights
                 ### end While loop
