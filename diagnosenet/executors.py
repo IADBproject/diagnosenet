@@ -1394,6 +1394,7 @@ class Distibuted_MPI:
             sess.run(init)
             epoch: int = 0
             not_update = 0
+            master_queue = []
             saver = tf.train.Saver()
             epoch_convergence: bin = 0
             model_weights = None
@@ -1404,13 +1405,11 @@ class Distibuted_MPI:
 
                 if self.rank != 0:
                     for i in range(len(train.input_files)):
-
                         train_inputs = IO_Functions()._read_file(train.input_files[i])
                         train_targets = IO_Functions()._read_file(train.target_files[i])
                         ## Convert list in a numpy matrix
                         train_batch = Dataset()
                         train_batch.set_data_file(train_inputs, train_targets)
-
                         if i == (len(train.input_files) - 1):
                             grads, train_loss, train_pred = sess.run(
                                 [self.model._grad_op, self.model.loss, self.model.projection_1hot],
@@ -1431,13 +1430,18 @@ class Distibuted_MPI:
                         loss += train_loss / len(train.input_files)
                 if self.rank == 0:
                     weight_collection = []
-                    weight_recv, acc_recv, loss_recv = self.comm.recv(source=MPI.ANY_SOURCE, status=self.status, tag=0)
+                    weight_recv, acc_recv, loss_recv, epoch_recv = self.comm.recv(source=MPI.ANY_SOURCE,
+                                                                                  status=self.status, tag=0)
                     # if this is the first epoch, we don't have previous weights
                     if epoch == 0:
                         model_weights = weight_recv
                     # add previous weights to the collection
                     weight_collection.append(model_weights)
                     weight_collection.append(weight_recv)
+                    if epoch_recv != 0:
+                        master_queue.append(epoch_recv)
+                    if len(master_queue) == self.size - 1:
+                        epoch_convergence = 1
                     acc = acc_recv
                     loss = loss_recv
                     # compute the average of the gradients
@@ -1447,7 +1451,10 @@ class Distibuted_MPI:
                     source = self.status.Get_source()
                     self.comm.send(average_weights, dest=source, tag=1)
                 else:
-                    self.comm.send([grads, acc, loss], dest=0, tag=0)
+                    if epoch == self.max_epochs:
+                        epoch_convergence = 1
+                        print(self.rank, "converged")
+                    self.comm.send([grads, acc, loss, epoch_convergence], dest=0, tag=0)
                     _weights = self.comm.recv(source=0, tag=1)
                     feed_dict = {}
                     self.model._gradients = _weights
@@ -1497,23 +1504,19 @@ class Distibuted_MPI:
                 else:
                     not_update += 1
 
-                ## While Stopping conditional
-                if not_update >= self.early_stopping or epoch == self.max_epochs:
-                    self.max_epochs = epoch
-                    if self.rank == 0:
-                        epoch_convergence = 1
-                else:
-                    epoch_convergence = 0
 
                 if self.rank == 0:
-                    self.comm.send([epoch_convergence, update_flag], dest=self.status.Get_source(), tag=3)
+                    self.comm.send(update_flag, dest=self.status.Get_source(), tag=3)
                 else:
-                    epoch_convergence, update_flag = self.comm.recv(source=0, tag=3)
+                    update_flag = self.comm.recv(source=0, tag=3)
                     if update_flag == True:
                         self.best_model_weights = model_weights
 
                 ### end While loop
             self.time_training = time.time() - training_start
+
+            if self.rank != 0:
+                self.comm.Barrier()
 
             ### Testing Starting
             testing_start = time.time()
