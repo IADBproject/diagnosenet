@@ -37,7 +37,7 @@ class ResourceManager():
         ## Build a tf_ps collection
         tf_ps = []
         #[tf_ps.append(str(ip_ps[i]+":2222")) for i in range(self.num_ps)]
-        [tf_ps.append(str(self.ip_ps[i]+":2222")) for i in range(self.num_ps)]        
+        [tf_ps.append(str(self.ip_ps[i]+":2222")) for i in range(self.num_ps)]
         #tf_ps=','.join(tf_ps)
         #print("++ tf_ps: ",tf_ps, type(tf_ps))
 
@@ -61,12 +61,12 @@ class ResourceManager():
 
     async def queue_device_tasks(self, executor):
         """
-        Asyncio create queue device tasks 
+        Asyncio create queue device tasks
         """
 
         ## Event loop run asynchronous tasks
         loop = asyncio.get_event_loop()
-  
+
         ## Creating a queue executor tasks
         tasks = [loop.run_in_executor(executor, self.run_device_replica, "mpiuser", self.IP_HOSTS[i],
 				 self.device_replica_, self.job_DEVICE_replicas[i]) for i in range(self.devices_num)]
@@ -81,7 +81,7 @@ class ResourceManager():
                                         num_workers: int = 1) -> None:
         """
         The training configuration, which involves multiple task in a `worker`,
-        training the same model on different mini-batches of data, updating shared parameters hosted 
+        training the same model on different mini-batches of data, updating shared parameters hosted
         in one or more task in a parameter server job.
         https://github.com/tensorflow/examples/blob/master/community/en/docs/deploy/distributed.md
         """
@@ -115,5 +115,3 @@ class ResourceManager():
         executor = futures.ProcessPoolExecutor(max_workers=self.devices_num,)
         event_loop = asyncio.get_event_loop()
         event_loop.run_until_complete(self.queue_device_tasks(executor))
-
-
