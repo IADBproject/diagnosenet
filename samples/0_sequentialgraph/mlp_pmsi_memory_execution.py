@@ -28,11 +28,11 @@ Y2_shape = 239
 Y3_shape = 5
 
 ## 1) Define the stacked layers as the number of layers and their neurons
-layers_1 = [Relu(X_shape, 2048),
-            Relu(2048, 2048),
-            Relu(2048, 1024),
-            Relu(1024, 1024),
-            Linear(1024, Y1_shape)]
+layers_1 = [Relu(X_shape, 512),
+            Relu(512, 512),
+            Relu(512, 512),
+            Relu(512, 512),
+            Linear(512, Y1_shape)]
 
 ## 2) Select the neural network architecture and pass the hyper-parameters
 mlp_model_1 = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
@@ -44,7 +44,7 @@ mlp_model_1 = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config = MultiTask(dataset_name="MCP-PMSI",
                         valid_size=0.05, test_size=0.15,
-                        batch_size=500,
+                        batch_size=512,
                         target_name='Y11',
                         target_start=0, target_end=14)
 
@@ -52,7 +52,7 @@ data_config = MultiTask(dataset_name="MCP-PMSI",
 platform = DesktopExecution(model=mlp_model_1,
                             datamanager=data_config,
                             monitor=enerGyPU(machine_type="arm", file_path=file_path),
-                            max_epochs=2,
+                            max_epochs=20,
                             min_loss=0.02)
 
 ### Read the PMSI-Dataset using Pickle from diagnosenet.io_functions
