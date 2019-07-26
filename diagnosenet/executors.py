@@ -1453,7 +1453,7 @@ class Distibuted_MPI:
                 else:
                     if epoch == self.max_epochs:
                         epoch_convergence = 1
-                        print(self.rank, "converged")
+                        print(self.rank, "reached max epoch")
                     self.comm.send([grads, acc, loss, epoch_convergence], dest=0, tag=0)
                     _weights = self.comm.recv(source=0, tag=1)
                     feed_dict = {}
@@ -1504,19 +1504,19 @@ class Distibuted_MPI:
                 else:
                     not_update += 1
 
-
                 if self.rank == 0:
                     self.comm.send(update_flag, dest=self.status.Get_source(), tag=3)
                 else:
                     update_flag = self.comm.recv(source=0, tag=3)
                     if update_flag == True:
+                        print("best weights set on worker", self.rank)
                         self.best_model_weights = model_weights
-
                 ### end While loop
             self.time_training = time.time() - training_start
 
-            if self.rank != 0:
-                self.comm.Barrier()
+            # make workers that finished traininig wait for others to finish
+            self.comm.Barrier()
+            print(self.rank, "finishes training ...")
 
             ### Testing Starting
             testing_start = time.time()
