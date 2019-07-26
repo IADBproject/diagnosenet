@@ -552,18 +552,8 @@ class Distibuted_GRPC:
         ## Start power recording
         if self.monitor.power_recording == True: self.monitor.start_power_recording()
 
-
         ## Start bandwith recording
-#        if self.job_name == "ps":
-#            ip_host = self.ip_ps[self.task_index]
-#        else:
-#            ip_host = self.ip_workers[self.task_index]
-#        print("**** IP-host for bandwidth: {} ****".format(ip_host))
-        if self.job_name == "worker":	#"worker":
-            #print("**** IP-host for bandwidth: {} ****".format(self.ip_workers[self.task_index])) 
-            self.monitor.start_bandwidth_recording(self.ip_ps[0])
-        else:
-            pass
+        if self.job_name == "worker": self.monitor.start_bandwidth_recording(self.ip_ps[0])
 
         ## Start platform recording
         if self.monitor.platform_recording == True: self.monitor.start_platform_recording(os.getpid())
@@ -655,6 +645,13 @@ class Distibuted_GRPC:
                  sess.run(queue.dequeue())
                  print("ps %d recieved done %d" %(self.task_index,i))
             print("ps %d: quitting" %(self.task_index))
+
+            ## End computational recording
+            self.monitor.end_platform_recording()
+            ## End power recording
+            self.monitor.end_power_recording()
+            ## End bandwidth recording
+            #self.monitor.end_bandwidth_recording()
         
         elif job_name == "worker":
             ## Generates a distributed graph object from graphs
@@ -705,7 +702,6 @@ class Distibuted_GRPC:
                               ## F1_score from Skit-learn metrics
                               train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
                                                    y_pred=train_pred.astype(np.float), average='micro')
-        
         
 
                           for i in range(len(valid.input_files)):
@@ -805,18 +801,6 @@ class Distibuted_GRPC:
             sess.close()
             #print("-- session finish --")
 
-        if self.job_name == "ps":
-            ## End computational recording
-            self.monitor.end_platform_recording()
-                 
-            ## End power recording
-            self.monitor.end_power_recording()
-                 
-            ## End bandwidth recording
-            self.monitor.end_bandwidth_recording()
-        else:
-            pass
-
 
 
     def write_metrics(self) -> None:
@@ -825,22 +809,25 @@ class Distibuted_GRPC:
         """
         metrics_start = time.time()
 
+
+        exp_id = str(os.uname()[1]+"-"+self.monitor.exp_id)
+
         ## Writes the training and validation track
-        track_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-training_track.txt")
+        track_path=str(self.monitor.testbed_exp+"/"+exp_id+"-training_track.txt")
         IO_Functions()._write_list(self.training_track, track_path)
 
         ## Writes the Test labels
-        true_1h_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-true_1hot.txt")
+        true_1h_path=str(self.monitor.testbed_exp+"/"+exp_id+"-true_1hot.txt")
         np.savetxt(true_1h_path, self.test_true_1hot, delimiter=',', fmt='%d')
 
-        pred_1h_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-pred_1hot.txt")
+        pred_1h_path=str(self.monitor.testbed_exp+"/"+exp_id+"-pred_1hot.txt")
         np.savetxt(pred_1h_path, self.test_pred_1hot, delimiter=',', fmt='%d')
 
-        pred_probas_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-pred_probas.txt")
+        pred_probas_path=str(self.monitor.testbed_exp+"/"+exp_id+"-pred_probas.txt")
         np.savetxt(pred_probas_path, self.test_pred_probas, delimiter=',', fmt='%f')
 
         ## Writes Summarize Metrics
-        metrics_values_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-metrics_values.txt")
+        metrics_values_path=str(self.monitor.testbed_exp+"/"+exp_id+"-metrics_values.txt")
         np.savetxt(metrics_values_path, self.metrics_values, delimiter=',', fmt='%d')
 
         ### Add elements to json experiment Description architecture
@@ -876,7 +863,7 @@ class Distibuted_GRPC:
 
         ## Serialize the eda json and rewrite the file
         eda_json = json.dumps(eda_json, separators=(',', ': '), indent=2)
-        file_path = str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-exp_description.json")
+        file_path = str(self.monitor.testbed_exp+"/"+exp_id+"-exp_description.json")
         IO_Functions()._write_file(eda_json, file_path)
 
 
