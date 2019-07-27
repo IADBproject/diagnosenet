@@ -30,11 +30,11 @@ class DesktopExecution:
     """
 
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                    max_epochs: int = 10, min_loss: float = 2.0 ,early_stopping: int = 5) -> None:
+                    max_epochs: int = 10, min_loss: float = 0.02 ,early_stopping: int = 5) -> None:
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
-        self.min_loss = 99999
+        self.min_loss = min_loss
         self.early_stopping = early_stopping
         self.monitor = monitor
 
@@ -476,7 +476,7 @@ class Distibuted_GRPC:
     """
 
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                    max_epochs: int = 10, min_loss: float = 99999, early_stopping: int = 5,
+                    max_epochs: int = 10, min_loss: float = 0.02, early_stopping: int = 5,
                     ip_ps: str = "localhost:2222",
                     ip_workers: str = "localhost:2223") -> None:
 
@@ -503,8 +503,8 @@ class Distibuted_GRPC:
 
     def set_tf_cluster(self, ip_ps, ip_workers) -> tf.Tensor:
         ## splitting the IP hosts
-        ip_ps = ip_ps.split(",")		## Before *.split(",")
-        ip_workers = ip_workers.split(",")	## Before *.split(",")
+        ip_ps = ip_ps.split(",")
+        ip_workers = ip_workers.split(",")
         self.ip_ps = ip_ps
         self.ip_workers = ip_workers
         #print("++++ ip_ workers: {}".format(ip_workers))
@@ -723,11 +723,9 @@ class Distibuted_GRPC:
                                                    y_pred=valid_pred.astype(np.float), average='micro')
 
                           epoch_elapsed = (time.time() - epoch_start)
-                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
-                                                    train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                           self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
-#############
                           epoch = epoch + 1                
                           if  valid_loss <= self.min_loss:
                               self.min_loss = valid_loss
@@ -737,16 +735,17 @@ class Distibuted_GRPC:
                               not_update +=1
 
                           ## While Stopping conditional
-                          if not_update >= self.early_stopping or epoch == self.max_epochs:
+                          ##if not_update >= self.early_stopping or epoch == self.max_epochs:
+                          if epoch == self.max_epochs:
                               self.max_epochs=epoch
                               if self.job_name == 'worker':
                                   epoch_convergence = 1
+                                  self.convergence_time = time.time()-training_start
                               else:
                                   epoch_convergence = 0
-#############
+                                  self.convergence_time = time.time()-training_start
 
                           ### end While loop
-
                      self.time_training = time.time()-training_start
         
                      ### Testing Starting
@@ -878,11 +877,6 @@ class Distibuted_GRPC:
         self.monitor.end_bandwidth_recording()
 
         logger.info("Tesbed directory: {}".format(self.monitor.testbed_exp))
-
-
-
-
-
 
 
 
