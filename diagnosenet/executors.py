@@ -194,12 +194,9 @@ class DesktopExecution:
 
             ### Testing Starting
             testing_start = time.time()
-            try:
-                saver.restore(sess,  str(self.monitor.testbed_exp+"./"+self.monitor.exp_id+ "-model.ckpt"))
-            except:
-                # it is expected that the restore fails if the
-                # checkpoint does not exist
-                pass
+            checkpoint_path = str(self.monitor.testbed_exp + "./" + self.monitor.exp_id + "-model.ckpt")
+            if os.path.isfile(checkpoint_path):
+                saver.restore(sess, checkpoint_path)
 
             if len(test.inputs) != 0:
                 test_pred_probas: list = []
