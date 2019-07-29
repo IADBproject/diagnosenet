@@ -5,11 +5,13 @@ Execution command: mpirun -np #slotnumber --hostfile h-workers python3.6 mlp_pms
 """
 
 import time
+
 execution_start = time.time()
 
 ## Makes diagnosenet library visible in samples folder
 import sys
-file_path="../../"
+
+file_path = "../../"
 sys.path.append(file_path)
 
 from diagnosenet.datamanager import Batching
@@ -19,7 +21,6 @@ from diagnosenet.optimizers import Adam
 from diagnosenet.graphs import SequentialGraph
 from diagnosenet.executors import Distibuted_MPI
 from diagnosenet.monitor import enerGyPU
-
 
 ## PMSI-ICU Dataset shapes
 X_shape = 14637
@@ -44,20 +45,13 @@ data_config_1 = Batching(dataset_name="MCP-PMSI",
                          valid_size=0.05, test_size=0.10,
                          devices_number=2,
                          batch_size=50)
-                        
+
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = Distibuted_MPI(model=mlp_model,
-<<<<<<< HEAD
                           datamanager=data_config_1,
-                          monitor=enerGyPU(machine_type="arm"),
-                          max_epochs=20,
-                          min_loss=2)
-=======
-                            datamanager=data_config_1,
-                            monitor=enerGyPU(machine_type="arm",file_path=file_path),
-                            max_epochs=2,
-                            min_loss=2.0)
->>>>>>> master
+                          monitor=enerGyPU(machine_type="arm", file_path=file_path),
+                          max_epochs=2,
+                          min_loss=2.0)
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.asynchronous_training(dataset_name="MCP-PMSI",
@@ -65,5 +59,4 @@ platform.asynchronous_training(dataset_name="MCP-PMSI",
                                inputs_name="patients_features.txt",
                                targets_name="medical_targets_Y14.txt")
 
-print("Execution Time: {}".format((time.time()-execution_start)))
-
+print("Execution Time: {}".format((time.time() - execution_start)))

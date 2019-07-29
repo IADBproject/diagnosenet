@@ -1363,6 +1363,7 @@ class Distibuted_MPI:
         self.early_stopping = early_stopping
         self.monitor = monitor
 
+
         ## Time logs
         self.time_latency: time()
         self.time_dataset: time()
@@ -1380,6 +1381,14 @@ class Distibuted_MPI:
         self.rank = self.comm.Get_rank()
         self.myhost = MPI.Get_processor_name()
         self.status = MPI.Status()
+
+        ## Distributed batching role definition
+        if self.rank == 0:
+            self.job_name = 'ps'
+            self.task_index = self.rank
+        else:
+            self.job_name = 'worker'
+            self.task_index = self.rank
 
 
     def set_monitor_recording(self) -> None:
@@ -1431,8 +1440,8 @@ class Distibuted_MPI:
             if 'MultiTask' in str(type(self.data)):
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
-                if self.rank!=0:
-                    train, valid, test = self.data.distributed_batching(self.rank)
+                if self.rank != 0:
+                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index)
                 else:
                     self.data.dataset_split()
                     train, valid, test = None,None,None
