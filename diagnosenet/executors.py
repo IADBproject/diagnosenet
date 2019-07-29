@@ -1442,6 +1442,7 @@ class Distibuted_MPI:
             elif 'Batching' in str(type(self.data)):
                 if self.rank != 0:
                     train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index)
+                    print("was here from rank ", self.rank, "with length ", len(train.input_files))
                 else:
                     self.data.dataset_split()
                     train, valid, test = None,None,None
@@ -1484,7 +1485,9 @@ class Distibuted_MPI:
                 update_flag = False
 
                 if self.rank != 0:
+                    print("I swear to , ", len(train.input_files))
                     for i in range(len(train.input_files)):
+                        print('I was heeeeere', self.rank)
                         train_inputs = IO_Functions()._read_file(train.input_files[i])
                         train_targets = IO_Functions()._read_file(train.target_files[i])
                         ## Convert list in a numpy matrix
