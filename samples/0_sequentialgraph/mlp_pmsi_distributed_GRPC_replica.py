@@ -38,40 +38,54 @@ def main(argv):
 
 
     ## PMSI-ICU Dataset shapes
-    X_shape = 14637
+    X_shape = 10833	#14637
     y_shape = 381
     Y1_shape = 14
     Y2_shape = 239
     Y3_shape = 5
 
-    ## 1) Define the stacked layers as the number of layers and their neurons
-    layers = [Relu(X_shape, 2048),
-            Relu(2048, 2048),
-            Relu(2048, 1024),
-            Relu(1024, 1024),
-            Linear(1024, y_shape)]
+    ## 1) Define stacked layers funtion activation, number of layers and their neurons
+    stacked_layers_1 = [Relu(X_shape, 1024),
+                        Relu(1024, 1024),
+                        Linear(1024, Y1_shape)]
+
+    stacked_layers_2 = [Relu(X_shape, 512),
+                        Relu(512, 512),
+                        Relu(512, 512),
+                        Relu(512, 512),
+                        Linear(512, Y1_shape)]
+
+    stacked_layers_3 = [Relu(X_shape, 256),
+                        Relu(256, 256),
+                        Relu(256, 256),
+                        Relu(256, 256),
+                        Relu(256, 256),
+                        Relu(256, 256),
+                        Relu(256, 256),
+                        Relu(256, 256),
+                        Linear(256, Y1_shape)]
+
 
     ## 2) Select the neural network architecture and pass the hyper-parameters
-    mlp_model = SequentialGraph(input_size=X_shape, output_size=y_shape,
-                            layers=layers,
+    mlp_model = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
+                            layers=stacked_layers_2,
                             loss=CrossEntropy,
                             optimizer=Adam(lr=0.001),
                             dropout=0.8)
 
     ## 3) Dataset configurations for splitting, batching and target selection
     data_config_1 = Batching(dataset_name="MCP-PMSI",
-                        valid_size=0.05, test_size=0.10,
-                        devices_number=2,
-                        batch_size=100)
+                            valid_size=0.05, test_size=0.10,
+                            devices_number=4,
+                            batch_size=100)
 
     ## 4) Select the computational platform and pass the DNN and Dataset configurations
     platform = Distibuted_GRPC(model=mlp_model,
                              datamanager=data_config_1,
                              monitor=enerGyPU(testbed_path="/home/mpiuser/cloud/0/diagnosenet/samples/0_sequentialgraph/testbed",
                                               machine_type="arm", file_path=file_path),
-                             max_epochs=10,
-                             ip_ps=argv[2],
-                             ip_workers=temp_workers)	#argv[1])
+                             max_epochs=20, min_loss=0.0002,
+                             ip_ps=argv[2], ip_workers=temp_workers)
 
     ## 5) Uses the platform modes for training in an efficient way
     platform.asynchronous_training(dataset_name="MCP-PMSI",

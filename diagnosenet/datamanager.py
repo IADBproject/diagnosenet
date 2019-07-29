@@ -4,16 +4,17 @@ It provides an isolation to fine-tuning different neural network hyper-parameter
 """
 
 import collections
-from typing import Iterator, NamedTuple, List
+import glob
+import logging
+import os.path
+from typing import NamedTuple, List
 
-import glob, os.path
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from diagnosenet.io_functions import IO_Functions
 
-import logging
 logger = logging.getLogger('_DiagnoseNET_')
 
 DataSplit = collections.namedtuple('DataSplit', 'name inputs targets')
