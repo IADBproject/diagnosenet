@@ -6,13 +6,13 @@ import json
 import logging
 import os
 import time
-from typing import NamedTuple
+from typing import Sequence, NamedTuple
 
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import f1_score
 
-from diagnosenet.datamanager import Dataset, Batching
+from diagnosenet.datamanager import Dataset, Batching, MultiTask
 from diagnosenet.io_functions import IO_Functions
 from diagnosenet.monitor import enerGyPU, Metrics
 
@@ -29,7 +29,7 @@ class DesktopExecution:
     Returns:
     """
 
-    def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
+    def __init__(self, model, datamanager: Dataset = None, monitor: enerGyPU = None,
                     max_epochs: int = 10, min_loss: float = 0.02 ,early_stopping: int = 5) -> None:
         self.model = model
         self.data = datamanager
@@ -185,6 +185,8 @@ class DesktopExecution:
                 if not_update >= self.early_stopping or epoch == self.max_epochs:
                     epoch_convergence = 1
                     self.max_epochs = epoch
+                    saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
+                    self.convergence_time = time.time()-training_start
                 else:
                     epoch_convergence = 0
 
@@ -271,8 +273,7 @@ class DesktopExecution:
         ## Set Monitor Recording
         self.set_monitor_recording()
         ## Set dataset on memory
-        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
-                                                    inputs_name, targets_name)
+        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path, inputs_name, targets_name)
 
         ### Training Start
         training_start = time.time()
@@ -347,6 +348,9 @@ class DesktopExecution:
                 if not_update >= self.early_stopping or epoch == self.max_epochs:
                     epoch_convergence = 1
                     self.max_epochs = epoch
+                    saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
+                    self.convergence_time = time.time()-training_start
+
                 else:
                     epoch_convergence = 0
 
@@ -355,7 +359,10 @@ class DesktopExecution:
 
             ### Testing Starting
             testing_start = time.time()
-            saver.restore(sess,  str(self.monitor.testbed_exp+"./"+self.monitor.exp_id+ "-model.ckpt"))
+            checkpoint_path = str(self.monitor.testbed_exp + "./" + self.monitor.exp_id + "-model.ckpt")
+            if os.path.isfile(checkpoint_path):
+                saver.restore(sess, checkpoint_path)
+
             if len(test.input_files) != 0:
                 test_pred_probas: list = []
                 test_pred_1hot: list = []
