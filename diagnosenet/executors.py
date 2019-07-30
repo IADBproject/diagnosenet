@@ -6,13 +6,13 @@ import json
 import logging
 import os
 import time
-from typing import NamedTuple
+from typing import Sequence, NamedTuple
 
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import f1_score
 
-from diagnosenet.datamanager import Dataset, Batching
+from diagnosenet.datamanager import Dataset, Batching, MultiTask
 from diagnosenet.io_functions import IO_Functions
 from diagnosenet.monitor import enerGyPU, Metrics
 
@@ -184,9 +184,9 @@ class DesktopExecution:
                 ## While Stopping conditional
                 if not_update >= self.early_stopping or epoch == self.max_epochs:
                     epoch_convergence = 1
-                    self.max_epochs = epoch
-                    saver.save(sess, str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-model.ckpt"))
-                    self.convergence_time = time.time() - training_start
+                    self.max_epochs = epoch                    
+                    saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
+                    self.convergence_time = time.time()-training_start
                 else:
                     epoch_convergence = 0
 
@@ -348,9 +348,8 @@ class DesktopExecution:
                 if not_update >= self.early_stopping or epoch == self.max_epochs:
                     epoch_convergence = 1
                     self.max_epochs = epoch
-                    saver.save(sess, str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-model.ckpt"))
-                    self.convergence_time = time.time() - training_start
-
+                    saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
+                    self.convergence_time = time.time()-training_start
                 else:
                     epoch_convergence = 0
 
@@ -723,7 +722,7 @@ class Distibuted_GRPC:
                               valid_loss = sess.run(self.model.loss, feed_dict={self.model.X: valid_batch.inputs,
                                                                                 self.model.Y: valid_batch.targets,
                                                                                 self.model.keep_prob: 1.0})
-                              logger.info("+++ valid_loss: {}".format(valid_loss))
+
                               valid_pred = sess.run(self.model.projection_1hot,
                                         feed_dict={self.model.X: valid_batch.inputs,
                                                     self.model.keep_prob: 1.0})
@@ -731,16 +730,11 @@ class Distibuted_GRPC:
                               valid_acc = f1_score(y_true=valid_batch.targets.astype(np.float),
                                                    y_pred=valid_pred.astype(np.float), average='micro')
 
-                          epoch_elapsed = (time.time() - epoch_start)
-                          logger.info(
-                              "Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                                  epoch,
-                                  train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-                          self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
-                          #                          epoch_elapsed = (time.time() - epoch_start)
-                          #                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-                          #                          self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                          epoch_elapsed = (time.time() - epoch_start)
+                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
+                                                        train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                          self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
                           epoch = epoch + 1
                           if  valid_loss <= self.min_loss:
@@ -1368,6 +1362,7 @@ class MultiGPU:
     #         # return train_loss
 
 
+
 from mpi4py import MPI
 class Distibuted_MPI:
 
@@ -1379,6 +1374,7 @@ class Distibuted_MPI:
         self.min_loss = min_loss
         self.early_stopping = early_stopping
         self.monitor = monitor
+
 
         ## Time logs
         self.time_latency: time()
@@ -1457,8 +1453,7 @@ class Distibuted_MPI:
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
                 if self.rank != 0:
-                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name,
-                                                                        self.task_index - 1)
+                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index - 1)
                 else:
                     self.data.dataset_split()
                     train, valid, test = None,None,None
@@ -1510,7 +1505,9 @@ class Distibuted_MPI:
                 update_flag = False
 
                 if self.rank != 0:
+                    print("I swear to , ", len(train.input_files))
                     for i in range(len(train.input_files)):
+                        print('I was heeeeere', self.rank)
                         train_inputs = IO_Functions()._read_file(train.input_files[i])
                         train_targets = IO_Functions()._read_file(train.target_files[i])
                         ## Convert list in a numpy matrix

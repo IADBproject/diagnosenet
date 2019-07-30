@@ -11,6 +11,7 @@ from sklearn.metrics import f1_score
 import os, time
 import asyncio
 from concurrent import futures
+import platform
 
 import subprocess as sp
 import psutil, datetime, os
@@ -37,7 +38,7 @@ class ResourceManager():
         ## Build a tf_ps collection
         tf_ps = []
         #[tf_ps.append(str(ip_ps[i]+":2222")) for i in range(self.num_ps)]
-        [tf_ps.append(str(self.ip_ps[i]+":2222")) for i in range(self.num_ps)]        
+        [tf_ps.append(str(self.ip_ps[i]+":2222")) for i in range(self.num_ps)]
         #tf_ps=','.join(tf_ps)
         #print("++ tf_ps: ",tf_ps, type(tf_ps))
 
@@ -55,19 +56,22 @@ class ResourceManager():
         """
         Subprocess by device job replica
         """
-        #print("++ ssh: {}  || job_replica: {}".format(str(user_name+"@"+host_name), job_replica))
-        sp.call(["ssh", str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
-#        sp.call(["ssh", "-i", "/home/{}/.ssh/id_rsa".format(user_name), str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
+        ## If running on the array, force SSH to use mpiuser's SSH key
+        if platform.node().startswith("astro"):
+            print("Detected that we are running on the Astro array")
+            sp.call(["ssh", "-i", "/home/{}/.ssh/id_rsa".format(user_name), str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
+        else:
+            sp.call(["ssh", str(user_name+"@"+host_name), "python3.6", device_replica, "{}".format(job_replica)])
 
 
     async def queue_device_tasks(self, executor):
         """
-        Asyncio create queue device tasks 
+        Asyncio create queue device tasks
         """
 
         ## Event loop run asynchronous tasks
         loop = asyncio.get_event_loop()
-  
+
         ## Creating a queue executor tasks
         tasks = [loop.run_in_executor(executor, self.run_device_replica, "mpiuser", self.IP_HOSTS[i],
 				 self.device_replica_, self.job_DEVICE_replicas[i]) for i in range(self.devices_num)]
@@ -82,7 +86,7 @@ class ResourceManager():
                                         num_workers: int = 1) -> None:
         """
         The training configuration, which involves multiple task in a `worker`,
-        training the same model on different mini-batches of data, updating shared parameters hosted 
+        training the same model on different mini-batches of data, updating shared parameters hosted
         in one or more task in a parameter server job.
         https://github.com/tensorflow/examples/blob/master/community/en/docs/deploy/distributed.md
         """
@@ -116,5 +120,3 @@ class ResourceManager():
         executor = futures.ProcessPoolExecutor(max_workers=self.devices_num,)
         event_loop = asyncio.get_event_loop()
         event_loop.run_until_complete(self.queue_device_tasks(executor))
-
-
