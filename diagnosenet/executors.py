@@ -721,10 +721,8 @@ class Distibuted_GRPC:
                               valid_batch= Dataset()
                               valid_batch.set_data_file(valid_inputs, valid_targets)
 
-                              valid_loss = sess.run(self.model.loss,
-                                        feed_dict={self.model.X: valid_batch.inputs,
-                                                    self.model.Y: valid_batch.targets,
-                                                    self.model.keep_prob: 1.0})
+                              valid_loss = sess.run(self.model.loss, feed_dict={self.model.X: valid_batch.inputs, self.model.Y: valid_batch.targets, self.model.keep_prob: 1.0})
+                              logger.info("+++ valid_loss: {}".format(valid_loss))
                               valid_pred = sess.run(self.model.projection_1hot,
                                         feed_dict={self.model.X: valid_batch.inputs,
                                                     self.model.keep_prob: 1.0})
@@ -732,9 +730,15 @@ class Distibuted_GRPC:
                               valid_acc = f1_score(y_true=valid_batch.targets.astype(np.float),
                                                    y_pred=valid_pred.astype(np.float), average='micro')
 
+
                           epoch_elapsed = (time.time() - epoch_start)
-                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
+                                                        train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                           self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+
+#                          epoch_elapsed = (time.time() - epoch_start)
+#                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+#                          self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
                           epoch = epoch + 1
                           if  valid_loss <= self.min_loss:
