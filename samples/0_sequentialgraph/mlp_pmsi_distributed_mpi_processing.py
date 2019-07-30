@@ -47,18 +47,10 @@ data_config_1 = Batching(dataset_name="MCP-PMSI",
                         
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = Distibuted_MPI(model=mlp_model,
-<<<<<<< HEAD
                           datamanager=data_config_1,
-                          monitor=enerGyPU(machine_type="arm"),
+                          monitor=enerGyPU(machine_type="arm",file_path=file_path),
                           max_epochs=20,
-                          min_loss=2)
-=======
-                            datamanager=data_config_1,
-                            monitor=enerGyPU(machine_type="arm",file_path=file_path),
-                            max_epochs=2,
-                            min_loss=2.0)
->>>>>>> master
-
+                          min_loss=2.0)
 ## 5) Uses the platform modes for training in an efficient way
 platform.asynchronous_training(dataset_name="MCP-PMSI",
                                dataset_path="dataset/",

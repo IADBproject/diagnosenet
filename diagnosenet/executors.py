@@ -29,8 +29,8 @@ class DesktopExecution:
     Returns:
     """
 
-    def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                    max_epochs: int = 10, min_loss: float = 0.02 ,early_stopping: int = 5) -> None:
+    def __init__(self, model, datamanager: Dataset = None, monitor: enerGyPU = None,
+                 max_epochs: int = 10, min_loss: float = 0.02, early_stopping: int = 5) -> None:
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
@@ -172,19 +172,21 @@ class DesktopExecution:
                                                         train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
-                
-                ## record minimum valid loss and its weights 
+
+                ## record minimum valid loss and its weights
                 if  valid_loss <= self.min_loss:
                     self.min_loss = valid_loss
                     saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
                     self.convergence_time = time.time()-training_start
                 else:
                     not_update +=1
-                    
+
                 ## While Stopping conditional
                 if not_update >= self.early_stopping or epoch == self.max_epochs:
                     epoch_convergence = 1
                     self.max_epochs = epoch
+                    saver.save(sess, str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-model.ckpt"))
+                    self.convergence_time = time.time() - training_start
                 else:
                     epoch_convergence = 0
 
@@ -194,7 +196,10 @@ class DesktopExecution:
 
             ### Testing Starting
             testing_start = time.time()
-            saver.restore(sess,  str(self.monitor.testbed_exp+"./"+self.monitor.exp_id+ "-model.ckpt"))
+            checkpoint_path = str(self.monitor.testbed_exp + "./" + self.monitor.exp_id + "-model.ckpt")
+            if os.path.isfile(checkpoint_path):
+                saver.restore(sess, checkpoint_path)
+
             if len(test.inputs) != 0:
                 test_pred_probas: list = []
                 test_pred_1hot: list = []
@@ -268,8 +273,7 @@ class DesktopExecution:
         ## Set Monitor Recording
         self.set_monitor_recording()
         ## Set dataset on memory
-        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
-                                                    inputs_name, targets_name)
+        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path, inputs_name, targets_name)
 
         ### Training Start
         training_start = time.time()
@@ -331,7 +335,7 @@ class DesktopExecution:
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
-                ## record minimum valid loss and its weights 
+                ## record minimum valid loss and its weights
                 if  valid_loss <= self.min_loss:
                     self.min_loss = valid_loss
                     saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
@@ -339,11 +343,14 @@ class DesktopExecution:
                     print("update")
                 else:
                     not_update +=1
-                    
+
                 ## While Stopping conditional
                 if not_update >= self.early_stopping or epoch == self.max_epochs:
                     epoch_convergence = 1
                     self.max_epochs = epoch
+                    saver.save(sess, str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-model.ckpt"))
+                    self.convergence_time = time.time() - training_start
+
                 else:
                     epoch_convergence = 0
 
@@ -352,7 +359,10 @@ class DesktopExecution:
 
             ### Testing Starting
             testing_start = time.time()
-            saver.restore(sess,  str(self.monitor.testbed_exp+"./"+self.monitor.exp_id+ "-model.ckpt"))
+            checkpoint_path = str(self.monitor.testbed_exp + "./" + self.monitor.exp_id + "-model.ckpt")
+            if os.path.isfile(checkpoint_path):
+                saver.restore(sess, checkpoint_path)
+
             if len(test.input_files) != 0:
                 test_pred_probas: list = []
                 test_pred_1hot: list = []
@@ -524,7 +534,7 @@ class Distibuted_GRPC:
         # tf_workers=','.join(tf_workers)
         #print("++ tf_workers: ", tf_workers)
 
-        self.tf_cluster = tf.train.ClusterSpec({"ps": tf_ps,		# ["134.59.132.135:2222"], 
+        self.tf_cluster = tf.train.ClusterSpec({"ps": tf_ps,  # ["134.59.132.135:2222"],
                                                 "worker": tf_workers}) 		# ["134.59.132.20:2222"]})
         ## A collection of tf_ps nodes
         #return tf.train.ClusterSpec({"ps": tf_ps, "worker": tf_workers})
@@ -639,7 +649,7 @@ class Distibuted_GRPC:
         if job_name ==  "ps":
             sess = tf.Session(self.server.target)
             queue =  self.create_done_queue(self.task_index)
-        
+
             ### Wait intil all workers are done
             for i in range(self.num_workers):
                  sess.run(queue.dequeue())
@@ -652,17 +662,17 @@ class Distibuted_GRPC:
             self.monitor.end_power_recording()
             ## End bandwidth recording
             #self.monitor.end_bandwidth_recording()
-        
+
         elif job_name == "worker":
             ## Generates a distributed graph object from graphs
             with tf.Graph().as_default() as distributed_graph:
                  self.model.distributed_grpc_graph(self.tf_cluster, self.task_index)
-        
+
                  enq_ops = []
                  for q in self.create_done_queues():
                      qop = q.enqueue(1)
                      enq_ops.append(qop)
-        
+
                  ##################################################
                  ## Create a distributed session whit training supervisor
                  #saver = tf.train.Saver()
@@ -671,9 +681,9 @@ class Distibuted_GRPC:
                                          #checkpoint_basename=str(),
                                          global_step=self.model.global_step,
                                          init_op=self.model.init_op)
-        
+
                  with sv.managed_session(self.server.target) as sess:
-        
+
                      #epoch = 0
                      epoch: int = 0
                      not_update = 0
@@ -682,27 +692,26 @@ class Distibuted_GRPC:
                      #print("**** epoch_convergence: {}".format(epoch_convergence))
                      while epoch_convergence == 0:	#(epoch < self.max_epochs):
                           epoch_start = time.time()
-        
+
                           for i in range(len(train.input_files)):
                               train_inputs = IO_Functions()._read_file(train.input_files[i])
                               train_targets = IO_Functions()._read_file(train.target_files[i])
                               ## Convert list in a numpy matrix
                               train_batch = Dataset()
                               train_batch.set_data_file(train_inputs, train_targets)
-        
+
                               train_loss, _ = sess.run([self.model.loss, self.model.grad_op],
                                                    feed_dict={self.model.X: train_batch.inputs,
                                                    self.model.Y: train_batch.targets,
                                                    self.model.keep_prob: self.model.dropout})
-        
+
                               train_pred = sess.run(self.model.projection_1hot,
                                                    feed_dict={self.model.X: train_batch.inputs,
                                                    self.model.keep_prob: self.model.dropout})
-        
+
                               ## F1_score from Skit-learn metrics
                               train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
                                                    y_pred=train_pred.astype(np.float), average='micro')
-        
 
                           for i in range(len(valid.input_files)):
                               valid_inputs = IO_Functions()._read_file(valid.input_files[i])
@@ -711,10 +720,10 @@ class Distibuted_GRPC:
                               valid_batch= Dataset()
                               valid_batch.set_data_file(valid_inputs, valid_targets)
 
-                              valid_loss = sess.run(self.model.loss,
-                                        feed_dict={self.model.X: valid_batch.inputs,
-                                                    self.model.Y: valid_batch.targets,
-                                                    self.model.keep_prob: 1.0})
+                              valid_loss = sess.run(self.model.loss, feed_dict={self.model.X: valid_batch.inputs,
+                                                                                self.model.Y: valid_batch.targets,
+                                                                                self.model.keep_prob: 1.0})
+                              logger.info("+++ valid_loss: {}".format(valid_loss))
                               valid_pred = sess.run(self.model.projection_1hot,
                                         feed_dict={self.model.X: valid_batch.inputs,
                                                     self.model.keep_prob: 1.0})
@@ -723,10 +732,17 @@ class Distibuted_GRPC:
                                                    y_pred=valid_pred.astype(np.float), average='micro')
 
                           epoch_elapsed = (time.time() - epoch_start)
-                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                          logger.info(
+                              "Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
+                                  epoch,
+                                  train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                           self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
-                          epoch = epoch + 1                
+                          #                          epoch_elapsed = (time.time() - epoch_start)
+                          #                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                          #                          self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+
+                          epoch = epoch + 1
                           if  valid_loss <= self.min_loss:
                               self.min_loss = valid_loss
                               self.convergence_time = time.time()-training_start
@@ -747,7 +763,7 @@ class Distibuted_GRPC:
 
                           ### end While loop
                      self.time_training = time.time()-training_start
-        
+
                      ### Testing Starting
                      testing_start = time.time()
                      #saver.restore(sess,  str(self.monitor.testbed_exp+"./"+self.monitor.exp_id+ "-model.ckpt"))
@@ -775,7 +791,7 @@ class Distibuted_GRPC:
                      self.test_pred_probas = np.vstack(test_pred_probas)
                      self.test_pred_1hot = np.vstack(test_pred_1hot)
                      self.test_true_1hot = np.vstack(test_true_1hot)
- 
+
                      ## Compute the F1 Score
                      self.test_f1_weighted = f1_score(self.test_true_1hot,
                                                                self.test_pred_1hot, average = "weighted")
@@ -789,10 +805,10 @@ class Distibuted_GRPC:
                      self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
                                                                y_true=self.test_true_1hot)
                      self.time_testing = time.time()-testing_start
-                     
+
                      ## Write metrics on testbet directory = self.monitor.testbed_exp
                      if self.monitor.write_metrics == True: self.write_metrics()
-        
+
                      ## signal to ps shards that we are done
                      for op in enq_ops:
                           sess.run(op)
@@ -1350,7 +1366,8 @@ class MultiGPU:
     #             epoch = epoch + 1
     #
     #         # return train_loss
-    
+
+
 from mpi4py import MPI
 class Distibuted_MPI:
 
@@ -1380,6 +1397,14 @@ class Distibuted_MPI:
         self.rank = self.comm.Get_rank()
         self.myhost = MPI.Get_processor_name()
         self.status = MPI.Status()
+
+        ## Distributed batching role definition
+        if self.rank == 0:
+            self.job_name = 'ps'
+            self.task_index = self.rank
+        else:
+            self.job_name = 'worker'
+            self.task_index = self.rank
 
 
     def set_monitor_recording(self) -> None:
@@ -1414,7 +1439,7 @@ class Distibuted_MPI:
 
         ## Time recording
         self.time_latency = time.time()-latency_start
-        
+
     def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> BatchPath:
         """
@@ -1431,8 +1456,9 @@ class Distibuted_MPI:
             if 'MultiTask' in str(type(self.data)):
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
-                if self.rank!=0:
-                    train, valid, test = self.data.distributed_batching(self.rank)
+                if self.rank != 0:
+                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name,
+                                                                        self.task_index - 1)
                 else:
                     self.data.dataset_split()
                     train, valid, test = None,None,None
@@ -1444,15 +1470,24 @@ class Distibuted_MPI:
         return train, valid, test
 
     def asynchronous_training(self, dataset_name: str, dataset_path: str,
-                              inputs_name: str, targets_name: str) -> tf.Tensor:
+                              inputs_name: str, targets_name: str, weighting: int = 1) -> tf.Tensor:
 
         self.processing_mode = "distributed_MPI_async_processing"
         ## Set Monitor Recording
         self.set_monitor_recording()
         self.best_model_weights = None
-        ## Set dataset on disk
-        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
-                                                   inputs_name, targets_name)
+        ## Set distributed dataset
+        ## Master split and batch the dataset by worker
+        if self.rank == 0:
+            train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
+                                                       inputs_name, targets_name)
+            worker_batching = 1
+        else:
+            worker_batching = None
+        worker_batching = self.comm.bcast(worker_batching, root=0)
+        ## Each worker read their dataset proportion
+        if worker_batching == 1:
+            train, valid, test = self.set_dataset_disk(dataset_name, dataset_path, inputs_name, targets_name)
 
         training_start = time.time()
         self.model.distributed_mpi_graph()
@@ -1515,8 +1550,10 @@ class Distibuted_MPI:
                         epoch_convergence = 1
                     acc = acc_recv
                     loss = loss_recv
-                    # compute the average of the gradients
-                    average_weights = [np.stack([g[i] for g in weight_collection], axis=0).mean(axis=0) for i in
+                    # compute the weighted average of the gradient
+                    average_weights = [np.average(np.stack([g[i] for g in weight_collection], axis=0),
+                                                  axis=0,
+                                                  weights=[weighting / (weighting + 1), 1 / (weighting + 1)]) for i in
                                        range(len(weight_collection[0]))]
                     # send it to the source of the last reception
                     source = self.status.Get_source()
@@ -1524,7 +1561,6 @@ class Distibuted_MPI:
                 else:
                     if epoch == self.max_epochs:
                         epoch_convergence = 1
-                        print(self.rank, "reached max epoch")
                     self.comm.send([grads, acc, loss, epoch_convergence], dest=0, tag=0)
                     _weights = self.comm.recv(source=0, tag=1)
                     feed_dict = {}
@@ -1580,7 +1616,6 @@ class Distibuted_MPI:
                 else:
                     update_flag = self.comm.recv(source=0, tag=3)
                     if update_flag == True or (epoch_convergence == 1 and self.best_model_weights == None):
-                        print("best weights set on worker", self.rank)
                         self.best_model_weights = model_weights
                 ### end While loop
             self.time_training = time.time() - training_start
@@ -1760,14 +1795,14 @@ class Distibuted_MPI:
                     self.comm.send([val_acc,val_loss], dest=0)
                 self.training_track.append((epoch,loss, val_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
-                epoch = epoch + 1                
+                epoch = epoch + 1
                 if  val_loss <= self.min_loss:
                     self.min_loss = val_loss
                     self.convergence_time = time.time()-training_start
                     update_flag=True
                 else:
                     not_update +=1
-                    
+
                 ## While Stopping conditional
                 if not_update >= self.early_stopping or epoch == self.max_epochs:
                     self.max_epochs=epoch
@@ -1901,7 +1936,7 @@ class Distibuted_MPI:
         eda_json['results']['time_dataset'] = self.time_dataset
         eda_json['results']['time_training'] = self.time_training
         eda_json['results']['time_convergence'] = self.convergence_time
-                                              
+
         ## End time metrics
         self.time_metrics = time.time()-metrics_start
         eda_json['results']['time_metrics'] = self.time_metrics
@@ -1919,4 +1954,3 @@ class Distibuted_MPI:
         self.monitor.end_power_recording()
 
         logger.info("Tesbed directory: {}".format(self.monitor.testbed_exp))
-
