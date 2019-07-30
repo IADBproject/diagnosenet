@@ -30,7 +30,7 @@ class DesktopExecution:
     """
 
     def __init__(self, model, datamanager: Dataset = None, monitor: enerGyPU = None,
-                    max_epochs: int = 10, min_loss: float = 0.02 ,early_stopping: int = 5) -> None:
+                 max_epochs: int = 10, min_loss: float = 0.02, early_stopping: int = 5) -> None:
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
@@ -184,7 +184,7 @@ class DesktopExecution:
                 ## While Stopping conditional
                 if not_update >= self.early_stopping or epoch == self.max_epochs:
                     epoch_convergence = 1
-                    self.max_epochs = epoch
+                    self.max_epochs = epoch                    
                     saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
                     self.convergence_time = time.time()-training_start
                 else:
@@ -350,7 +350,6 @@ class DesktopExecution:
                     self.max_epochs = epoch
                     saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
                     self.convergence_time = time.time()-training_start
-
                 else:
                     epoch_convergence = 0
 
@@ -534,7 +533,7 @@ class Distibuted_GRPC:
         # tf_workers=','.join(tf_workers)
         #print("++ tf_workers: ", tf_workers)
 
-        self.tf_cluster = tf.train.ClusterSpec({"ps": tf_ps,		# ["134.59.132.135:2222"],
+        self.tf_cluster = tf.train.ClusterSpec({"ps": tf_ps,  # ["134.59.132.135:2222"],
                                                 "worker": tf_workers}) 		# ["134.59.132.20:2222"]})
         ## A collection of tf_ps nodes
         #return tf.train.ClusterSpec({"ps": tf_ps, "worker": tf_workers})
@@ -713,7 +712,6 @@ class Distibuted_GRPC:
                               train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
                                                    y_pred=train_pred.astype(np.float), average='micro')
 
-
                           for i in range(len(valid.input_files)):
                               valid_inputs = IO_Functions()._read_file(valid.input_files[i])
                               valid_targets = IO_Functions()._read_file(valid.target_files[i])
@@ -721,8 +719,10 @@ class Distibuted_GRPC:
                               valid_batch= Dataset()
                               valid_batch.set_data_file(valid_inputs, valid_targets)
 
-                              valid_loss = sess.run(self.model.loss, feed_dict={self.model.X: valid_batch.inputs, self.model.Y: valid_batch.targets, self.model.keep_prob: 1.0})
-                              logger.info("+++ valid_loss: {}".format(valid_loss))
+                              valid_loss = sess.run(self.model.loss, feed_dict={self.model.X: valid_batch.inputs,
+                                                                                self.model.Y: valid_batch.targets,
+                                                                                self.model.keep_prob: 1.0})
+
                               valid_pred = sess.run(self.model.projection_1hot,
                                         feed_dict={self.model.X: valid_batch.inputs,
                                                     self.model.keep_prob: 1.0})
@@ -735,10 +735,6 @@ class Distibuted_GRPC:
                           logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
                                                         train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                           self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-
-#                          epoch_elapsed = (time.time() - epoch_start)
-#                          logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
-#                          self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
                           epoch = epoch + 1
                           if  valid_loss <= self.min_loss:
@@ -1365,6 +1361,8 @@ class MultiGPU:
     #
     #         # return train_loss
 
+
+
 from mpi4py import MPI
 class Distibuted_MPI:
 
@@ -1455,8 +1453,7 @@ class Distibuted_MPI:
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
                 if self.rank != 0:
-                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index)
-                    print("was here from rank ", self.rank, "with length ", len(train.input_files))
+                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index - 1)
                 else:
                     self.data.dataset_split()
                     train, valid, test = None,None,None
@@ -1468,15 +1465,24 @@ class Distibuted_MPI:
         return train, valid, test
 
     def asynchronous_training(self, dataset_name: str, dataset_path: str,
-                              inputs_name: str, targets_name: str) -> tf.Tensor:
+                              inputs_name: str, targets_name: str, weighting: int = 1) -> tf.Tensor:
 
         self.processing_mode = "distributed_MPI_async_processing"
         ## Set Monitor Recording
         self.set_monitor_recording()
         self.best_model_weights = None
-        ## Set dataset on disk
-        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
-                                                   inputs_name, targets_name)
+        ## Set distributed dataset
+        ## Master split and batch the dataset by worker
+        if self.rank == 0:
+            train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
+                                                       inputs_name, targets_name)
+            worker_batching = 1
+        else:
+            worker_batching = None
+        worker_batching = self.comm.bcast(worker_batching, root=0)
+        ## Each worker read their dataset proportion
+        if worker_batching == 1:
+            train, valid, test = self.set_dataset_disk(dataset_name, dataset_path, inputs_name, targets_name)
 
         training_start = time.time()
         self.model.distributed_mpi_graph()
@@ -1541,8 +1547,10 @@ class Distibuted_MPI:
                         epoch_convergence = 1
                     acc = acc_recv
                     loss = loss_recv
-                    # compute the average of the gradients
-                    average_weights = [np.stack([g[i] for g in weight_collection], axis=0).mean(axis=0) for i in
+                    # compute the weighted average of the gradient
+                    average_weights = [np.average(np.stack([g[i] for g in weight_collection], axis=0),
+                                                  axis=0,
+                                                  weights=[weighting / (weighting + 1), 1 / (weighting + 1)]) for i in
                                        range(len(weight_collection[0]))]
                     # send it to the source of the last reception
                     source = self.status.Get_source()
@@ -1550,7 +1558,6 @@ class Distibuted_MPI:
                 else:
                     if epoch == self.max_epochs:
                         epoch_convergence = 1
-                        print(self.rank, "reached max epoch")
                     self.comm.send([grads, acc, loss, epoch_convergence], dest=0, tag=0)
                     _weights = self.comm.recv(source=0, tag=1)
                     feed_dict = {}
@@ -1606,7 +1613,6 @@ class Distibuted_MPI:
                 else:
                     update_flag = self.comm.recv(source=0, tag=3)
                     if update_flag == True or (epoch_convergence == 1 and self.best_model_weights == None):
-                        print("best weights set on worker", self.rank)
                         self.best_model_weights = model_weights
                 ### end While loop
             self.time_training = time.time() - training_start
