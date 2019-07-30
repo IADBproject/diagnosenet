@@ -7,7 +7,7 @@ import os, sys, socket, time
 
 ## Makes diagnosenet library visible in samples folder
 import sys
-file_path = "/home/mpiuser/cloud/0/diagnosenet/"
+file_path = "/home/mpiuser/cloud/diagnosenet/"
 #file_path = "../../"
 sys.path.append(file_path)
 
@@ -38,7 +38,7 @@ def main(argv):
 
 
     ## PMSI-ICU Dataset shapes
-    X_shape = 10833	#14637
+    X_shape = 14637 #10833	#14637
     y_shape = 381
     Y1_shape = 14
     Y2_shape = 239
@@ -76,22 +76,22 @@ def main(argv):
     ## 3) Dataset configurations for splitting, batching and target selection
     data_config_1 = Batching(dataset_name="MCP-PMSI",
                             valid_size=0.05, test_size=0.10,
-                            devices_number=4,
-                            batch_size=100)
+                            devices_number=2,
+                            batch_size=150)
 
     ## 4) Select the computational platform and pass the DNN and Dataset configurations
     platform = Distibuted_GRPC(model=mlp_model,
                              datamanager=data_config_1,
-                             monitor=enerGyPU(testbed_path="/home/mpiuser/cloud/0/diagnosenet/samples/0_sequentialgraph/testbed",
+                             monitor=enerGyPU(testbed_path="/home/mpiuser/cloud/diagnosenet/samples/0_sequentialgraph/testbed",
                                               machine_type="arm", file_path=file_path),
-                             max_epochs=20, min_loss=0.0002,
+                             max_epochs=2, min_loss=0.0002,
                              ip_ps=argv[2], ip_workers=temp_workers)
 
     ## 5) Uses the platform modes for training in an efficient way
     platform.asynchronous_training(dataset_name="MCP-PMSI",
-                                 dataset_path="/home/mpiuser/cloud/0/diagnosenet/samples/0_sequentialgraph/dataset/",
+                                 dataset_path="/home/mpiuser/cloud/diagnosenet/samples/0_sequentialgraph/dataset/",
                                  inputs_name="patients_features.txt",
-                                 targets_name="medical_targets.txt",
+                                 targets_name="medical_targets_Y14.txt",
                                  job_name=argv[0],
                                  task_index=int(argv[1]))
 
