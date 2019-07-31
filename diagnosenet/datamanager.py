@@ -234,13 +234,9 @@ class Batching(Splitting):
 
 
     def distributed_batching(self, dataset_name, job_name, task_index) -> BatchPath:
-#    def distributed_batching(self,index) -> BatchPath:
         """
         output batch path:
         """
-#        ## Splittting the Dataset
-#        self.dataset_split()
-
         ## Defining split directories
         self.split_path = str(self.sandbox+"/2_Split_Point-"+str(self.devices_number)+"-"+str(self.batch_size))
         train_path = str(self.split_path+"/data_training/")
@@ -296,22 +292,12 @@ class Batching(Splitting):
 
         ## Get the dataset paths by each worker
         else:
-#            if 'list' in str(type(self.train.inputs)):
             train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"-*")),
                                                sorted(glob.glob(train_path+"/y-"+dataset_name+"-"+str(int(task_index)+1)+"-*")))
-            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"-*.txt")),
+            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"-*")),
                                                sorted(glob.glob(valid_path+"/y-"+dataset_name+"-"+str(int(task_index)+1)+"-*")))
-            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"*.txt")),
+            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"*")),
                                                sorted(glob.glob(test_path+"/y-"+dataset_name+"-"+str(int(task_index)+1)+"-*")))
-
-#            ## For data inputs with more than two dimensions
-#            else:
-#                train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"-*.npy")),
-#                                               sorted(glob.glob(train_path+"/y-"+dataset_name+"-"+str(int(task_index)+1)+"-*.npy")))
-#                valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"-*.npy")),
-#                                               sorted(glob.glob(valid_path+"/y-"+dataset_name+"-"+str(int(task_index)+1)+"-*.npy")))
-#                test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"*.npy")),
-#                                               sorted(glob.glob(test_path+"/y-"+dataset_name+"-"+str(int(task_index)+1)+"-*.npy")))
 
         return train_batch_path, valid_batch_path, test_batch_path
 
