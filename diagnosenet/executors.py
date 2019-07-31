@@ -6,13 +6,13 @@ import json
 import logging
 import os
 import time
-from typing import Sequence, NamedTuple
+from typing import NamedTuple
 
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import f1_score
 
-from diagnosenet.datamanager import Dataset, Batching, MultiTask
+from diagnosenet.datamanager import Dataset, Batching
 from diagnosenet.io_functions import IO_Functions
 from diagnosenet.monitor import enerGyPU, Metrics
 
@@ -1367,11 +1367,12 @@ from mpi4py import MPI
 class Distibuted_MPI:
 
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                    max_epochs: int = 10, min_loss: float = 2.0, early_stopping: int = 5) -> None:
+                 max_epochs: int = 10, min_loss: float = float("Infinity"), early_stopping: int = 5) -> None:
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
         self.min_loss = min_loss
+        self.min_train_loss = float("Infinity")
         self.early_stopping = early_stopping
         self.monitor = monitor
 
@@ -1495,6 +1496,7 @@ class Distibuted_MPI:
             sess.run(init)
             epoch: int = 0
             not_update = 0
+            overfitting = 0
             master_queue = []
             saver = tf.train.Saver()
             epoch_convergence: bin = 0
@@ -1505,9 +1507,7 @@ class Distibuted_MPI:
                 update_flag = False
 
                 if self.rank != 0:
-                    print("I swear to , ", len(train.input_files))
                     for i in range(len(train.input_files)):
-                        print('I was heeeeere', self.rank)
                         train_inputs = IO_Functions()._read_file(train.input_files[i])
                         train_targets = IO_Functions()._read_file(train.target_files[i])
                         ## Convert list in a numpy matrix
@@ -1556,7 +1556,7 @@ class Distibuted_MPI:
                     source = self.status.Get_source()
                     self.comm.send(average_weights, dest=source, tag=1)
                 else:
-                    if epoch == self.max_epochs:
+                    if epoch == self.max_epochs or overfitting == 1:
                         epoch_convergence = 1
                     self.comm.send([grads, acc, loss, epoch_convergence], dest=0, tag=0)
                     _weights = self.comm.recv(source=0, tag=1)
@@ -1601,19 +1601,14 @@ class Distibuted_MPI:
                 self.training_track.append((epoch, loss, val_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
                 epoch = epoch + 1
+                if val_loss <= self.min_loss and loss > self.min_train_loss:
+                    overfitting = 1
+                    self.convergence_time = time.time() - training_start
                 if val_loss <= self.min_loss:
                     self.min_loss = val_loss
-                    self.convergence_time = time.time() - training_start
-                    update_flag = True
-                else:
-                    not_update += 1
-
-                if self.rank == 0:
-                    self.comm.send(update_flag, dest=self.status.Get_source(), tag=3)
-                else:
-                    update_flag = self.comm.recv(source=0, tag=3)
-                    if update_flag == True or (epoch_convergence == 1 and self.best_model_weights == None):
-                        self.best_model_weights = model_weights
+                if loss <= self.min_train_loss:
+                    self.min_train_loss = loss
+                    self.best_model_weights = model_weights
                 ### end While loop
             self.time_training = time.time() - training_start
 

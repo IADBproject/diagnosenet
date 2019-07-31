@@ -296,13 +296,16 @@ class Batching(Splitting):
 
         ## Get the dataset paths by each worker
         else:
-#            if 'list' in str(type(self.train.inputs)):
-            train_batch_path = BatchPath(sorted(glob.glob(train_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"-*")),
-                                               sorted(glob.glob(train_path+"/y-"+dataset_name+"-"+str(int(task_index)+1)+"-*")))
-            valid_batch_path = BatchPath(sorted(glob.glob(valid_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"-*.txt")),
-                                               sorted(glob.glob(valid_path+"/y-"+dataset_name+"-"+str(int(task_index)+1)+"-*")))
-            test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-"+dataset_name+"-"+str(int(task_index)+1)+"*.txt")),
-                                               sorted(glob.glob(test_path+"/y-"+dataset_name+"-"+str(int(task_index)+1)+"-*")))
+            #  if 'list' in str(type(self.train.inputs)):
+            train_batch_path = BatchPath(
+                sorted(glob.glob(train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
+                sorted(glob.glob(train_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
+            valid_batch_path = BatchPath(
+                sorted(glob.glob(valid_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
+                sorted(glob.glob(valid_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
+            test_batch_path = BatchPath(
+                sorted(glob.glob(test_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
+                sorted(glob.glob(test_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
 
 #            ## For data inputs with more than two dimensions
 #            else:
