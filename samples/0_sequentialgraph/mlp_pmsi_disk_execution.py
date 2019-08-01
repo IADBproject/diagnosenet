@@ -42,19 +42,19 @@ mlp_model = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
                             dropout=0.8)
 
 ## 3) Dataset configurations for splitting, batching and target selection
-data_config = MultiTask(dataset_name="MCP-PMSI",
-                        batch_size=100,
+data_config_1 = MultiTask(dataset_name="MCP-PMSI",
                         valid_size=0.05, test_size=0.10,
-                        target_name='Y11',
+                        batch_size=100,
+                        target_name='Y1188',
                         target_start=0, target_end=14
                         )
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model,
-                            datamanager=data_config,
-                            monitor=enerGyPU(machine_type="arm",file_path=file_path),
-                            max_epochs=1,
-                            min_loss=2.0)
+                            datamanager=data_config_1,
+                            monitor=enerGyPU(machine_type="arm", file_path=file_path),
+                            max_epochs=2,
+                            min_loss=0.02)
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.training_disk(dataset_name="MCP-PMSI",

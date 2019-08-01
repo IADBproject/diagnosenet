@@ -142,12 +142,12 @@ class Batching(Splitting):
     for each part of the data, Training, Valid, Test
     """
     def __init__(self, dataset_name: str = None,
-                        valid_size: float = None, test_size: float = None,
-                        devices_number: int = 1, batch_size: int = 1000):
+                        valid_size: float = None, test_size: float = None, 
+                        batch_size: int = 1000, devices_number: int = 1):
         super().__init__(valid_size, test_size)
         self.dataset_name = dataset_name
-        self.devices_number = devices_number
         self.batch_size = batch_size
+        self.devices_number = devices_number
 
     def batching(self, data: DataSplit) -> List[Batch]:
         """
@@ -324,11 +324,10 @@ class MultiTask(Batching):
     """
     def __init__(self, dataset_name: str = 'PMSI_ICU_W1',
                         valid_size: float = None, test_size: float = None,
-                        batch_size: int = 1000,
+                        batch_size: int = 1000, devices_number: int = 1,
                         target_name: str = 'Y11',
                         target_start: int = 0, target_end: int = 14) -> None:
-        super().__init__(dataset_name, valid_size, test_size, batch_size)
-        # self.dataset_name = dataset_name
+        super().__init__(dataset_name, valid_size, test_size, batch_size, devices_number)
         self.target_name = target_name
         self.target_start = target_start
         self.target_end = target_end

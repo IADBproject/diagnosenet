@@ -57,7 +57,7 @@ platform = DesktopExecution(model=mlp_model_1,
 
 ### Read the PMSI-Dataset using Pickle from diagnosenet.io_functions
 X = IO_Functions()._read_file("dataset/patients_features.txt")
-y = IO_Functions()._read_file("dataset/medical_targets.txt")
+y = IO_Functions()._read_file("dataset/medical_targets_Y14.txt")
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.training_memory(X, y)
