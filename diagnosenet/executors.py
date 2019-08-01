@@ -1442,7 +1442,8 @@ class Distibuted_MPI:
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
                 if self.rank != 0:
-                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index)
+                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name,
+                                                                        self.task_index - 1)
                 else:
                     train, valid, test = self.data.distributed_batching(dataset_name, self.job_name,
                                                                         self.task_index - 1)

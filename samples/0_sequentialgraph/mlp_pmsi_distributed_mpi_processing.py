@@ -51,12 +51,14 @@ data_config_1 = Batching(dataset_name="MCP-PMSI",
 platform = Distibuted_MPI(model=mlp_model,
                           datamanager=data_config_1,
                           monitor=enerGyPU(machine_type="arm",file_path=file_path),
-                          max_epochs=20)
+                          max_epochs=20,
+                          early_stopping=1)
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.asynchronous_training(dataset_name="MCP-PMSI",
                                dataset_path="dataset/",
                                inputs_name="patients_features.txt",
-                               targets_name="medical_targets_Y14.txt")
+                               targets_name="medical_targets_Y14.txt",
+                               weighting=1)
 
 print("Execution Time: {}".format((time.time() - execution_start)))
