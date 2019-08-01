@@ -30,11 +30,12 @@ class DesktopExecution:
     """
 
     def __init__(self, model, datamanager: Dataset = None, monitor: enerGyPU = None,
-                 max_epochs: int = 10, min_loss: float = 0.02, early_stopping: int = 5) -> None:
+                 max_epochs: int = 10, early_stopping: int = 3) -> None:
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
-        self.min_loss = min_loss
+        self.min_valid_loss = float("Infinity")
+        self.min_train_loss = float("Infinity")
         self.early_stopping = early_stopping
         self.monitor = monitor
 
@@ -173,26 +174,29 @@ class DesktopExecution:
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
+
                 ## record minimum valid loss and its weights
-                if  valid_loss <= self.min_loss:
-                    self.min_loss = valid_loss
-                    saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
-                    self.convergence_time = time.time()-training_start
-                else:
+                if valid_loss >= self.min_valid_loss and train_loss < self.min_train_loss:
                     not_update +=1
 
+                if valid_loss <= self.min_valid_loss:
+                    self.min_valid_loss = valid_loss
+
+                if train_loss <= self.min_train_loss:
+                    self.min_train_loss = train_loss
+
                 ## While Stopping conditional
-                if not_update >= self.early_stopping or epoch == self.max_epochs:
+                if not_update >= self.early_stopping or epoch >= self.max_epochs:
                     epoch_convergence = 1
-                    self.max_epochs = epoch                    
+                    self.max_epochs = epoch
                     saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
                     self.convergence_time = time.time()-training_start
                 else:
                     epoch_convergence = 0
 
-
+                self.time_training = time.time()-training_start
                 ### end While loop
-            self.time_training = time.time()-training_start
+
 
             ### Testing Starting
             testing_start = time.time()
@@ -335,14 +339,15 @@ class DesktopExecution:
                 self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
-                ## record minimum valid loss and its weights
-                if  valid_loss <= self.min_loss:
-                    self.min_loss = valid_loss
-                    saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
-                    self.convergence_time = time.time()-training_start
-                    print("update")
-                else:
+                ## Early stopping when the validation loss decreases and train loss increases
+                if valid_loss >= self.min_valid_loss and train_loss < self.min_train_loss:
                     not_update +=1
+
+                if valid_loss <= self.min_valid_loss:
+                    self.min_valid_loss = valid_loss
+
+                if train_loss <= self.min_train_loss:
+                    self.min_train_loss = train_loss
 
                 ## While Stopping conditional
                 if not_update >= self.early_stopping or epoch == self.max_epochs:
@@ -353,8 +358,9 @@ class DesktopExecution:
                 else:
                     epoch_convergence = 0
 
+                self.time_training = time.time()-training_start
                 ### end While loop
-            self.time_training = time.time()-training_start
+
 
             ### Testing Starting
             testing_start = time.time()
@@ -450,7 +456,7 @@ class DesktopExecution:
         ## Add values to results
         eda_json['results']['f1_score_weigted'] = self.test_f1_weighted
         eda_json['results']['f1_score_micro'] = self.test_f1_micro
-        eda_json['results']['loss_validation'] = str(self.min_loss)
+        eda_json['results']['loss_validation'] = str(self.min_valid_loss)
         eda_json['results']['time_latency'] = self.time_latency
         eda_json['results']['time_dataset'] = self.time_dataset
         eda_json['results']['time_training'] = self.time_training
@@ -485,14 +491,15 @@ class Distibuted_GRPC:
     """
 
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                    max_epochs: int = 10, min_loss: float = 0.02, early_stopping: int = 5,
+                    max_epochs: int = 10, early_stopping: int = 3,
                     ip_ps: str = "localhost:2222",
                     ip_workers: str = "localhost:2223") -> None:
 
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
-        self.min_loss = min_loss
+        self.min_valid_loss = float("Infinity")
+        self.min_train_loss = float("Infinity")
         self.early_stopping = early_stopping
         self.monitor = monitor
 
@@ -688,8 +695,7 @@ class Distibuted_GRPC:
                      not_update = 0
                      #saver = tf.train.Saver()
                      epoch_convergence: bin = 0
-                     #print("**** epoch_convergence: {}".format(epoch_convergence))
-                     while epoch_convergence == 0:	#(epoch < self.max_epochs):
+                     while epoch_convergence == 0:
                           epoch_start = time.time()
 
                           for i in range(len(train.input_files)):
@@ -736,16 +742,19 @@ class Distibuted_GRPC:
                           self.training_track.append((epoch,train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
                           epoch = epoch + 1
-                          if  valid_loss <= self.min_loss:
-                              self.min_loss = valid_loss
-                              self.convergence_time = time.time()-training_start
-                              update_flag=True
-                          else:
+
+                          ## Early stopping when the validation loss decreases and train loss increases
+                          if valid_loss >= self.min_valid_loss and train_loss < self.min_train_loss:
                               not_update +=1
 
+                          if valid_loss <= self.min_valid_loss:
+                              self.min_valid_loss = valid_loss
+
+                          if train_loss <= self.min_train_loss:
+                              self.min_train_loss = train_loss
+
                           ## While Stopping conditional
-                          ##if not_update >= self.early_stopping or epoch == self.max_epochs:
-                          if epoch == self.max_epochs:
+                          if not_update >= self.early_stopping or epoch == self.max_epochs:
                               self.max_epochs=epoch
                               if self.job_name == 'worker':
                                   epoch_convergence = 1
@@ -754,8 +763,9 @@ class Distibuted_GRPC:
                                   epoch_convergence = 0
                                   self.convergence_time = time.time()-training_start
 
+                          self.time_training = time.time()-training_start
                           ### end While loop
-                     self.time_training = time.time()-training_start
+
 
                      ### Testing Starting
                      testing_start = time.time()
@@ -808,7 +818,7 @@ class Distibuted_GRPC:
                      print('-- Done! --')
                  sv.stop()
             sess.close()
-            #print("-- session finish --")
+            ## Asynchronous traing
 
 
 
@@ -860,7 +870,7 @@ class Distibuted_GRPC:
         ## Add values to results
         eda_json['results']['f1_score_weigted'] = self.test_f1_weighted
         eda_json['results']['f1_score_micro'] = self.test_f1_micro
-        eda_json['results']['loss_validation'] = str(self.min_loss)
+        eda_json['results']['loss_validation'] = str(self.min_valid_loss)
         eda_json['results']['time_latency'] = self.time_latency
         eda_json['results']['time_dataset'] = self.time_dataset
         eda_json['results']['time_training'] = self.time_training
@@ -1366,14 +1376,14 @@ from mpi4py import MPI
 class Distibuted_MPI:
 
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                    max_epochs: int = 10, min_loss: float = 2.0, early_stopping: int = 5) -> None:
+                 max_epochs: int = 10, early_stopping: int = 3) -> None:
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
-        self.min_loss = min_loss
+        self.min_valid_loss = float("Infinity")
+        self.min_train_loss = float("Infinity")
         self.early_stopping = early_stopping
         self.monitor = monitor
-
 
         ## Time logs
         self.time_latency: time()
@@ -1401,7 +1411,6 @@ class Distibuted_MPI:
             self.job_name = 'worker'
             self.task_index = self.rank
 
-
     def set_monitor_recording(self) -> None:
         """
         Power and performance monitoring launcher for workload characterization
@@ -1409,17 +1418,17 @@ class Distibuted_MPI:
         latency_start = time.time()
         if self.monitor == None:
             self.monitor = enerGyPU(testbed_path="testbed",
-                                machine_type="x86",
-                                write_metrics=True,
-                                power_recording=True,
-                                platform_recording=True)
+                                    machine_type="x86",
+                                    write_metrics=True,
+                                    power_recording=True,
+                                    platform_recording=True)
 
-        platform_name=(str(self.__class__.__name__)+"-"+str(self.size)+"-"+str(self.rank))
+        platform_name = (str(self.__class__.__name__) + "-" + str(self.size) + "-" + str(self.rank))
         ## Generate ID-experiment and their testebed directory
         self.monitor.generate_testbed(self.monitor.testbed_path,
-                                        self.model, self.data,
-                                        platform_name,
-                                        self.max_epochs)
+                                      self.model, self.data,
+                                      platform_name,
+                                      self.max_epochs)
 
         ## Start power recording
         if self.monitor.power_recording == True: self.monitor.start_power_recording()
@@ -1429,14 +1438,14 @@ class Distibuted_MPI:
 
         ## Get GPU availeble and set for processing
         self.idgpu = "0"
-        os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu[0]
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        os.environ["CUDA_VISIBLE_DEVICES"] = self.idgpu[0]
 
         ## Time recording
-        self.time_latency = time.time()-latency_start
+        self.time_latency = time.time() - latency_start
 
-    def set_dataset_disk(self,  dataset_name: str, dataset_path: str,
-                        inputs_name: str, targets_name: str) -> BatchPath:
+    def set_dataset_disk(self, dataset_name: str, dataset_path: str,
+                         inputs_name: str, targets_name: str) -> BatchPath:
         """
         Uses datamanager classes for splitting, batching the dataset for distibuted training
         """
@@ -1445,22 +1454,24 @@ class Distibuted_MPI:
         print("+++ Type: {}".format(type(self.data)))
         try:
             self.data.set_data_path(dataset_name=dataset_name,
-                               dataset_path=dataset_path,
-                               inputs_name=inputs_name,
-                               targets_name=targets_name)
+                                    dataset_path=dataset_path,
+                                    inputs_name=inputs_name,
+                                    targets_name=targets_name)
             if 'MultiTask' in str(type(self.data)):
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
                 if self.rank != 0:
-                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index - 1)
+                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index)
                 else:
-                    self.data.dataset_split()
-                    train, valid, test = None,None,None
+                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name,
+                                                                        self.task_index - 1)
             else:
-                raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
+                raise AttributeError(
+                    "training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
         except AttributeError:
-                raise AttributeError("training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
-        self.time_dataset = time.time()-dataset_start
+            raise AttributeError(
+                "training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
+        self.time_dataset = time.time() - dataset_start
         return train, valid, test
 
     def asynchronous_training(self, dataset_name: str, dataset_path: str,
@@ -1500,13 +1511,10 @@ class Distibuted_MPI:
             model_weights = None
             while (epoch_convergence == 0):
                 epoch_start = time.time()
-                acc, loss, val_acc, val_loss = 0, 0, 0, 0
-                update_flag = False
+                acc, train_loss, val_acc, valid_loss = 0, 0, 0, 0
 
                 if self.rank != 0:
-                    print("I swear to , ", len(train.input_files))
                     for i in range(len(train.input_files)):
-                        print('I was heeeeere', self.rank)
                         train_inputs = IO_Functions()._read_file(train.input_files[i])
                         train_targets = IO_Functions()._read_file(train.target_files[i])
                         ## Convert list in a numpy matrix
@@ -1529,7 +1537,7 @@ class Distibuted_MPI:
                         train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
                                              y_pred=train_pred.astype(np.float), average='micro')
                         acc += train_acc / len(train.input_files)
-                        loss += train_loss / len(train.input_files)
+                        train_loss += train_loss / len(train.input_files)
                 if self.rank == 0:
                     weight_collection = []
                     weight_recv, acc_recv, loss_recv, epoch_recv = self.comm.recv(source=MPI.ANY_SOURCE,
@@ -1544,8 +1552,9 @@ class Distibuted_MPI:
                         master_queue.append(epoch_recv)
                     if len(master_queue) == self.size - 1:
                         epoch_convergence = 1
+                        self.convergence_time = time.time() - training_start
                     acc = acc_recv
-                    loss = loss_recv
+                    train_loss = loss_recv
                     # compute the weighted average of the gradient
                     average_weights = [np.average(np.stack([g[i] for g in weight_collection], axis=0),
                                                   axis=0,
@@ -1555,9 +1564,10 @@ class Distibuted_MPI:
                     source = self.status.Get_source()
                     self.comm.send(average_weights, dest=source, tag=1)
                 else:
-                    if epoch == self.max_epochs:
+                    if epoch == self.max_epochs or not_update >= self.early_stopping:
                         epoch_convergence = 1
-                    self.comm.send([grads, acc, loss, epoch_convergence], dest=0, tag=0)
+                        self.max_epochs = epoch
+                    self.comm.send([grads, acc, train_loss, epoch_convergence], dest=0, tag=0)
                     _weights = self.comm.recv(source=0, tag=1)
                     feed_dict = {}
                     self.model._gradients = _weights
@@ -1586,35 +1596,35 @@ class Distibuted_MPI:
                         valid_acc = f1_score(y_true=valid_batch.targets.astype(np.float),
                                              y_pred=valid_pred.astype(np.float), average='micro')
                         val_acc += valid_acc / len(valid.input_files)
-                        val_loss += valid_loss / len(valid.input_files)
+                        valid_loss += valid_loss / len(valid.input_files)
 
                 epoch_elapsed = (time.time() - epoch_start)
                 if self.rank == 0:
-                    val_acc, val_loss = self.comm.recv(source=MPI.ANY_SOURCE, status=self.status, tag=2)
+                    val_acc, valid_loss = self.comm.recv(source=MPI.ANY_SOURCE, status=self.status, tag=2)
                     logger.info(
                         "From {} | Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
                             self.status.Get_source(), epoch,
-                            loss, val_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                            train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
                 else:
-                    self.comm.send([val_acc, val_loss], dest=0, tag=2)
-                self.training_track.append((epoch, loss, val_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                    self.comm.send([val_acc, valid_loss], dest=0, tag=2)
+                self.training_track.append(
+                    (epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
                 epoch = epoch + 1
-                if val_loss <= self.min_loss:
-                    self.min_loss = val_loss
-                    self.convergence_time = time.time() - training_start
-                    update_flag = True
-                else:
-                    not_update += 1
 
-                if self.rank == 0:
-                    self.comm.send(update_flag, dest=self.status.Get_source(), tag=3)
-                else:
-                    update_flag = self.comm.recv(source=0, tag=3)
-                    if update_flag == True or (epoch_convergence == 1 and self.best_model_weights == None):
+                ## Early stopping when the validation loss decreases and train loss increases
+                if self.rank != 0:
+                    if valid_loss >= self.min_valid_loss and train_loss < self.min_train_loss:
+                        not_update += 1
+                    if valid_loss <= self.min_valid_loss:
                         self.best_model_weights = model_weights
-                ### end While loop
-            self.time_training = time.time() - training_start
+                        self.min_valid_loss = valid_loss
+                        self.convergence_time = time.time() - training_start
+                    if train_loss <= self.min_train_loss:
+                        self.min_train_loss = train_loss
+
+                self.time_training = time.time() - training_start
+                ## end While loop
 
             # make workers that finished traininig wait for others to finish
             self.comm.Barrier()
@@ -1679,18 +1689,18 @@ class Distibuted_MPI:
             ## Write metrics on testbet directory = self.monitor.testbed_exp
             if self.monitor.write_metrics == True: self.write_metrics()
 
+            sess.close()
             return self.test_pred_probas
 
-
-    def synchronous_training(self,  dataset_name: str, dataset_path: str,
-                        inputs_name: str, targets_name: str) -> tf.Tensor:
+    def synchronous_training(self, dataset_name: str, dataset_path: str,
+                             inputs_name: str, targets_name: str) -> tf.Tensor:
 
         self.processing_mode = "distributed_MPI_sync_processing"
         ## Set Monitor Recording
         self.set_monitor_recording()
         ## Set dataset on disk
         train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
-                                                    inputs_name, targets_name)
+                                                   inputs_name, targets_name)
 
         training_start = time.time()
         self.model.distributed_mpi_graph()
@@ -1699,7 +1709,7 @@ class Distibuted_MPI:
         config.gpu_options.allow_growth = True
         with tf.Session(config=config, graph=self.model.graph) as sess:
             init = tf.group(tf.global_variables_initializer(),
-                                tf.local_variables_initializer())
+                            tf.local_variables_initializer())
             sess.run(init)
             epoch: int = 0
             not_update = 0
@@ -1707,128 +1717,135 @@ class Distibuted_MPI:
             epoch_convergence: bin = 0
             while (epoch_convergence == 0):
                 epoch_start = time.time()
-                acc,loss,val_acc,val_loss=0,0,0,0
-                update_flag=False
+                acc, loss, val_acc, valid_loss = 0, 0, 0, 0
+                update_flag = False
 
-                if self.rank!=0:
+                if self.rank != 0:
                     for i in range(len(train.input_files)):
 
                         train_inputs = IO_Functions()._read_file(train.input_files[i])
                         train_targets = IO_Functions()._read_file(train.target_files[i])
-                    ## Convert list in a numpy matrix
+                        ## Convert list in a numpy matrix
                         train_batch = Dataset()
                         train_batch.set_data_file(train_inputs, train_targets)
 
-                        if i==(len(train.input_files)-1):
-                            grads,train_loss,train_pred=sess.run([self.model._grad_op,self.model.loss,self.model.projection_1hot],
-                                                        feed_dict={self.model.X: train_batch.inputs,
-                                                        self.model.Y: train_batch.targets,
-                                                        self.model.keep_prob: self.model.dropout})
+                        if i == (len(train.input_files) - 1):
+                            grads, train_loss, train_pred = sess.run(
+                                [self.model._grad_op, self.model.loss, self.model.projection_1hot],
+                                feed_dict={self.model.X: train_batch.inputs,
+                                           self.model.Y: train_batch.targets,
+                                           self.model.keep_prob: self.model.dropout})
                         else:
-                            _,train_loss,train_pred=sess.run([self.model.sub_grad_op,self.model.loss,self.model.projection_1hot],
-                                                        feed_dict={self.model.X: train_batch.inputs,
-                                                        self.model.Y: train_batch.targets,
-                                                        self.model.keep_prob: self.model.dropout})
+                            _, train_loss, train_pred = sess.run(
+                                [self.model.sub_grad_op, self.model.loss, self.model.projection_1hot],
+                                feed_dict={self.model.X: train_batch.inputs,
+                                           self.model.Y: train_batch.targets,
+                                           self.model.keep_prob: self.model.dropout})
 
                         ## F1_score from Skit-learn metrics
                         train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
-                                                    y_pred=train_pred.astype(np.float), average='micro')
-                        acc+=train_acc/len(train.input_files)
-                        loss+=train_loss/len(train.input_files)
+                                             y_pred=train_pred.astype(np.float), average='micro')
+                        acc += train_acc / len(train.input_files)
+                        loss += train_loss / len(train.input_files)
 
-                if self.rank==0:
-                    weight_collection=[]
+                if self.rank == 0:
+                    weight_collection = []
                     for i in range(1, self.size):
-                        weight_recv,acc_recv,loss_recv= self.comm.recv()
+                        weight_recv, acc_recv, loss_recv = self.comm.recv()
                         weight_collection.append(weight_recv)
-                        acc+=acc_recv/(self.size-1)
-                        loss+=loss_recv/(self.size-1)
+                        acc += acc_recv / (self.size - 1)
+                        loss += loss_recv / (self.size - 1)
                     average_weights = [np.stack([g[i] for g in weight_collection], axis=0).mean(axis=0) for i in
                                        range(len(weight_collection[0]))]
                     for i in range(1, self.size):
                         self.comm.send(average_weights, dest=i)
                 else:
-                    self.comm.send([grads,acc,loss], dest=0)
+                    self.comm.send([grads, acc, loss], dest=0)
                     _weights = self.comm.recv(source=0)
                     feed_dict = {}
-                    self.model._gradients=_weights
+                    self.model._gradients = _weights
                     for i, placeholder in enumerate(self.model._grad_placeholders):
                         feed_dict[placeholder] = self.model._gradients[i]
                     sess.run(self.model._train_op, feed_dict=feed_dict)
                     update_weight = feed_dict
 
-                if self.rank!=0:
+                if self.rank != 0:
                     for i in range(len(valid.input_files)):
-
                         valid_inputs = IO_Functions()._read_file(valid.input_files[i])
                         valid_targets = IO_Functions()._read_file(valid.target_files[i])
-                    ## Convert list in a numpy matrix
-                        valid_batch= Dataset()
+                        ## Convert list in a numpy matrix
+                        valid_batch = Dataset()
                         valid_batch.set_data_file(valid_inputs, valid_targets)
 
                         valid_loss = sess.run(self.model.loss,
-                                            feed_dict={self.model.X: valid_batch.inputs,
-                                                        self.model.Y: valid_batch.targets,
-                                                        self.model.keep_prob: 1.0})
+                                              feed_dict={self.model.X: valid_batch.inputs,
+                                                         self.model.Y: valid_batch.targets,
+                                                         self.model.keep_prob: 1.0})
                         valid_pred = sess.run(self.model.projection_1hot,
-                                            feed_dict={self.model.X: valid_batch.inputs,
-                                                        self.model.keep_prob: 1.0})
+                                              feed_dict={self.model.X: valid_batch.inputs,
+                                                         self.model.keep_prob: 1.0})
                         ## F1_score from Skit-learn metrics
                         valid_acc = f1_score(y_true=valid_batch.targets.astype(np.float),
-                                                y_pred=valid_pred.astype(np.float), average='micro')
-                        val_acc+=valid_acc/len(valid.input_files)
-                        val_loss+=valid_loss/len(valid.input_files)
+                                             y_pred=valid_pred.astype(np.float), average='micro')
+                        val_acc += valid_acc / len(valid.input_files)
+                        valid_loss += valid_loss / len(valid.input_files)
 
                 epoch_elapsed = (time.time() - epoch_start)
-                if self.rank==0:
+                if self.rank == 0:
                     for i in range(1, self.size):
-                        val_acc_recv,val_loss_recv=self.comm.recv()
-                        val_acc+=val_acc_recv/(self.size-1)
-                        val_loss+=val_loss_recv/(self.size-1)
-                    logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch,
-                                                        loss, val_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                        val_acc_recv, val_loss_recv = self.comm.recv()
+                        val_acc += val_acc_recv / (self.size - 1)
+                        valid_loss += val_loss_recv / (self.size - 1)
+                    logger.info(
+                        "Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
+                            epoch,
+                            loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
                 else:
-                    self.comm.send([val_acc,val_loss], dest=0)
-                self.training_track.append((epoch,loss, val_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                    self.comm.send([val_acc, valid_loss], dest=0)
+                self.training_track.append((epoch, loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
                 epoch = epoch + 1
-                if  val_loss <= self.min_loss:
-                    self.min_loss = val_loss
-                    self.convergence_time = time.time()-training_start
-                    update_flag=True
-                else:
-                    not_update +=1
+
+                ## Early stopping when the validation loss decreases and train loss increases
+                if valid_loss >= self.min_valid_loss and train_loss < self.min_train_loss:
+                    not_update += 1
+                if valid_loss <= self.min_valid_loss:
+                    self.min_valid_loss = valid_loss
+                    self.convergence_time = time.time() - training_start
+                    # update_flag = True
+                if train_loss <= self.min_train_loss:
+                    self.min_train_loss = train_loss
 
                 ## While Stopping conditional
                 if not_update >= self.early_stopping or epoch == self.max_epochs:
-                    self.max_epochs=epoch
-                    if self.rank ==0:
+                    self.max_epochs = epoch
+                    if self.rank == 0:
                         epoch_convergence = 1
                 else:
                     epoch_convergence = 0
 
-                if self.rank ==0:
+                if self.rank == 0:
                     for i in range(1, self.size):
-                        self.comm.send([epoch_convergence,update_flag], dest=i)
+                        self.comm.send([epoch_convergence, update_flag], dest=i)
                 else:
-                    epoch_convergence,update_flag = self.comm.recv(source=0)
-                    if update_flag==True:
+                    epoch_convergence, update_flag = self.comm.recv(source=0)
+                    if update_flag == True:
                         self.best_model_weights = update_weight
 
+                self.time_training = time.time() - training_start
                 ### end While loop
-            self.time_training = time.time()-training_start
+
 
             ### Testing Starting
             testing_start = time.time()
 
-            if self.rank!=0:
+            if self.rank != 0:
                 test_pred_probas: list = []
                 test_pred_1hot: list = []
                 test_true_1hot: list = []
                 sess.run(self.model._train_op, feed_dict=self.best_model_weights)
 
                 for i in range(len(test.input_files)):
-
                     test_inputs = IO_Functions()._read_file(test.input_files[i])
                     test_targets = IO_Functions()._read_file(test.target_files[i])
                     ## Convert list in a numpy matrix
@@ -1836,25 +1853,25 @@ class Distibuted_MPI:
                     test_batch.set_data_file(test_inputs, test_targets)
 
                     tt_pred_probas = sess.run(self.model.soft_projection,
-                                                feed_dict={self.model.X: test_batch.inputs,
-                                                            self.model.keep_prob: 1.0})
+                                              feed_dict={self.model.X: test_batch.inputs,
+                                                         self.model.keep_prob: 1.0})
                     tt_pred_1hot = sess.run(self.model.projection_1hot,
-                                                feed_dict={self.model.X: test_batch.inputs,
-                                                            self.model.keep_prob: 1.0})
+                                            feed_dict={self.model.X: test_batch.inputs,
+                                                       self.model.keep_prob: 1.0})
 
                     test_pred_probas.append(tt_pred_probas)
                     test_pred_1hot.append(tt_pred_1hot)
                     test_true_1hot.append(test_batch.targets.astype(np.float))
 
-            if self.rank==0:
-                test_true_1hot,test_pred_probas,test_pred_1hot=[],[],[]
+            if self.rank == 0:
+                test_true_1hot, test_pred_probas, test_pred_1hot = [], [], []
                 for i in range(1, self.size):
-                    tmp1,tmp2,tmp3=self.comm.recv(source=i)
+                    tmp1, tmp2, tmp3 = self.comm.recv(source=i)
                     test_pred_probas.append(np.vstack(tmp1))
                     test_pred_1hot.append(np.vstack(tmp2))
                     test_true_1hot.append(np.vstack(tmp3))
             else:
-                self.comm.send([test_pred_probas,test_pred_1hot,test_true_1hot], dest=0)
+                self.comm.send([test_pred_probas, test_pred_1hot, test_true_1hot], dest=0)
 
             self.test_pred_probas = np.vstack(test_pred_probas)
             self.test_pred_1hot = np.vstack(test_pred_1hot)
@@ -1862,25 +1879,25 @@ class Distibuted_MPI:
 
             ## Compute the F1 Score
             self.test_f1_weighted = f1_score(self.test_true_1hot,
-                                                self.test_pred_1hot, average = "weighted")
+                                             self.test_pred_1hot, average="weighted")
             self.test_f1_micro = f1_score(self.test_true_1hot,
-                                                self.test_pred_1hot, average = "micro")
-            if self.rank==0:
+                                          self.test_pred_1hot, average="micro")
+            if self.rank == 0:
                 logger.info("-- Test Results --")
                 logger.info("F1-Score Weighted: {}".format(self.test_f1_weighted))
                 logger.info("F1-Score Micro: {}".format(self.test_f1_micro))
 
             ## Compute_metrics by each label
             self.metrics_values = Metrics().compute_metrics(y_pred=self.test_pred_1hot,
-                                                        y_true=self.test_true_1hot)
-            self.time_testing = time.time()-testing_start
+                                                            y_true=self.test_true_1hot)
+            self.time_testing = time.time() - testing_start
 
             ## Write metrics on testbet directory = self.monitor.testbed_exp
             if self.monitor.write_metrics == True: self.write_metrics()
 
+            sess.close()
+
             return self.test_pred_probas
-
-
 
     def write_metrics(self) -> None:
         """
@@ -1889,21 +1906,21 @@ class Distibuted_MPI:
         metrics_start = time.time()
 
         ## Writes the training and validation track
-        track_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-training_track.txt")
+        track_path = str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-training_track.txt")
         IO_Functions()._write_list(self.training_track, track_path)
 
         ## Writes the Test labels
-        true_1h_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-true_1hot.txt")
+        true_1h_path = str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-true_1hot.txt")
         np.savetxt(true_1h_path, self.test_true_1hot, delimiter=',', fmt='%d')
 
-        pred_1h_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-pred_1hot.txt")
+        pred_1h_path = str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-pred_1hot.txt")
         np.savetxt(pred_1h_path, self.test_pred_1hot, delimiter=',', fmt='%d')
 
-        pred_probas_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-pred_probas.txt")
+        pred_probas_path = str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-pred_probas.txt")
         np.savetxt(pred_probas_path, self.test_pred_probas, delimiter=',', fmt='%f')
 
         ## Writes Summarize Metrics
-        metrics_values_path=str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-metrics_values.txt")
+        metrics_values_path = str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-metrics_values.txt")
         np.savetxt(metrics_values_path, self.metrics_values, delimiter=',', fmt='%d')
 
         ### Add elements to json experiment Description architecture
@@ -1927,21 +1944,20 @@ class Distibuted_MPI:
         ## Add values to results
         eda_json['results']['f1_score_weigted'] = self.test_f1_weighted
         eda_json['results']['f1_score_micro'] = self.test_f1_micro
-        eda_json['results']['loss_validation'] = str(self.min_loss)
+        eda_json['results']['loss_validation'] = str(self.min_valid_loss)
         eda_json['results']['time_latency'] = self.time_latency
         eda_json['results']['time_dataset'] = self.time_dataset
         eda_json['results']['time_training'] = self.time_training
         eda_json['results']['time_convergence'] = self.convergence_time
 
         ## End time metrics
-        self.time_metrics = time.time()-metrics_start
+        self.time_metrics = time.time() - metrics_start
         eda_json['results']['time_metrics'] = self.time_metrics
 
         ## Serialize the eda json and rewrite the file
         eda_json = json.dumps(eda_json, separators=(',', ': '), indent=2)
-        file_path = str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+"-exp_description.json")
+        file_path = str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-exp_description.json")
         IO_Functions()._write_file(eda_json, file_path)
-
 
         ## End computational recording
         self.monitor.end_platform_recording()

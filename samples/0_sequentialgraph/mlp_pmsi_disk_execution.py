@@ -6,10 +6,10 @@ User example for training DiagnoseNET exploiting the disk desktop machine
 import time
 execution_start = time.time()
 
-## Makes diagnosenet library visible in samples folder
+## Makes diagnosenet library visible in samples workspace
 import sys
-file_path = "../../"
-sys.path.append(file_path)
+workspace_path = "../../"
+sys.path.append(workspace_path)
 
 from diagnosenet.datamanager import MultiTask, Batching
 from diagnosenet.layers import Relu, Linear
@@ -45,16 +45,15 @@ mlp_model = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
 data_config_1 = MultiTask(dataset_name="MCP-PMSI",
                         valid_size=0.05, test_size=0.10,
                         batch_size=100,
-                        target_name='Y1188',
+                        target_name='Y11',
                         target_start=0, target_end=14
                         )
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model,
                             datamanager=data_config_1,
-                            monitor=enerGyPU(machine_type="arm", file_path=file_path),
-                            max_epochs=2,
-                            min_loss=0.02)
+                            monitor=enerGyPU(machine_type="arm", file_path=workspace_path),
+                            max_epochs=5, early_stopping=3)
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.training_disk(dataset_name="MCP-PMSI",

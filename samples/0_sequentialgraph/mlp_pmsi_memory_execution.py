@@ -8,8 +8,8 @@ execution_start = time.time()
 
 ## Makes diagnosenet library visible in samples folder
 import sys
-file_path="../../"
-sys.path.append(file_path)
+workspace_path="../../"
+sys.path.append(workspace_path)
 
 from diagnosenet.io_functions import IO_Functions
 from diagnosenet.datamanager import MultiTask
@@ -44,16 +44,15 @@ mlp_model_1 = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config = MultiTask(dataset_name="MCP-PMSI",
                         valid_size=0.05, test_size=0.15,
-                        batch_size=512,
+                        batch_size=250,
                         target_name='Y11',
                         target_start=0, target_end=14)
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = DesktopExecution(model=mlp_model_1,
                             datamanager=data_config,
-                            monitor=enerGyPU(machine_type="arm", file_path=file_path),
-                            max_epochs=20,
-                            min_loss=0.02)
+                            monitor=enerGyPU(machine_type="arm", file_path=workspace_path),
+                            max_epochs=10, early_stopping=5)
 
 ### Read the PMSI-Dataset using Pickle from diagnosenet.io_functions
 X = IO_Functions()._read_file("dataset/patients_features.txt")

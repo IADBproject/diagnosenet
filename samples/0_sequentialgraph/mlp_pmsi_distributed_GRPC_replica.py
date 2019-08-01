@@ -4,20 +4,16 @@ Device replica....
 
 from __future__ import print_function
 import os, sys, socket, time
-
-## Makes diagnosenet library visible in samples folder
 import platform
 
+## Makes diagnosenet library visible into samples workspace
 ON_ASTRO = platform.node().startswith("astro")
-
-import sys
 if ON_ASTRO:
-    file_path = "/home/mpiuser/cloud/0/diagnosenet/"
+    workspace_path = "/home/mpiuser/cloud/0/diagnosenet/"
 else:
-    file_path = "/home/mpiuser/cloud/diagnosenet/"
+    workspace_path = "/home/mpiuser/cloud/diagnosenet/"
 
-#file_path = "../../"
-sys.path.append(file_path)
+sys.path.append(workspace_path)
 
 from diagnosenet.io_functions import IO_Functions
 from diagnosenet.datamanager import MultiTask, Batching
@@ -30,12 +26,10 @@ from diagnosenet.resourcemanager import ResourceManager
 from diagnosenet.monitor import enerGyPU
 
 
-
 def main(argv):
     ## Formating the argv from reseource manager
     for i in range(len(argv)):
         argv[i]=str(argv[i]).replace('[','').replace(']','').replace(',','')
-
 
     ## Formatiing the workers IP to build
     ## a tensorflow cluster in executor class
@@ -84,7 +78,7 @@ def main(argv):
     ## 3) Dataset configurations for splitting, batching and target selection
     data_config_1 = Batching(dataset_name="MCP-PMSI",
                             valid_size=0.05, test_size=0.10,
-                            devices_number=2,
+                            devices_number=4,
                             batch_size=150)
 
     ## 4) Select the computational platform and pass the DNN and Dataset configurations
@@ -95,8 +89,8 @@ def main(argv):
     platform = Distibuted_GRPC(model=mlp_model,
                              datamanager=data_config_1,
                              monitor=enerGyPU(testbed_path=testbed_path,
-                                              machine_type="arm", file_path=file_path),
-                             max_epochs=2, min_loss=0.0002,
+                                              machine_type="arm", file_path=workspace_path),
+                             max_epochs=5, early_stopping=3,
                              ip_ps=argv[2], ip_workers=temp_workers)
 
     ## 5) Uses the platform modes for training in an efficient way
