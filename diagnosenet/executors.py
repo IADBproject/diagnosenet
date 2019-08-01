@@ -1706,7 +1706,7 @@ class Distibuted_MPI:
             epoch_convergence: bin = 0
             while (epoch_convergence == 0):
                 epoch_start = time.time()
-                acc, loss, val_acc, valid_loss = 0, 0, 0, 0
+                acc, train_loss, val_acc, valid_loss = 0, 0, 0, 0
                 update_flag = False
 
                 if self.rank != 0:
@@ -1735,7 +1735,7 @@ class Distibuted_MPI:
                         train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
                                              y_pred=train_pred.astype(np.float), average='micro')
                         acc += train_acc / len(train.input_files)
-                        loss += train_loss / len(train.input_files)
+                        train_loss += train_loss / len(train.input_files)
 
                 if self.rank == 0:
                     weight_collection = []
@@ -1743,13 +1743,13 @@ class Distibuted_MPI:
                         weight_recv, acc_recv, loss_recv = self.comm.recv()
                         weight_collection.append(weight_recv)
                         acc += acc_recv / (self.size - 1)
-                        loss += loss_recv / (self.size - 1)
+                        train_loss += loss_recv / (self.size - 1)
                     average_weights = [np.stack([g[i] for g in weight_collection], axis=0).mean(axis=0) for i in
                                        range(len(weight_collection[0]))]
                     for i in range(1, self.size):
                         self.comm.send(average_weights, dest=i)
                 else:
-                    self.comm.send([grads, acc, loss], dest=0)
+                    self.comm.send([grads, acc, train_loss], dest=0)
                     _weights = self.comm.recv(source=0)
                     feed_dict = {}
                     self.model._gradients = _weights
@@ -1788,10 +1788,11 @@ class Distibuted_MPI:
                     logger.info(
                         "Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
                             epoch,
-                            loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                            train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
                 else:
                     self.comm.send([val_acc, valid_loss], dest=0)
-                self.training_track.append((epoch, loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                self.training_track.append(
+                    (epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
                 epoch = epoch + 1
                 if valid_loss >= self.min_valid_loss and train_loss < self.min_train_loss:
