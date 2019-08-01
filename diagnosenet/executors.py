@@ -1359,7 +1359,7 @@ from mpi4py import MPI
 class Distibuted_MPI:
 
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                 max_epochs: int = 10, early_stopping: int = 5) -> None:
+                 max_epochs: int = 10, early_stopping: int = 3) -> None:
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
@@ -1680,6 +1680,7 @@ class Distibuted_MPI:
             ## Write metrics on testbet directory = self.monitor.testbed_exp
             if self.monitor.write_metrics == True: self.write_metrics()
 
+            sess.close()
             return self.test_pred_probas
 
     def synchronous_training(self, dataset_name: str, dataset_path: str,
@@ -1884,6 +1885,8 @@ class Distibuted_MPI:
 
             ## Write metrics on testbet directory = self.monitor.testbed_exp
             if self.monitor.write_metrics == True: self.write_metrics()
+
+            sess.close()
 
             return self.test_pred_probas
 
