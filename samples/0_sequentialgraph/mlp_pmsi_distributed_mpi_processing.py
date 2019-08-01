@@ -31,6 +31,7 @@ Y3_shape = 5
 
 ## 1) Define the stacked layers as the number of layers and their neurons
 layers = [Relu(X_shape, 1024),
+          Relu(1024, 1024),
           Linear(1024, Y1_shape)]
 
 ## 2) Select the neural network architecture and pass the hyper-parameters
@@ -50,13 +51,12 @@ data_config_1 = Batching(dataset_name="MCP-PMSI",
 platform = Distibuted_MPI(model=mlp_model,
                           datamanager=data_config_1,
                           monitor=enerGyPU(machine_type="arm",file_path=file_path),
-                          max_epochs=20,
-                          min_loss=0.0002)
+                          max_epochs=20)
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.asynchronous_training(dataset_name="MCP-PMSI",
                                dataset_path="dataset/",
-                               inputs_name="patients_features-small.txt",
+                               inputs_name="patients_features.txt",
                                targets_name="medical_targets_Y14.txt")
 
 print("Execution Time: {}".format((time.time() - execution_start)))
