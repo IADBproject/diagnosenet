@@ -685,8 +685,6 @@ class Distibuted_GRPC:
                                          init_op=self.model.init_op)
 
                 with sv.managed_session(self.server.target) as sess:
-
-                    # epoch = 0
                     epoch: int = 0
                     not_update = 0
                     # saver = tf.train.Saver()
@@ -815,7 +813,7 @@ class Distibuted_GRPC:
                     print('-- Done! --')
                 sv.stop()
             sess.close()
-            # print("-- session finish --")
+            ## End asynchronous_training
 
     def write_metrics(self) -> None:
         """
