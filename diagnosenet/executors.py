@@ -170,8 +170,7 @@ class DesktopExecution:
                 epoch_elapsed = (time.time() - epoch_start)
                 logger.info(
                     "Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                        epoch,
-                        train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                        epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 self.training_track.append(
                     (epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
@@ -337,8 +336,7 @@ class DesktopExecution:
                 epoch_elapsed = (time.time() - epoch_start)
                 logger.info(
                     "Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                        epoch,
-                        train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                        epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 self.training_track.append(
                     (epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
@@ -737,8 +735,10 @@ class Distibuted_GRPC:
                                                  y_pred=valid_pred.astype(np.float), average='micro')
 
                         epoch_elapsed = (time.time() - epoch_start)
+
                         logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                         self.training_track.append((epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+
                         epoch = epoch + 1
 
                         ## Early stopping when the validation loss decreases and train loss increases
@@ -1446,10 +1446,11 @@ class Distibuted_MPI:
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
                 if self.rank != 0:
-                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index)
-                else:
                     train, valid, test = self.data.distributed_batching(dataset_name, self.job_name,
                                                                         self.task_index - 1)
+                else:
+                    train, valid, test = self.data.distributed_batching(dataset_name, self.job_name,
+                                                                        self.task_index)
             else:
                 raise AttributeError(
                     "training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
@@ -1497,7 +1498,6 @@ class Distibuted_MPI:
             while (epoch_convergence == 0):
                 epoch_start = time.time()
                 acc, train_loss, val_acc, valid_loss = 0, 0, 0, 0
-
                 if self.rank != 0:
                     for i in range(len(train.input_files)):
                         train_inputs = IO_Functions()._read_file(train.input_files[i])
@@ -1525,8 +1525,8 @@ class Distibuted_MPI:
                         train_loss += train_loss / len(train.input_files)
                 if self.rank == 0:
                     weight_collection = []
-                    weight_recv, acc_recv, loss_recv, epoch_recv = self.comm.recv(source=MPI.ANY_SOURCE,
-                                                                                  status=self.status, tag=0)
+                    weight_recv, epoch_recv = self.comm.recv(source=MPI.ANY_SOURCE,
+                                                             status=self.status, tag=0)
                     # if this is the first epoch, we don't have previous weights
                     if epoch == 0:
                         model_weights = weight_recv
@@ -1538,8 +1538,6 @@ class Distibuted_MPI:
                     if len(master_queue) == self.size - 1:
                         epoch_convergence = 1
                         self.convergence_time = time.time() - training_start
-                    acc = acc_recv
-                    train_loss = loss_recv
                     # compute the weighted average of the gradient
                     average_weights = [np.average(np.stack([g[i] for g in weight_collection], axis=0),
                                                   axis=0,
@@ -1552,7 +1550,7 @@ class Distibuted_MPI:
                     if epoch == self.max_epochs or not_update >= self.early_stopping:
                         epoch_convergence = 1
                         self.max_epochs = epoch
-                    self.comm.send([grads, acc, train_loss, epoch_convergence], dest=0, tag=0)
+                    self.comm.send([grads, epoch_convergence], dest=0, tag=0)
                     _weights = self.comm.recv(source=0, tag=1)
                     feed_dict = {}
                     self.model._gradients = _weights
@@ -1583,17 +1581,11 @@ class Distibuted_MPI:
                         val_acc += valid_acc / len(valid.input_files)
                         valid_loss += valid_loss / len(valid.input_files)
 
-                epoch_elapsed = (time.time() - epoch_start)
-                if self.rank == 0:
-                    val_acc, valid_loss = self.comm.recv(source=MPI.ANY_SOURCE, status=self.status, tag=2)
-                    logger.info("From {} | Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(self.status.Get_source(), epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
-                else:
-                    self.comm.send([val_acc, valid_loss], dest=0, tag=2)
-                self.training_track.append(
-                    (epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                    epoch_elapsed = (time.time() - epoch_start)
+                    logger.info("Worker {} | Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(self.rank, epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                    self.training_track.append((epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
                 epoch = epoch + 1
-
                 ## Early stopping when the validation loss decreases and train loss increases
                 if self.rank != 0:
                     if valid_loss >= self.min_valid_loss and train_loss < self.min_train_loss:
@@ -1608,6 +1600,7 @@ class Distibuted_MPI:
                 self.time_training = time.time() - training_start
                 ## end While loop
 
+                
             # make workers that finished traininig wait for others to finish
             self.comm.Barrier()
             print(self.rank, "finishes training ...")
@@ -1699,7 +1692,7 @@ class Distibuted_MPI:
             epoch_convergence: bin = 0
             while (epoch_convergence == 0):
                 epoch_start = time.time()
-                acc, loss, val_acc, valid_loss = 0, 0, 0, 0
+                acc, train_loss, val_acc, valid_loss = 0, 0, 0, 0
                 update_flag = False
 
                 if self.rank != 0:
@@ -1728,7 +1721,7 @@ class Distibuted_MPI:
                         train_acc = f1_score(y_true=train_batch.targets.astype(np.float),
                                              y_pred=train_pred.astype(np.float), average='micro')
                         acc += train_acc / len(train.input_files)
-                        loss += train_loss / len(train.input_files)
+                        train_loss += train_loss / len(train.input_files)
 
                 if self.rank == 0:
                     weight_collection = []
@@ -1736,13 +1729,13 @@ class Distibuted_MPI:
                         weight_recv, acc_recv, loss_recv = self.comm.recv()
                         weight_collection.append(weight_recv)
                         acc += acc_recv / (self.size - 1)
-                        loss += loss_recv / (self.size - 1)
+                        train_loss += loss_recv / (self.size - 1)
                     average_weights = [np.stack([g[i] for g in weight_collection], axis=0).mean(axis=0) for i in
                                        range(len(weight_collection[0]))]
                     for i in range(1, self.size):
                         self.comm.send(average_weights, dest=i)
                 else:
-                    self.comm.send([grads, acc, loss], dest=0)
+                    self.comm.send([grads, acc, train_loss], dest=0)
                     _weights = self.comm.recv(source=0)
                     feed_dict = {}
                     self.model._gradients = _weights
@@ -1781,7 +1774,8 @@ class Distibuted_MPI:
                     logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
                 else:
                     self.comm.send([val_acc, valid_loss], dest=0)
-                self.training_track.append((epoch, loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                self.training_track.append(
+                    (epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
                 epoch = epoch + 1
 
