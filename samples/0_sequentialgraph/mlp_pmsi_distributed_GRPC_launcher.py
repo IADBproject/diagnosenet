@@ -23,7 +23,7 @@ if sys.argv[1] == "astro":
 else:
     distributed_training.between_graph_replication(device_replica_path="/home/mpiuser/cloud/diagnosenet/samples/0_sequentialgraph/",
                                     device_replica_name="mlp_pmsi_distributed_GRPC_replica.py",
-                                    ip_ps="134.59.132.135", ip_workers="134.59.132.20,134.59.132.21",
-                                    num_ps=1, num_workers=2)
+                                    ip_ps="134.59.132.135", ip_workers="134.59.132.20,134.59.132.21,134.59.132.23,134.59.132.26",
+                                    num_ps=1, num_workers=4)
 
 print("Resource manager execution time: {}".format((time.time()-execution_start)))

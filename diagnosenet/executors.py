@@ -31,11 +31,12 @@ class DesktopExecution:
     """
 
     def __init__(self, model, datamanager: Dataset = None, monitor: enerGyPU = None,
-                 max_epochs: int = 10, min_loss: float = 0.02, early_stopping: int = 5) -> None:
+                 max_epochs: int = 10, early_stopping: int = 3) -> None:
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
-        self.min_loss = min_loss
+        self.min_valid_loss = float("Infinity")
+        self.min_train_loss = float("Infinity")
         self.early_stopping = early_stopping
         self.monitor = monitor
 
@@ -175,24 +176,26 @@ class DesktopExecution:
                 epoch = epoch + 1
 
                 ## record minimum valid loss and its weights
-                if valid_loss <= self.min_loss:
-                    self.min_loss = valid_loss
-                    saver.save(sess, str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-model.ckpt"))
-                    self.convergence_time = time.time() - training_start
-                else:
-                    not_update += 1
+                if valid_loss >= self.min_valid_loss and train_loss < self.min_train_loss:
+                    not_update +=1
+
+                if valid_loss <= self.min_valid_loss:
+                    self.min_valid_loss = valid_loss
+
+                if train_loss <= self.min_train_loss:
+                    self.min_train_loss = train_loss
 
                 ## While Stopping conditional
-                if not_update >= self.early_stopping or epoch == self.max_epochs:
+                if not_update >= self.early_stopping or epoch >= self.max_epochs:
                     epoch_convergence = 1
                     self.max_epochs = epoch
-                    saver.save(sess, str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-model.ckpt"))
-                    self.convergence_time = time.time() - training_start
+                    saver.save(sess,  str(self.monitor.testbed_exp+"/"+self.monitor.exp_id+ "-model.ckpt"))
+                    self.convergence_time = time.time()-training_start
                 else:
                     epoch_convergence = 0
 
+                self.time_training = time.time()-training_start
                 ### end While loop
-            self.time_training = time.time() - training_start
 
             ### Testing Starting
             testing_start = time.time()
@@ -338,14 +341,15 @@ class DesktopExecution:
                     (epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
 
-                ## record minimum valid loss and its weights
-                if valid_loss <= self.min_loss:
-                    self.min_loss = valid_loss
-                    saver.save(sess, str(self.monitor.testbed_exp + "/" + self.monitor.exp_id + "-model.ckpt"))
-                    self.convergence_time = time.time() - training_start
-                    print("update")
-                else:
-                    not_update += 1
+                ## Early stopping when the validation loss decreases and train loss increases
+                if valid_loss >= self.min_valid_loss and train_loss < self.min_train_loss:
+                    not_update +=1
+
+                if valid_loss <= self.min_valid_loss:
+                    self.min_valid_loss = valid_loss
+
+                if train_loss <= self.min_train_loss:
+                    self.min_train_loss = train_loss
 
                 ## While Stopping conditional
                 if not_update >= self.early_stopping or epoch == self.max_epochs:
@@ -356,8 +360,8 @@ class DesktopExecution:
                 else:
                     epoch_convergence = 0
 
+                self.time_training = time.time()-training_start
                 ### end While loop
-            self.time_training = time.time() - training_start
 
             ### Testing Starting
             testing_start = time.time()
@@ -453,7 +457,7 @@ class DesktopExecution:
         ## Add values to results
         eda_json['results']['f1_score_weigted'] = self.test_f1_weighted
         eda_json['results']['f1_score_micro'] = self.test_f1_micro
-        eda_json['results']['loss_validation'] = str(self.min_loss)
+        eda_json['results']['loss_validation'] = str(self.min_valid_loss)
         eda_json['results']['time_latency'] = self.time_latency
         eda_json['results']['time_dataset'] = self.time_dataset
         eda_json['results']['time_training'] = self.time_training
@@ -487,14 +491,15 @@ class Distibuted_GRPC:
     """
 
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
-                 max_epochs: int = 10, min_loss: float = 0.02, early_stopping: int = 5,
-                 ip_ps: str = "localhost:2222",
-                 ip_workers: str = "localhost:2223") -> None:
+                    max_epochs: int = 10, early_stopping: int = 3,
+                    ip_ps: str = "localhost:2222",
+                    ip_workers: str = "localhost:2223") -> None:
 
         self.model = model
         self.data = datamanager
         self.max_epochs = max_epochs
-        self.min_loss = min_loss
+        self.min_valid_loss = float("Infinity")
+        self.min_train_loss = float("Infinity")
         self.early_stopping = early_stopping
         self.monitor = monitor
 
@@ -730,34 +735,34 @@ class Distibuted_GRPC:
                                                  y_pred=valid_pred.astype(np.float), average='micro')
 
                         epoch_elapsed = (time.time() - epoch_start)
-                        logger.info(
-                            "Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                                epoch, train_loss, valid_loss, train_acc, valid_acc,
-                                np.round(epoch_elapsed, decimals=4)))
-                        self.training_track.append(
-                            (epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+
+                        logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                        self.training_track.append((epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
                         epoch = epoch + 1
-                        if valid_loss <= self.min_loss:
-                            self.min_loss = valid_loss
-                            self.convergence_time = time.time() - training_start
-                            update_flag = True
-                        else:
-                            not_update += 1
+
+                        ## Early stopping when the validation loss decreases and train loss increases
+                        if valid_loss >= self.min_valid_loss and train_loss < self.min_train_loss:
+                            not_update +=1
+
+                        if valid_loss <= self.min_valid_loss:
+                            self.min_valid_loss = valid_loss
+
+                        if train_loss <= self.min_train_loss:
+                            self.min_train_loss = train_loss
 
                         ## While Stopping conditional
-                        ##if not_update >= self.early_stopping or epoch == self.max_epochs:
-                        if epoch == self.max_epochs:
-                            self.max_epochs = epoch
+                        if not_update >= self.early_stopping or epoch == self.max_epochs:
+                            self.max_epochs=epoch
                             if self.job_name == 'worker':
                                 epoch_convergence = 1
-                                self.convergence_time = time.time() - training_start
+                                self.convergence_time = time.time()-training_start
                             else:
                                 epoch_convergence = 0
-                                self.convergence_time = time.time() - training_start
+                                self.convergence_time = time.time()-training_start
 
-                        ### end While loop
-                    self.time_training = time.time() - training_start
+                        self.time_training = time.time()-training_start
+                        ## end While loop
 
                     ### Testing Starting
                     testing_start = time.time()
@@ -813,6 +818,7 @@ class Distibuted_GRPC:
             sess.close()
             ## End asynchronous_training
 
+
     def write_metrics(self) -> None:
         """
         Uses Testbed to isolate the training metrics by experiment directory
@@ -860,7 +866,7 @@ class Distibuted_GRPC:
         ## Add values to results
         eda_json['results']['f1_score_weigted'] = self.test_f1_weighted
         eda_json['results']['f1_score_micro'] = self.test_f1_micro
-        eda_json['results']['loss_validation'] = str(self.min_loss)
+        eda_json['results']['loss_validation'] = str(self.min_valid_loss)
         eda_json['results']['time_latency'] = self.time_latency
         eda_json['results']['time_dataset'] = self.time_dataset
         eda_json['results']['time_training'] = self.time_training
@@ -1574,16 +1580,13 @@ class Distibuted_MPI:
                                              y_pred=valid_pred.astype(np.float), average='micro')
                         val_acc += valid_acc / len(valid.input_files)
                         valid_loss += valid_loss / len(valid.input_files)
+
                     epoch_elapsed = (time.time() - epoch_start)
-                    logger.info(
-                        "Worker {} | Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                            self.rank, epoch, train_loss, valid_loss, acc, val_acc,
-                            np.round(epoch_elapsed, decimals=4)))
-                    self.training_track.append(
-                        (epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                    logger.info("Worker {} | Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(self.rank, epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                    self.training_track.append((epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
                 epoch = epoch + 1
-
+                ## Early stopping when the validation loss decreases and train loss increases
                 if self.rank != 0:
                     if valid_loss >= self.min_valid_loss and train_loss < self.min_train_loss:
                         not_update += 1
@@ -1594,9 +1597,10 @@ class Distibuted_MPI:
                     if train_loss <= self.min_train_loss:
                         self.min_train_loss = train_loss
 
-                ### end While loop
-            self.time_training = time.time() - training_start
+                self.time_training = time.time() - training_start
+                ## end While loop
 
+                
             # make workers that finished traininig wait for others to finish
             self.comm.Barrier()
             print(self.rank, "finishes training ...")
@@ -1767,15 +1771,15 @@ class Distibuted_MPI:
                         val_acc_recv, val_loss_recv = self.comm.recv()
                         val_acc += val_acc_recv / (self.size - 1)
                         valid_loss += val_loss_recv / (self.size - 1)
-                    logger.info(
-                        "Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                            epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                    logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
                 else:
                     self.comm.send([val_acc, valid_loss], dest=0)
                 self.training_track.append(
                     (epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
                 epoch = epoch + 1
+
+                ## Early stopping when the validation loss decreases and train loss increases
                 if valid_loss >= self.min_valid_loss and train_loss < self.min_train_loss:
                     not_update += 1
                 if valid_loss <= self.min_valid_loss:
@@ -1784,9 +1788,8 @@ class Distibuted_MPI:
                     update_flag = True
                 if train_loss <= self.min_train_loss:
                     self.min_train_loss = train_loss
-
-                else:
-                    not_update += 1
+                # else:
+                #     not_update += 1
 
                 ## While Stopping conditional
                 if not_update >= self.early_stopping or epoch == self.max_epochs:
@@ -1804,8 +1807,8 @@ class Distibuted_MPI:
                     if update_flag == True:
                         self.best_model_weights = update_weight
 
+                self.time_training = time.time() - training_start
                 ### end While loop
-            self.time_training = time.time() - training_start
 
             ### Testing Starting
             testing_start = time.time()
