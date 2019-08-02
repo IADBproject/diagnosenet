@@ -44,15 +44,15 @@ mlp_model = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
 ## 3) Dataset configurations for splitting, batching and target selection
 data_config_1 = Batching(dataset_name="MCP-PMSI",
                          valid_size=0.05, test_size=0.10,
-                         devices_number=2,
-                         batch_size=100)
+                         devices_number=7,
+                         batch_size=40)
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
 platform = Distibuted_MPI(model=mlp_model,
                           datamanager=data_config_1,
                           monitor=enerGyPU(machine_type="arm",file_path=file_path),
                           max_epochs=20,
-                          early_stopping=1)
+                          early_stopping=3)
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.asynchronous_training(dataset_name="MCP-PMSI",
@@ -60,5 +60,10 @@ platform.asynchronous_training(dataset_name="MCP-PMSI",
                                inputs_name="patients_features.txt",
                                targets_name="medical_targets_Y14.txt",
                                weighting=1)
+
+# platform.synchronous_training(dataset_name="MCP-PMSI",
+#                               dataset_path="dataset/",
+#                               inputs_name="patients_features.txt",
+#                               targets_name="medical_targets_Y14.txt")
 
 print("Execution Time: {}".format((time.time() - execution_start)))

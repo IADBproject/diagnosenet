@@ -1494,7 +1494,6 @@ class Distibuted_MPI:
             while (epoch_convergence == 0):
                 epoch_start = time.time()
                 acc, train_loss, val_acc, valid_loss = 0, 0, 0, 0
-
                 if self.rank != 0:
                     for i in range(len(train.input_files)):
                         train_inputs = IO_Functions()._read_file(train.input_files[i])
@@ -1522,8 +1521,8 @@ class Distibuted_MPI:
                         train_loss += train_loss / len(train.input_files)
                 if self.rank == 0:
                     weight_collection = []
-                    weight_recv, acc_recv, loss_recv, epoch_recv = self.comm.recv(source=MPI.ANY_SOURCE,
-                                                                                  status=self.status, tag=0)
+                    weight_recv, epoch_recv = self.comm.recv(source=MPI.ANY_SOURCE,
+                                                             status=self.status, tag=0)
                     # if this is the first epoch, we don't have previous weights
                     if epoch == 0:
                         model_weights = weight_recv
@@ -1535,8 +1534,6 @@ class Distibuted_MPI:
                     if len(master_queue) == self.size - 1:
                         epoch_convergence = 1
                         self.convergence_time = time.time() - training_start
-                    acc = acc_recv
-                    train_loss = loss_recv
                     # compute the weighted average of the gradient
                     average_weights = [np.average(np.stack([g[i] for g in weight_collection], axis=0),
                                                   axis=0,
@@ -1549,7 +1546,7 @@ class Distibuted_MPI:
                     if epoch == self.max_epochs or not_update >= self.early_stopping:
                         epoch_convergence = 1
                         self.max_epochs = epoch
-                    self.comm.send([grads, acc, train_loss, epoch_convergence], dest=0, tag=0)
+                    self.comm.send([grads, epoch_convergence], dest=0, tag=0)
                     _weights = self.comm.recv(source=0, tag=1)
                     feed_dict = {}
                     self.model._gradients = _weights
@@ -1579,17 +1576,12 @@ class Distibuted_MPI:
                                              y_pred=valid_pred.astype(np.float), average='micro')
                         val_acc += valid_acc / len(valid.input_files)
                         valid_loss += valid_loss / len(valid.input_files)
-
-                epoch_elapsed = (time.time() - epoch_start)
-                if self.rank == 0:
-                    val_acc, valid_loss = self.comm.recv(source=MPI.ANY_SOURCE, status=self.status, tag=2)
+                    epoch_elapsed = (time.time() - epoch_start)
                     logger.info(
-                        "From {} | Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                            self.status.Get_source(), epoch,
+                        "Worker {} | Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
+                            self.rank, epoch,
                             train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
-                else:
-                    self.comm.send([val_acc, valid_loss], dest=0, tag=2)
-                self.training_track.append(
+                    self.training_track.append(
                     (epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
                 epoch = epoch + 1
@@ -1604,15 +1596,6 @@ class Distibuted_MPI:
                     if train_loss <= self.min_train_loss:
                         self.min_train_loss = train_loss
 
-                if self.rank != 0:
-                    if valid_loss <= self.min_valid_loss and train_loss > self.min_train_loss:
-                        overfitting = 1
-                        self.convergence_time = time.time() - training_start
-                    if valid_loss <= self.min_valid_loss:
-                        self.min_valid_loss = valid_loss
-                    if train_loss <= self.min_train_loss:
-                        self.min_train_loss = train_loss
-                        self.best_model_weights = model_weights
                 ### end While loop
             self.time_training = time.time() - training_start
 
