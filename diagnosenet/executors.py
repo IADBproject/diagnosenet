@@ -56,6 +56,13 @@ class DesktopExecution:
         Power and performance monitoring launcher for workload characterization
         """
         latency_start = time.time()
+
+        ## Closing the computing tracks
+        ## End computational recording
+        self.monitor.end_platform_recording()
+        ## End power recording
+        self.monitor.end_power_recording()
+        
         if self.monitor == None:
             self.monitor = enerGyPU(testbed_path="testbed",
                                     machine_type="x86",
@@ -550,6 +557,12 @@ class Distibuted_GRPC:
         Power and performance monitoring launcher for workload characterization
         """
         latency_start = time.time()
+        
+        ## Closing the computing tracks
+        ## End computational recording
+        self.monitor.end_platform_recording()
+        ## End power recording
+        self.monitor.end_power_recording()
 
         if self.monitor == None:
             self.monitor = enerGyPU(testbed_path="testbed",
@@ -1356,8 +1369,6 @@ class MultiGPU:
 
 
 from mpi4py import MPI
-
-
 class Distibuted_MPI:
 
     def __init__(self, model, monitor: enerGyPU = None, datamanager: Dataset = None,
@@ -1401,6 +1412,13 @@ class Distibuted_MPI:
         Power and performance monitoring launcher for workload characterization
         """
         latency_start = time.time()
+        
+        ## Closing the computing tracks
+        ## End computational recording
+        self.monitor.end_platform_recording()
+        ## End power recording
+        self.monitor.end_power_recording()
+        
         if self.monitor == None:
             self.monitor = enerGyPU(testbed_path="testbed",
                                     machine_type="x86",
