@@ -169,8 +169,7 @@ class DesktopExecution:
                 epoch_elapsed = (time.time() - epoch_start)
                 logger.info(
                     "Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                        epoch,
-                        train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                        epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 self.training_track.append(
                     (epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
@@ -334,8 +333,7 @@ class DesktopExecution:
                 epoch_elapsed = (time.time() - epoch_start)
                 logger.info(
                     "Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                        epoch,
-                        train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                        epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 self.training_track.append(
                     (epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                 epoch = epoch + 1
@@ -734,8 +732,8 @@ class Distibuted_GRPC:
                         epoch_elapsed = (time.time() - epoch_start)
                         logger.info(
                             "Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                                epoch,
-                                train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
+                                epoch, train_loss, valid_loss, train_acc, valid_acc,
+                                np.round(epoch_elapsed, decimals=4)))
                         self.training_track.append(
                             (epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
@@ -1446,7 +1444,7 @@ class Distibuted_MPI:
                                                                         self.task_index - 1)
                 else:
                     train, valid, test = self.data.distributed_batching(dataset_name, self.job_name,
-                                                                        self.task_index - 1)
+                                                                        self.task_index)
             else:
                 raise AttributeError(
                     "training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
@@ -1579,10 +1577,10 @@ class Distibuted_MPI:
                     epoch_elapsed = (time.time() - epoch_start)
                     logger.info(
                         "Worker {} | Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                            self.rank, epoch,
-                            train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                            self.rank, epoch, train_loss, valid_loss, acc, val_acc,
+                            np.round(epoch_elapsed, decimals=4)))
                     self.training_track.append(
-                    (epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                        (epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
 
                 epoch = epoch + 1
 
@@ -1771,8 +1769,7 @@ class Distibuted_MPI:
                         valid_loss += val_loss_recv / (self.size - 1)
                     logger.info(
                         "Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(
-                            epoch,
-                            train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                            epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
                 else:
                     self.comm.send([val_acc, valid_loss], dest=0)
                 self.training_track.append(
