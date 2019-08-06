@@ -142,7 +142,7 @@ class Batching(Splitting):
     for each part of the data, Training, Valid, Test
     """
     def __init__(self, dataset_name: str = None,
-                        valid_size: float = None, test_size: float = None, 
+                        valid_size: float = None, test_size: float = None,
                         batch_size: int = 1000, devices_number: int = 1):
         super().__init__(valid_size, test_size)
         self.dataset_name = dataset_name
@@ -201,7 +201,7 @@ class Batching(Splitting):
         IO_Functions()._mkdir_(train_path)
         IO_Functions()._mkdir_(valid_path)
         IO_Functions()._mkdir_(test_path)
-        
+
         if 'list' in str(type(self.train.inputs)):
         ## Writing records in batches
             IO_Functions()._write_batches(train_path, self.train, self.batch_size, self.dataset_name)
@@ -292,6 +292,7 @@ class Batching(Splitting):
 
         ## Get the dataset paths by each worker
         else:
+            print("1111111 train files glob: {}".format(train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*"))
             train_batch_path = BatchPath(
                 sorted(glob.glob(train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
                 sorted(glob.glob(train_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))

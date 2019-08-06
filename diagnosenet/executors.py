@@ -677,7 +677,7 @@ class Distibuted_GRPC:
         config.gpu_options.allow_growth = True
 
         if job_name == "ps":
-            sess = tf.Session(self.server.target, config)
+            sess = tf.Session(self.server.target, config = config)
             queue = self.create_done_queue(self.task_index)
 
             ### Wait intil all workers are done
