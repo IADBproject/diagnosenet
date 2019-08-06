@@ -530,7 +530,7 @@ class Distibuted_GRPC:
         ## Get GPU availeble and set for processing
         self.idgpu = "0"
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = self.idgpu[0]
+        os.environ["CUDA_VISIBLE_DEVICES"] = 0
 
 
     def set_tf_cluster(self, ip_ps, ip_workers) -> tf.Tensor:
