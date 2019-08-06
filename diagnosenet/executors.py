@@ -527,6 +527,12 @@ class Distibuted_GRPC:
         self.processing_mode: str
         self.training_track: list = []
 
+        ## Get GPU availeble and set for processing
+        self.idgpu = "0"
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        os.environ["CUDA_VISIBLE_DEVICES"] = self.idgpu[0]
+
+
     def set_tf_cluster(self, ip_ps, ip_workers) -> tf.Tensor:
         ## splitting the IP hosts
         ip_ps = ip_ps.split(",")
