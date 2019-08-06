@@ -62,7 +62,7 @@ class DesktopExecution:
         self.monitor.end_platform_recording()
         ## End power recording
         self.monitor.end_power_recording()
-        
+
         if self.monitor == None:
             self.monitor = enerGyPU(testbed_path="testbed",
                                     machine_type="x86",
@@ -560,7 +560,7 @@ class Distibuted_GRPC:
         Power and performance monitoring launcher for workload characterization
         """
         latency_start = time.time()
-        
+
         ## Closing the computing tracks
         ## End computational recording
         self.monitor.end_platform_recording()
@@ -667,8 +667,11 @@ class Distibuted_GRPC:
         ### Training Start
         training_start = time.time()
 
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+
         if job_name == "ps":
-            sess = tf.Session(self.server.target)
+            sess = tf.Session(self.server.target, config)
             queue = self.create_done_queue(self.task_index)
 
             ### Wait intil all workers are done
@@ -703,7 +706,7 @@ class Distibuted_GRPC:
                                          global_step=self.model.global_step,
                                          init_op=self.model.init_op)
 
-                with sv.managed_session(self.server.target) as sess:
+                with sv.managed_session(self.server.target, config = config) as sess:
                     epoch: int = 0
                     not_update = 0
                     # saver = tf.train.Saver()
@@ -1415,13 +1418,13 @@ class Distibuted_MPI:
         Power and performance monitoring launcher for workload characterization
         """
         latency_start = time.time()
-        
+
         ## Closing the computing tracks
         ## End computational recording
         self.monitor.end_platform_recording()
         ## End power recording
         self.monitor.end_power_recording()
-        
+
         if self.monitor == None:
             self.monitor = enerGyPU(testbed_path="testbed",
                                     machine_type="x86",
@@ -1621,7 +1624,7 @@ class Distibuted_MPI:
                 self.time_training = time.time() - training_start
                 ## end While loop
 
-                
+
             # make workers that finished traininig wait for others to finish
             self.comm.Barrier()
             print(self.rank, "finishes training ...")
