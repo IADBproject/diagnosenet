@@ -293,7 +293,10 @@ class DesktopExecution:
         ## Generates a Desktop Graph
         self.model.desktop_graph()
 
-        with tf.Session(graph=self.model.graph) as sess:
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+
+        with tf.Session(config=config, graph=self.model.graph) as sess:
             init = tf.group(tf.global_variables_initializer(),
                             tf.local_variables_initializer())
             sess.run(init)
