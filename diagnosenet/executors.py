@@ -622,8 +622,6 @@ class Distibuted_GRPC:
             elif 'Batching' in str(type(self.data)):
                 print("+++++ job_name: {} || index: {}".format(self.job_name, self.task_index))
                 train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index)
-                # train, valid, test = self.data.distributed_batching(1)
-
             else:
                 raise AttributeError(
                     "training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
@@ -654,29 +652,34 @@ class Distibuted_GRPC:
         self.processing_mode = "distributed_GRPC_async_processing"
 
         ## Define the machine rol = input flags
-        ## start a server for a specific task
         self.job_name = job_name
         self.task_index = task_index
-        self.server = tf.train.Server(self.tf_cluster,
-                                      job_name=self.job_name,
-                                      task_index=self.task_index)
+#        self.server = tf.train.Server(self.tf_cluster,
+#                                      job_name=self.job_name,
+#                                      task_index=self.task_index)
 
         ## Set Monitor Recording
         if self.job_name == "worker": self.set_monitor_recording()
 
-        ## Set dataset on memory
+        ## Set dataset on disk
+        logger.info("++++ Set dataset on disk:  {}".format(self.job_name))
         train, valid, test = self.set_dataset_disk(dataset_name, dataset_path, inputs_name, targets_name)
 
-        #print("++++ train: {}".format(train))
+        ## Build a tensorflow server for a job replica task
+        self.server = tf.train.Server(self.tf_cluster,
+                                      job_name=self.job_name,
+                                      task_index=self.task_index)
 
         ### Training Start
         training_start = time.time()
 
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
+        ##config.gpu_options.per_process_gpu_memory_fraction = 0.8
 
-        if job_name == "ps":
-            sess = tf.Session(self.server.target)
+        if self.job_name == "ps":
+
+            sess = tf.Session(self.server.target, config=config)
             queue = self.create_done_queue(self.task_index)
 
             ### Wait intil all workers are done
@@ -692,7 +695,8 @@ class Distibuted_GRPC:
             ## End bandwidth recording
             # self.monitor.end_bandwidth_recording()
 
-        elif job_name == "worker":
+        elif self.job_name == "worker":
+
             ## Generates a distributed graph object from graphs
             with tf.Graph().as_default() as distributed_graph:
                 self.model.distributed_grpc_graph(self.tf_cluster, self.task_index)
@@ -711,18 +715,18 @@ class Distibuted_GRPC:
                                          global_step=self.model.global_step,
                                          init_op=self.model.init_op)
 
-                with sv.managed_session(self.server.target) as sess:
+                with sv.managed_session(self.server.target, config=config) as sess:
                     epoch: int = 0
                     not_update = 0
                     # saver = tf.train.Saver()
                     epoch_convergence: bin = 0
-                    # print("**** epoch_convergence: {}".format(epoch_convergence))
                     while epoch_convergence == 0:  # (epoch < self.max_epochs):
                         epoch_start = time.time()
 
                         for i in range(len(train.input_files)):
                             train_inputs = IO_Functions()._read_file(train.input_files[i])
                             train_targets = IO_Functions()._read_file(train.target_files[i])
+
                             ## Convert list in a numpy matrix
                             train_batch = Dataset()
                             train_batch.set_data_file(train_inputs, train_targets)

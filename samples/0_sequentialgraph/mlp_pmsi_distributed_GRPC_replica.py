@@ -70,7 +70,7 @@ def main(argv):
 
     ## 2) Select the neural network architecture and pass the hyper-parameters
     mlp_model = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
-                            layers=stacked_layers_2,
+                            layers=stacked_layers_3,
                             loss=CrossEntropy,
                             optimizer=Adam(lr=0.001),
                             dropout=0.8)
@@ -79,7 +79,7 @@ def main(argv):
     data_config_1 = Batching(dataset_name="MCP-PMSI",
                             valid_size=0.05, test_size=0.10,
                             devices_number=4,
-                            batch_size=50)
+                            batch_size=10)
 
     ## 4) Select the computational platform and pass the DNN and Dataset configurations
     if ON_ASTRO:
@@ -90,7 +90,7 @@ def main(argv):
                              datamanager=data_config_1,
                              monitor=enerGyPU(testbed_path=testbed_path,
                                               machine_type="arm", file_path=workspace_path),
-                             max_epochs=5, early_stopping=3,
+                             max_epochs=20, early_stopping=3,
                              ip_ps=argv[2], ip_workers=temp_workers)
 
     ## 5) Uses the platform modes for training in an efficient way

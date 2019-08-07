@@ -246,6 +246,7 @@ class Batching(Splitting):
 
         if job_name == 'ps':
 
+            logger.info("+++ job_name: {} || task_index:{} +++".format(job_name, task_index))
             ## Splittting the Dataset
             self.dataset_split()
 
@@ -272,6 +273,8 @@ class Batching(Splitting):
                 test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-"+dataset_name+"-"+str(task_index)+"*.txt")),
                                                sorted(glob.glob(test_path+"/y-"+dataset_name+"-"+str(task_index)+"*.txt")))
 
+                logger.info("+++ job_name: {} || task_index:{} +++".format(job_name, task_index))
+
             ## For data inputs with more than two dimensions
             else:
                 IO_Functions()._write_npy_batches_worker(train_path, self.train, self.devices_number,
@@ -290,8 +293,10 @@ class Batching(Splitting):
                 test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-"+dataset_name+"-"+str(task_index)+"*.npy")),
                                                 sorted(glob.glob(test_path+"/y-"+dataset_name+"-"+str(task_index)+"*.npy")))
 
+
         ## Get the dataset paths by each worker
         else:
+
             logger.info('-- Split path: {} --'.format(self.split_path))
             train_batch_path = BatchPath(
                 sorted(glob.glob(train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "*")),
@@ -302,6 +307,8 @@ class Batching(Splitting):
             test_batch_path = BatchPath(
                 sorted(glob.glob(test_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "*")),
                 sorted(glob.glob(test_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "*")))
+
+            print("+++ job_name: {} || task_index:{} +++".format(job_name, task_index))
 
         return train_batch_path, valid_batch_path, test_batch_path
 
