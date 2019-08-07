@@ -40,7 +40,7 @@ def main(argv):
 
 
     ## PMSI-ICU Dataset shapes
-    X_shape = 14637 #10833	#14637
+    X_shape = 10833	#14637
     y_shape = 381
     Y1_shape = 14
     Y2_shape = 239
@@ -79,7 +79,7 @@ def main(argv):
     data_config_1 = Batching(dataset_name="MCP-PMSI",
                             valid_size=0.05, test_size=0.10,
                             devices_number=4,
-                            batch_size=150)
+                            batch_size=50)
 
     ## 4) Select the computational platform and pass the DNN and Dataset configurations
     if ON_ASTRO:
@@ -97,11 +97,11 @@ def main(argv):
     if ON_ASTRO:
         dataset_path = "/home/mpiuser/cloud/0/diagnosenet/samples/0_sequentialgraph/dataset/"
     else:
-        dataset_path = "/home/mpiuser/cloud/diagnosenet/samples/0_sequentialgraph/dataset/"
+        dataset_path = "/home/mpiuser/cloud/PMSI-Dataset/"
     platform.asynchronous_training(dataset_name="MCP-PMSI",
                                  dataset_path=dataset_path,
-                                 inputs_name="patients_features.txt",
-                                 targets_name="medical_targets_Y14.txt",
+                                 inputs_name="patients_features-full.txt",
+                                 targets_name="medical_targets-full.txt",
                                  job_name=argv[0],
                                  task_index=int(argv[1]))
 

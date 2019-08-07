@@ -292,15 +292,16 @@ class Batching(Splitting):
 
         ## Get the dataset paths by each worker
         else:
+            logger.info('-- Split path: {} --'.format(self.split_path))
             train_batch_path = BatchPath(
-                sorted(glob.glob(train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
-                sorted(glob.glob(train_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
+                sorted(glob.glob(train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "*")),
+                sorted(glob.glob(train_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "*")))
             valid_batch_path = BatchPath(
-                sorted(glob.glob(valid_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
-                sorted(glob.glob(valid_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
+                sorted(glob.glob(valid_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "*")),
+                sorted(glob.glob(valid_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "*")))
             test_batch_path = BatchPath(
-                sorted(glob.glob(test_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
-                sorted(glob.glob(test_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
+                sorted(glob.glob(test_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "*")),
+                sorted(glob.glob(test_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "*")))
 
         return train_batch_path, valid_batch_path, test_batch_path
 

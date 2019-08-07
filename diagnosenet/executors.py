@@ -527,6 +527,13 @@ class Distibuted_GRPC:
         self.processing_mode: str
         self.training_track: list = []
 
+        ## Get GPU availeble and set for processing
+        # self.idgpu = self.monitor._get_available_GPU()
+        self.idgpu = "0"
+        os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+        os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu
+
+
     def set_tf_cluster(self, ip_ps, ip_workers) -> tf.Tensor:
         ## splitting the IP hosts
         ip_ps = ip_ps.split(",")
@@ -613,7 +620,7 @@ class Distibuted_GRPC:
             if 'MultiTask' in str(type(self.data)):
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
-
+                print("+++++ job_name: {} || index: {}".format(self.job_name, self.task_index))
                 train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index)
                 # train, valid, test = self.data.distributed_batching(1)
 
@@ -655,14 +662,12 @@ class Distibuted_GRPC:
                                       task_index=self.task_index)
 
         ## Set Monitor Recording
-        if self.job_name == "worker":
-            self.set_monitor_recording()
-        else:
-            pass
+        if self.job_name == "worker": self.set_monitor_recording()
 
         ## Set dataset on memory
-        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
-                                                   inputs_name, targets_name)
+        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path, inputs_name, targets_name)
+
+        #print("++++ train: {}".format(train))
 
         ### Training Start
         training_start = time.time()
@@ -671,7 +676,7 @@ class Distibuted_GRPC:
         config.gpu_options.allow_growth = True
 
         if job_name == "ps":
-            sess = tf.Session(self.server.target, config)
+            sess = tf.Session(self.server.target)
             queue = self.create_done_queue(self.task_index)
 
             ### Wait intil all workers are done
@@ -706,7 +711,7 @@ class Distibuted_GRPC:
                                          global_step=self.model.global_step,
                                          init_op=self.model.init_op)
 
-                with sv.managed_session(self.server.target, config = config) as sess:
+                with sv.managed_session(self.server.target) as sess:
                     epoch: int = 0
                     not_update = 0
                     # saver = tf.train.Saver()
