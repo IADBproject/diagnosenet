@@ -735,7 +735,7 @@ class Distibuted_GRPC:
                                                      feed_dict={self.model.X: train_batch.inputs,
                                                                 self.model.Y: train_batch.targets,
                                                                 self.model.keep_prob: self.model.dropout})
-
+                            if epoch == 20: print("+++ train_loss: {}".format(train_loss))
                             train_pred = sess.run(self.model.projection_1hot,
                                                   feed_dict={self.model.X: train_batch.inputs,
                                                              self.model.keep_prob: self.model.dropout})
@@ -763,7 +763,6 @@ class Distibuted_GRPC:
                                                  y_pred=valid_pred.astype(np.float), average='micro')
 
                         epoch_elapsed = (time.time() - epoch_start)
-
                         logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                         self.training_track.append((epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
