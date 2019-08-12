@@ -142,8 +142,8 @@ class Batching(Splitting):
     for each part of the data, Training, Valid, Test
     """
     def __init__(self, dataset_name: str = None,
-                        valid_size: float = None, test_size: float = None, 
-                        batch_size: int = 1000, devices_number: int = 1):
+                 valid_size: float = None, test_size: float = None,
+                 batch_size: int = 1000, devices_number: int = 1):
         super().__init__(valid_size, test_size)
         self.dataset_name = dataset_name
         self.batch_size = batch_size
@@ -201,7 +201,7 @@ class Batching(Splitting):
         IO_Functions()._mkdir_(train_path)
         IO_Functions()._mkdir_(valid_path)
         IO_Functions()._mkdir_(test_path)
-        
+
         if 'list' in str(type(self.train.inputs)):
         ## Writing records in batches
             IO_Functions()._write_batches(train_path, self.train, self.batch_size, self.dataset_name)
@@ -238,12 +238,13 @@ class Batching(Splitting):
         output batch path:
         """
         ## Defining split directories
+        print("function entrance")
         self.split_path = str(self.sandbox+"/2_Split_Point-"+str(self.devices_number)+"-"+str(self.batch_size))
         train_path = str(self.split_path+"/data_training/")
         valid_path = str(self.split_path+"/data_valid/")
         test_path = str(self.split_path+"/data_test/")
 
-
+        print("started distributed batching from task, ", task_index)
         if job_name == 'ps':
 
             ## Splittting the Dataset
@@ -274,6 +275,7 @@ class Batching(Splitting):
 
             ## For data inputs with more than two dimensions
             else:
+                print("false test")
                 IO_Functions()._write_npy_batches_worker(train_path, self.train, self.devices_number,
                                                         self.batch_size, self.dataset_name)
                 IO_Functions()._write_npy_batches_worker(valid_path, self.valid, self.devices_number,
@@ -292,6 +294,8 @@ class Batching(Splitting):
 
         ## Get the dataset paths by each worker
         else:
+            print("1111111 train files glob: {}".format(
+                train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*"))
             train_batch_path = BatchPath(
                 sorted(glob.glob(train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
                 sorted(glob.glob(train_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
@@ -301,7 +305,7 @@ class Batching(Splitting):
             test_batch_path = BatchPath(
                 sorted(glob.glob(test_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
                 sorted(glob.glob(test_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
-
+        print("finished the batching of task,", task_index)
         return train_batch_path, valid_batch_path, test_batch_path
 
 
