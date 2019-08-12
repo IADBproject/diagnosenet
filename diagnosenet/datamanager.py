@@ -247,6 +247,7 @@ class Batching(Splitting):
         print("started distributed batching from task, ", task_index)
         if job_name == 'ps':
 
+            logger.info("+++ job_name: {} || task_index:{} +++".format(job_name, task_index))
             ## Splittting the Dataset
             self.dataset_split()
 
@@ -273,6 +274,8 @@ class Batching(Splitting):
                 test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-"+dataset_name+"-"+str(task_index)+"*.txt")),
                                                sorted(glob.glob(test_path+"/y-"+dataset_name+"-"+str(task_index)+"*.txt")))
 
+                logger.info("+++ job_name: {} || task_index:{} +++".format(job_name, task_index))
+
             ## For data inputs with more than two dimensions
             else:
                 print("false test")
@@ -292,20 +295,20 @@ class Batching(Splitting):
                 test_batch_path = BatchPath(sorted(glob.glob(test_path+"/X-"+dataset_name+"-"+str(task_index)+"*.npy")),
                                                 sorted(glob.glob(test_path+"/y-"+dataset_name+"-"+str(task_index)+"*.npy")))
 
+
         ## Get the dataset paths by each worker
         else:
-            print("1111111 train files glob: {}".format(
-                train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*"))
+            logger.info('-- Split path: {} --'.format(self.split_path))
             train_batch_path = BatchPath(
-                sorted(glob.glob(train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
-                sorted(glob.glob(train_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
+                sorted(glob.glob(train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "*")),
+                sorted(glob.glob(train_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "*")))
             valid_batch_path = BatchPath(
-                sorted(glob.glob(valid_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
-                sorted(glob.glob(valid_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
+                sorted(glob.glob(valid_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "*")),
+                sorted(glob.glob(valid_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "*")))
             test_batch_path = BatchPath(
-                sorted(glob.glob(test_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
-                sorted(glob.glob(test_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
-        print("finished the batching of task,", task_index)
+                sorted(glob.glob(test_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "*")),
+                sorted(glob.glob(test_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "*")))
+            
         return train_batch_path, valid_batch_path, test_batch_path
 
 

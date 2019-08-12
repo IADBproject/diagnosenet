@@ -528,10 +528,10 @@ class Distibuted_GRPC:
         self.training_track: list = []
 
         ## Get GPU availeble and set for processing
+        # self.idgpu = self.monitor._get_available_GPU()
         self.idgpu = "0"
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = self.idgpu
-
+        os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+        os.environ["CUDA_VISIBLE_DEVICES"]=self.idgpu
 
     def set_tf_cluster(self, ip_ps, ip_workers) -> tf.Tensor:
         ## splitting the IP hosts
@@ -619,10 +619,8 @@ class Distibuted_GRPC:
             if 'MultiTask' in str(type(self.data)):
                 train, valid, test = self.data.disk_one_target()
             elif 'Batching' in str(type(self.data)):
-
+                print("+++++ job_name: {} || index: {}".format(self.job_name, self.task_index))
                 train, valid, test = self.data.distributed_batching(dataset_name, self.job_name, self.task_index)
-                # train, valid, test = self.data.distributed_batching(1)
-
             else:
                 raise AttributeError(
                     "training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
@@ -653,30 +651,32 @@ class Distibuted_GRPC:
         self.processing_mode = "distributed_GRPC_async_processing"
 
         ## Define the machine rol = input flags
-        ## start a server for a specific task
         self.job_name = job_name
         self.task_index = task_index
+#        self.server = tf.train.Server(self.tf_cluster,
+#                                      job_name=self.job_name,
+#                                      task_index=self.task_index)
+
+        ## Set Monitor Recording
+        if self.job_name == "worker": self.set_monitor_recording()
+
+        ## Set dataset on disk
+        logger.info("++++ Set dataset on disk:  {}".format(self.job_name))
+        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path, inputs_name, targets_name)
+
+        ## Build a tensorflow server for a job replica task
         self.server = tf.train.Server(self.tf_cluster,
                                       job_name=self.job_name,
                                       task_index=self.task_index)
-
-        ## Set Monitor Recording
-        if self.job_name == "worker":
-            self.set_monitor_recording()
-        else:
-            pass
-
-        ## Set dataset on memory
-        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
-                                                   inputs_name, targets_name)
 
         ### Training Start
         training_start = time.time()
 
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
+        ##config.gpu_options.per_process_gpu_memory_fraction = 0.8
 
-        if job_name == "ps":
+        if self.job_name == "ps":
             sess = tf.Session(self.server.target, config=config)
             queue = self.create_done_queue(self.task_index)
 
@@ -693,7 +693,8 @@ class Distibuted_GRPC:
             ## End bandwidth recording
             # self.monitor.end_bandwidth_recording()
 
-        elif job_name == "worker":
+        elif self.job_name == "worker":
+
             ## Generates a distributed graph object from graphs
             with tf.Graph().as_default() as distributed_graph:
                 self.model.distributed_grpc_graph(self.tf_cluster, self.task_index)
@@ -717,13 +718,13 @@ class Distibuted_GRPC:
                     not_update = 0
                     # saver = tf.train.Saver()
                     epoch_convergence: bin = 0
-                    # print("**** epoch_convergence: {}".format(epoch_convergence))
                     while epoch_convergence == 0:  # (epoch < self.max_epochs):
                         epoch_start = time.time()
 
                         for i in range(len(train.input_files)):
                             train_inputs = IO_Functions()._read_file(train.input_files[i])
                             train_targets = IO_Functions()._read_file(train.target_files[i])
+
                             ## Convert list in a numpy matrix
                             train_batch = Dataset()
                             train_batch.set_data_file(train_inputs, train_targets)
@@ -732,7 +733,7 @@ class Distibuted_GRPC:
                                                      feed_dict={self.model.X: train_batch.inputs,
                                                                 self.model.Y: train_batch.targets,
                                                                 self.model.keep_prob: self.model.dropout})
-
+                            if epoch == 20: print("+++ train_loss: {}".format(train_loss))
                             train_pred = sess.run(self.model.projection_1hot,
                                                   feed_dict={self.model.X: train_batch.inputs,
                                                              self.model.keep_prob: self.model.dropout})
@@ -760,7 +761,6 @@ class Distibuted_GRPC:
                                                  y_pred=valid_pred.astype(np.float), average='micro')
 
                         epoch_elapsed = (time.time() - epoch_start)
-
                         logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
                         self.training_track.append((epoch, train_loss, valid_loss, train_acc, valid_acc, np.round(epoch_elapsed, decimals=4)))
 
