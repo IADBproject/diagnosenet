@@ -1478,9 +1478,12 @@ class Distibuted_MPI:
                 if self.rank != 0:
                     train, valid, test = self.data.distributed_batching(dataset_name, self.job_name,
                                                                         self.task_index - 1)
+                    print("done batching from workers")
                 else:
+                    print("before entering batching")
                     train, valid, test = self.data.distributed_batching(dataset_name, self.job_name,
                                                                         self.task_index)
+                    print("done batching from master")
             else:
                 raise AttributeError(
                     "training_disk() requires a datamanager class type, gives: {}".format(str(type(self.data))))
@@ -1506,18 +1509,25 @@ class Distibuted_MPI:
         else:
             worker_batching = None
         worker_batching = self.comm.bcast(worker_batching, root=0)
-        ## Each worker read their dataset proportion
-        if worker_batching == 1:
-            train, valid, test = self.set_dataset_disk(dataset_name, dataset_path, inputs_name, targets_name)
-
+        if self.rank != 0:
+            print(self.rank, "this is worker batching variable value", worker_batching)
+            ## Each worker read their dataset proportion
+            if worker_batching == 1:
+                train, valid, test = self.set_dataset_disk(dataset_name, dataset_path, inputs_name, targets_name)
+        
+        self.comm.Barrier()
+        print("finishes batching, now starting training....")
         training_start = time.time()
         self.model.distributed_mpi_graph()
 
         config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        with tf.Session(config=config, graph=self.model.graph) as sess:
+#        config.gpu_options.allow_growth = True
+        config.gpu_options.per_process_gpu_memory_fraction = 0.8
+        with tf.Session(graph=self.model.graph, config=config) as sess:
             init = tf.group(tf.global_variables_initializer(),
                             tf.local_variables_initializer())
+
+            logger.info("++++++ Session init for {} +++++++".format(self.rank))
             sess.run(init)
             epoch: int = 0
             not_update = 0
@@ -1622,6 +1632,7 @@ class Distibuted_MPI:
                         not_update += 1
                     if valid_loss <= self.min_valid_loss:
                         self.best_model_weights = model_weights
+                        not_update = 0
                         self.min_valid_loss = valid_loss
                         self.convergence_time = time.time() - training_start
                     if train_loss <= self.min_train_loss:
@@ -1704,14 +1715,27 @@ class Distibuted_MPI:
         ## Set Monitor Recording
         self.set_monitor_recording()
         ## Set dataset on disk
-        train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
-                                                   inputs_name, targets_name)
+        ## Master split and batch the dataset by worker
+        if self.rank == 0:
+            train, valid, test = self.set_dataset_disk(dataset_name, dataset_path,
+                                                       inputs_name, targets_name)
+            worker_batching = 1
+        else:
+            worker_batching = None
+        worker_batching = self.comm.bcast(worker_batching, root=0)
+        if self.rank != 0:
+            #print(self.rank, "this is worker batching variable value", worker_batching)
+            ## Each worker read their dataset proportion
+            if worker_batching == 1:
+                train, valid, test = self.set_dataset_disk(dataset_name, dataset_path, inputs_name, targets_name)
+        self.comm.Barrier()
 
         training_start = time.time()
         self.model.distributed_mpi_graph()
 
         config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
+        #config.gpu_options.allow_growth = True
+        config.gpu_options.per_process_gpu_memory_fraction = 0.8
         with tf.Session(config=config, graph=self.model.graph) as sess:
             init = tf.group(tf.global_variables_initializer(),
                             tf.local_variables_initializer())
@@ -1801,7 +1825,7 @@ class Distibuted_MPI:
                         val_acc_recv, val_loss_recv = self.comm.recv()
                         val_acc += val_acc_recv / (self.size - 1)
                         valid_loss += val_loss_recv / (self.size - 1)
-                    logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
+                    logger.info("Epoch {} | Train loss: {} |  Valid loss: {} | Train Acc: {} | Valid Acc: {} | Epoch_Time: {}".format(epoch, train_loss, valid_loss, acc, val_acc, np.round(epoch_elapsed, decimals=4)))
                 else:
                     self.comm.send([val_acc, valid_loss], dest=0)
                 self.training_track.append(

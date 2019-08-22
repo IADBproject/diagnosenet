@@ -54,7 +54,6 @@ class Dataset:
                 self.targets = np.asarray(self.targets[0].str.split(',').tolist())
             else:
                 raise AttributeError("set_data_file(inputs, targets) requires: numpy, pandas or list ")
-
     def set_data_path(self, dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> None:
         self.dataset_name = dataset_name
@@ -78,6 +77,9 @@ class Dataset:
 
         if os.path.isfile(self.targets_path[0]):
             self.targets = IO_Functions()._read_file(self.targets_path[0])
+            # if the targets are unidimensional, convert them into 1-Hot encoding
+            if self.targets.ndim == 1:
+                self.targets = pd.get_dummies(self.targets).values
         else:
             raise NameError("targets_path not localized: {}".format(self.targets_path))
 
@@ -238,12 +240,13 @@ class Batching(Splitting):
         output batch path:
         """
         ## Defining split directories
+        print("function entrance")
         self.split_path = str(self.sandbox+"/2_Split_Point-"+str(self.devices_number)+"-"+str(self.batch_size))
         train_path = str(self.split_path+"/data_training/")
         valid_path = str(self.split_path+"/data_valid/")
         test_path = str(self.split_path+"/data_test/")
 
-
+        print("started distributed batching from task, ", task_index)
         if job_name == 'ps':
 
             ## Splittting the Dataset
@@ -292,7 +295,6 @@ class Batching(Splitting):
 
         ## Get the dataset paths by each worker
         else:
-            print("1111111 train files glob: {}".format(train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*"))
             train_batch_path = BatchPath(
                 sorted(glob.glob(train_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
                 sorted(glob.glob(train_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
@@ -302,7 +304,6 @@ class Batching(Splitting):
             test_batch_path = BatchPath(
                 sorted(glob.glob(test_path + "/X-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")),
                 sorted(glob.glob(test_path + "/y-" + dataset_name + "-" + str(int(task_index) + 1) + "-*")))
-
         return train_batch_path, valid_batch_path, test_batch_path
 
 
