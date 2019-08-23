@@ -54,7 +54,6 @@ class Dataset:
                 self.targets = np.asarray(self.targets[0].str.split(',').tolist())
             else:
                 raise AttributeError("set_data_file(inputs, targets) requires: numpy, pandas or list ")
-
     def set_data_path(self, dataset_name: str, dataset_path: str,
                         inputs_name: str, targets_name: str) -> None:
         self.dataset_name = dataset_name
@@ -78,6 +77,9 @@ class Dataset:
 
         if os.path.isfile(self.targets_path[0]):
             self.targets = IO_Functions()._read_file(self.targets_path[0])
+            # if the targets are unidimensional, convert them into 1-Hot encoding
+            if self.targets.ndim == 1:
+                self.targets = pd.get_dummies(self.targets).values
         else:
             raise NameError("targets_path not localized: {}".format(self.targets_path))
 
@@ -142,8 +144,8 @@ class Batching(Splitting):
     for each part of the data, Training, Valid, Test
     """
     def __init__(self, dataset_name: str = None,
-                 valid_size: float = None, test_size: float = None,
-                 batch_size: int = 1000, devices_number: int = 1):
+                        valid_size: float = None, test_size: float = None,
+                        batch_size: int = 1000, devices_number: int = 1):
         super().__init__(valid_size, test_size)
         self.dataset_name = dataset_name
         self.batch_size = batch_size
