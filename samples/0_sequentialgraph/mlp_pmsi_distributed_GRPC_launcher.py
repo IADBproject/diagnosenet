@@ -18,8 +18,10 @@ distributed_training = ResourceManager()
 if sys.argv[1] == "astro":
     distributed_training.between_graph_replication(device_replica_path="/home/mpiuser/cloud/0/diagnosenet/samples/0_sequentialgraph/",
                                     device_replica_name="mlp_pmsi_distributed_GRPC_replica.py",
-                                    ip_ps="astro0", ip_workers=",".join(["astro{}".format(i) for i in range(1, 3)]),
-                                    num_ps=1, num_workers=2)
+
+                                    #ip_ps="astro0", ip_workers=",".join(["astro{}".format(i) for i in range(1, 5)]),
+                                    ip_ps="134.59.132.161", ip_workers="134.59.132.166,134.59.132.168,134.59.132.170,134.59.132.173",
+                                    num_ps=1, num_workers=4)
 else:
     distributed_training.between_graph_replication(device_replica_path="/home/mpiuser/cloud/diagnosenet/samples/0_sequentialgraph/",
                                     device_replica_name="mlp_pmsi_distributed_GRPC_replica.py",
