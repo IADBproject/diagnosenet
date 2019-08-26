@@ -78,8 +78,8 @@ class Dataset:
         if os.path.isfile(self.targets_path[0]):
             self.targets = IO_Functions()._read_file(self.targets_path[0])
             # if the targets are unidimensional, convert them into 1-Hot encoding
-            if self.targets.ndim == 1:
-                self.targets = pd.get_dummies(self.targets).values
+            #if self.targets.ndim == 1:
+            #    self.targets = pd.get_dummies(self.targets).values
         else:
             raise NameError("targets_path not localized: {}".format(self.targets_path))
 
