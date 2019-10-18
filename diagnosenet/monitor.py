@@ -305,8 +305,10 @@ class enerGyPU(Testbed):
         if self.machine_type=="x86":
             self.proc_platform = sp.Popen(["python3.6", str(self.file_path+"enerGyPU/dataCapture/platform_record.py"),
                                 str(pid), self.testbed_exp, self.exp_id])
-        #else:
-        #    print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+        elif self.machine_type=="arm":
+            pass
+        else:
+            print("!! Monitor: Don't launched traking scrip !!")
 
     def end_platform_recording(self) -> None:
         """
@@ -314,8 +316,10 @@ class enerGyPU(Testbed):
         """
         if self.machine_type=="x86":
             self.proc_platform.kill()
-        #else:
-        #    print("++ Monitor-Issue: Don't launched traking scrip on {} ++".format(self.machine_type))
+        elif self.machine_type=="arm":
+            pass
+        else:
+            print("!! Monitor: Don't launched traking scrip !!")
 
 
     def start_bandwidth_recording(self, ip_host) -> None:
