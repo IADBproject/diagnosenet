@@ -1,5 +1,4 @@
 """
-Medical Care Purpose Classification for PMSI-ICU Dataset
 User example for training DiagnoseNET exploiting the disk desktop machine
 """
 
@@ -28,15 +27,42 @@ Y2_shape = 239
 Y3_shape = 5
 
 ## 1) Define the stacked layers as the number of layers and their neurons
-layers = [Relu(X_shape, 2048),
-            Relu(2048, 2048),
-            Relu(2048, 1024),
-            Relu(1024, 1024),
-            Linear(1024, Y1_shape)]
+sl_1 = 			[Relu(X_shape, 1024),
+				Relu(1024, 1024),
+                Linear(1024, Y1_shape)]
+
+sl_2 = 			[Relu(X_shape, 512),
+                Relu(512, 512),
+                Relu(512, 512),
+                Relu(512, 512),
+                Linear(512, Y1_shape)]
+
+sl_3 = 			[Relu(X_shape, 256),
+                Relu(256, 256),
+                Relu(256, 256),
+                Relu(256, 256),
+                Relu(256, 256),
+                Relu(256, 256),
+                Relu(256, 256),
+                Relu(256, 256),
+                Linear(256, Y1_shape)]
+
 
 ## 2) Select the neural network architecture and pass the hyper-parameters
-mlp_model = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
-                            layers=layers,
+model_1 = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
+                            layers=sl_1,
+                            loss=CrossEntropy,
+                            optimizer=Adam(lr=0.001),
+                            dropout=0.8)
+
+model_2 = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
+                            layers=sl_2,
+                            loss=CrossEntropy,
+                            optimizer=Adam(lr=0.001),
+                            dropout=0.8)
+
+model_3 = SequentialGraph(input_size=X_shape, output_size=Y1_shape,
+                            layers=sl_3,
                             loss=CrossEntropy,
                             optimizer=Adam(lr=0.001),
                             dropout=0.8)
@@ -50,10 +76,10 @@ data_config_1 = MultiTask(dataset_name="MCP-PMSI",
                         )
 
 ## 4) Select the computational platform and pass the DNN and Dataset configurations
-platform = DesktopExecution(model=mlp_model,
+platform = DesktopExecution(model=model_1,
                             datamanager=data_config_1,
-                            monitor=enerGyPU(machine_type="arm", file_path=workspace_path),
-                            max_epochs=5, early_stopping=3)
+                            monitor=enerGyPU(machine_type="x86", file_path=workspace_path),
+                            max_epochs=20, early_stopping=5)
 
 ## 5) Uses the platform modes for training in an efficient way
 platform.training_disk(dataset_name="MCP-PMSI",
