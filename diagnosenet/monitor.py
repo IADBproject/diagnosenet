@@ -315,7 +315,8 @@ class enerGyPU(Testbed):
         Send signal to kill platform recording process
         """
         if self.machine_type=="x86":
-            self.proc_platform.kill()
+            #self.proc_platform.kill()
+            pass
         elif self.machine_type=="arm":
             pass
         else:
